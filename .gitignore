@@ -1,0 +1,62 @@
+# Build outputs
+bin/
+obj/
+artifacts/
+publish/
+dist/
+builds/
+packages/
+release-local/
+
+# Local probes and packaging scratch
+_size_probe/
+_scratch/
+_output/
+_*/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+logs/
+
+# OS files
+Thumbs.db
+Desktop.ini
+
+# Python sidecar
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+
+# Model and runtime caches
+.cache/
+models/
+runtime/
+
+# Local app data snapshots
+temp/
+tmp/
+
+# Local development parameters
+.env
+.env.*
+*.local
+*.local.json
+*.dev.json
+settings.json
+settings.*.json
+appsettings.local.json
+appsettings.development.json
+local/

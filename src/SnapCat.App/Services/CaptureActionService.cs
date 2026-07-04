@@ -1,0 +1,293 @@
+using System.IO;
+using System.Windows;
+using System.Windows.Media.Imaging;
+using SnapCat.App.Windows;
+using SnapCat.Core.Models;
+using SnapCat.Core.Services;
+using Clipboard = System.Windows.Clipboard;
+using WpfMessageBox = System.Windows.MessageBox;
+
+namespace SnapCat.App.Services;
+
+public sealed class CaptureActionService
+{
+    private readonly IOcrService _ocrService;
+    private readonly ITranslationService _translationService;
+    private readonly IQrCodeService _qrCodeService;
+    private readonly IHistoryStore _historyStore;
+    private readonly CapturedImageFileService _fileService;
+    private TranslationPopupWindow? _translationPopupWindow;
+
+    public CaptureActionService(
+        IOcrService ocrService,
+        ITranslationService translationService,
+        IQrCodeService qrCodeService,
+        IHistoryStore historyStore,
+        CapturedImageFileService fileService)
+    {
+        _ocrService = ocrService;
+        _translationService = translationService;
+        _qrCodeService = qrCodeService;
+        _historyStore = historyStore;
+        _fileService = fileService;
+    }
+
+    public async Task<string> ExecuteAsync(
+        CaptureActionKind action,
+        string imagePath,
+        AppSettings settings,
+        Window? owner = null,
+        Int32Rect? captureRegion = null,
+        Func<Task>? repeatCaptureAction = null)
+    {
+        return action switch
+        {
+            CaptureActionKind.PinToScreen => ExecutePinToScreen(imagePath, settings, captureRegion),
+            CaptureActionKind.OcrOnly => await ExecuteOcrOnlyAsync(imagePath, settings, owner),
+            CaptureActionKind.OcrAndTranslate => await ExecuteOcrAndTranslateAsync(imagePath, settings, owner, captureRegion, repeatCaptureAction),
+            CaptureActionKind.QrCode => await ExecuteQrCodeAsync(imagePath, owner),
+            CaptureActionKind.CopyImage => ExecuteCopyImage(imagePath),
+            CaptureActionKind.Save => ExecuteSave(imagePath, owner),
+            CaptureActionKind.SaveAs => ExecuteSaveAs(imagePath, owner),
+            _ => "已取消操作。"
+        };
+    }
+
+    public bool TemporarilyHideActiveTranslationPopup()
+    {
+        if (_translationPopupWindow is null || !_translationPopupWindow.IsVisible)
+        {
+            return false;
+        }
+
+        _translationPopupWindow.Hide();
+        return true;
+    }
+
+    public void RestoreActiveTranslationPopup()
+    {
+        if (_translationPopupWindow is null || _translationPopupWindow.IsVisible)
+        {
+            return;
+        }
+
+        _translationPopupWindow.Show();
+        _translationPopupWindow.Activate();
+    }
+
+    private string ExecutePinToScreen(string imagePath, AppSettings settings, Int32Rect? captureRegion)
+    {
+        var pinnedWindow = new PinnedImageWindow(
+            imagePath,
+            TranslationLanguageHelper.CloneSettings(settings),
+            captureRegion);
+        pinnedWindow.Show();
+
+        _historyStore.AppendAsync(new CaptureTranslationRecord
+        {
+            WorkflowType = "pin",
+            ImagePath = imagePath
+        }).ConfigureAwait(false);
+
+        return "截图已固定到屏幕。";
+    }
+
+    private async Task<string> ExecuteOcrOnlyAsync(string imagePath, AppSettings settings, Window? owner)
+    {
+        var ocrResult = await _ocrService.RecognizeAsync(imagePath, settings);
+        await _historyStore.AppendAsync(new CaptureTranslationRecord
+        {
+            WorkflowType = "ocr",
+            ImagePath = imagePath,
+            SourceText = ocrResult.Text,
+            OcrError = ocrResult.ErrorMessage,
+            OcrDebugInfo = ocrResult.DebugSummary
+        });
+
+        var status = ocrResult.Success ? "OCR 文本识别已完成。" : $"OCR 识别失败：{ocrResult.ErrorMessage}";
+        var resultWindow = new ResultWindow(
+            "OCR 文本识别结果",
+            status,
+            "OCR 文本",
+            ocrResult.Success ? ocrResult.Text : ocrResult.ErrorMessage,
+            "截图路径",
+            imagePath,
+            ocrResult.DebugSummary,
+            imagePath: imagePath)
+        {
+            Owner = owner
+        };
+        resultWindow.ShowDialog();
+
+        return status;
+    }
+
+    private async Task<string> ExecuteOcrAndTranslateAsync(
+        string imagePath,
+        AppSettings settings,
+        Window? owner,
+        Int32Rect? captureRegion,
+        Func<Task>? repeatCaptureAction)
+    {
+        var isReusingPopup = _translationPopupWindow is not null;
+        var popupWindow = GetOrCreateTranslationPopupWindow(owner);
+        popupWindow.PrepareForReuse(
+            "OCR 识别并翻译",
+            TranslationLanguageHelper.CloneSettings(settings),
+            captureRegion,
+            repeatCaptureAction,
+            preserveCurrentPosition: isReusingPopup);
+        popupWindow.SetBusyState("正在识别文本...");
+        popupWindow.Show();
+        popupWindow.Activate();
+
+        var ocrResult = await _ocrService.RecognizeAsync(imagePath, settings);
+        popupWindow.UpdateRecognizedSource(
+            ocrResult.Success ? ocrResult.Text : ocrResult.ErrorMessage,
+            ocrResult.Success ? "正在翻译..." : $"OCR 识别失败：{ocrResult.ErrorMessage}");
+
+        var effectiveSettings = TranslationLanguageHelper.BuildSettingsForTranslation(settings, ocrResult.Text);
+        var translationResult = ocrResult.Success
+            ? await _translationService.TranslateAsync(ocrResult.Text, effectiveSettings)
+            : TranslationResult.FromError("OCR 未成功，已跳过翻译。");
+
+        await _historyStore.AppendAsync(new CaptureTranslationRecord
+        {
+            WorkflowType = "ocr-translate",
+            ImagePath = imagePath,
+            SourceText = ocrResult.Text,
+            TranslatedText = translationResult.Text,
+            OcrError = ocrResult.ErrorMessage,
+            OcrDebugInfo = ocrResult.DebugSummary,
+            TranslationError = translationResult.ErrorMessage
+        });
+
+        var status = BuildTranslateStatus(ocrResult, translationResult);
+        if (translationResult.Success)
+        {
+            popupWindow.UpdateTranslationResult(translationResult.Text, status);
+        }
+        else
+        {
+            popupWindow.UpdateFailure(status, translationResult.ErrorMessage);
+        }
+
+        return status;
+    }
+
+    private TranslationPopupWindow GetOrCreateTranslationPopupWindow(Window? owner)
+    {
+        if (_translationPopupWindow is not null)
+        {
+            return _translationPopupWindow;
+        }
+
+        var popupWindow = new TranslationPopupWindow(
+            "OCR 识别并翻译",
+            "正在识别文本...",
+            string.Empty,
+            string.Empty,
+            new AppSettings(),
+            null,
+            owner,
+            null);
+
+        popupWindow.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_translationPopupWindow, popupWindow))
+            {
+                _translationPopupWindow = null;
+            }
+        };
+
+        _translationPopupWindow = popupWindow;
+        return popupWindow;
+    }
+
+    private async Task<string> ExecuteQrCodeAsync(string imagePath, Window? owner)
+    {
+        var qrResult = await _qrCodeService.DecodeAsync(imagePath);
+        await _historyStore.AppendAsync(new CaptureTranslationRecord
+        {
+            WorkflowType = "qr",
+            ImagePath = imagePath,
+            QrCodeText = qrResult.Text,
+            OcrError = qrResult.ErrorMessage
+        });
+
+        var status = qrResult.Success ? "二维码识别已完成。" : $"二维码识别失败：{qrResult.ErrorMessage}";
+        var resultWindow = new ResultWindow(
+            "二维码识别结果",
+            status,
+            "二维码内容",
+            qrResult.Success ? qrResult.Text : qrResult.ErrorMessage,
+            "截图路径",
+            imagePath,
+            imagePath: imagePath)
+        {
+            Owner = owner
+        };
+        resultWindow.ShowDialog();
+
+        return status;
+    }
+
+    private string ExecuteCopyImage(string imagePath)
+    {
+        if (!File.Exists(imagePath))
+        {
+            return "复制失败：截图文件不存在。";
+        }
+
+        try
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.UriSource = new Uri(imagePath);
+            bitmap.EndInit();
+            bitmap.Freeze();
+
+            Clipboard.SetImage(bitmap);
+            return "截图已复制到剪贴板。";
+        }
+        catch (Exception ex)
+        {
+            return $"复制失败：{ex.Message}";
+        }
+    }
+
+    private string ExecuteSave(string imagePath, Window? owner)
+    {
+        var savedPath = _fileService.SaveToDefaultDirectory(imagePath);
+        WpfMessageBox.Show(owner, $"已保存到：\n{savedPath}", "保存成功");
+        return $"已保存到默认目录：{savedPath}";
+    }
+
+    private string ExecuteSaveAs(string imagePath, Window? owner)
+    {
+        var savedPath = _fileService.SaveAs(imagePath);
+        if (string.IsNullOrWhiteSpace(savedPath))
+        {
+            return "已取消另存为。";
+        }
+
+        WpfMessageBox.Show(owner, $"已保存到：\n{savedPath}", "另存为成功");
+        return $"已另存为：{savedPath}";
+    }
+
+    private static string BuildTranslateStatus(OcrResult ocrResult, TranslationResult translationResult)
+    {
+        if (ocrResult.Success && translationResult.Success)
+        {
+            return "OCR 和翻译已完成。";
+        }
+
+        if (!ocrResult.Success)
+        {
+            return $"OCR 识别失败：{ocrResult.ErrorMessage}";
+        }
+
+        return $"翻译失败：{translationResult.ErrorMessage}";
+    }
+}

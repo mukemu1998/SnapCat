@@ -1,0 +1,509 @@
+<Window x:Class="SnapCat.App.Windows.TranslationPopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="翻译结果"
+        Width="480"
+        MinWidth="400"
+        MinHeight="270"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        SizeToContent="Height"
+        SnapsToDevicePixels="True"
+        Topmost="True"
+        UseLayoutRounding="True"
+        WindowStyle="None">
+    <Window.Resources>
+        <DataTemplate x:Key="LanguageOptionTemplate">
+            <TextBlock Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                       Text="{Binding Label}" />
+        </DataTemplate>
+
+        <Style x:Key="PopupThumbStyle" TargetType="Thumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Margin="1"
+                                Background="{DynamicResource Theme.Brush.ScrollThumb}"
+                                CornerRadius="4" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PopupScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.ScrollTrack}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Border Background="{DynamicResource Theme.Brush.ScrollTrack}"
+                                CornerRadius="4">
+                            <Track x:Name="PART_Track"
+                                   IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand"
+                                                  Focusable="False"
+                                                  Opacity="0" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource PopupThumbStyle}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand"
+                                                  Focusable="False"
+                                                  Opacity="0" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter Property="Height" Value="8" />
+                                <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PopupTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceBackground}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Padding" Value="2,0,2,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.CanContentScroll" Value="False" />
+            <Setter Property="ScrollViewer.PanningMode" Value="VerticalOnly" />
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.78" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceAltBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,0,34,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="ComboBorder"
+                                                Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                CornerRadius="10">
+                                            <Grid>
+                                                <ContentPresenter Margin="{Binding Padding, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  HorizontalAlignment="Left"
+                                                                  VerticalAlignment="Center"
+                                                                  Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
+                                                <Path Width="8"
+                                                      Height="4"
+                                                      Margin="0,0,12,0"
+                                                      HorizontalAlignment="Right"
+                                                      VerticalAlignment="Center"
+                                                      Data="M 0 0 L 4 4 L 8 0"
+                                                      Stroke="{DynamicResource Theme.Brush.TextSecondary}"
+                                                      StrokeThickness="1.5"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+                                                <Setter TargetName="ComboBorder" Property="Background" Value="{DynamicResource Theme.Brush.SurfaceBackground}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,6,0,0"
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        Padding="6"
+                                        Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="12">
+                                    <ScrollViewer MaxHeight="240">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonHoverBackground}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Theme.Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="PopupBorder"
+            Padding="14"
+            Background="{DynamicResource Theme.Brush.WindowBackground}"
+            BorderBrush="{DynamicResource Theme.Brush.WindowBorder}"
+            BorderThickness="1"
+            CornerRadius="18"
+            PreviewMouseLeftButtonDown="PopupBorder_OnPreviewMouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20"
+                              ShadowDepth="5"
+                              Opacity="0.26"
+                              Color="{DynamicResource Theme.Color.Shadow}" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0"
+                  Background="Transparent"
+                  MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock x:Name="TitleTextBlock"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                               Text="翻译结果" />
+                    <TextBlock x:Name="StatusTextBlock"
+                               Margin="0,6,0,0"
+                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Width="30"
+                        Height="30"
+                        Margin="12,0,0,0"
+                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                        Click="CloseButton_OnClick"
+                        Content="×"
+                        FontSize="14"
+                        Foreground="{DynamicResource Theme.Brush.TextPrimary}" />
+            </Grid>
+
+            <Border Grid.Row="1"
+                    Margin="0,12,0,0"
+                    Padding="10"
+                    Background="{DynamicResource Theme.Brush.CardBackground}"
+                    BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                               Text="翻译来源" />
+
+                    <UniformGrid Grid.Row="0"
+                                 Grid.Column="1"
+                                 Margin="12,0,0,0"
+                                 Columns="2">
+                        <Button x:Name="LocalProviderButton"
+                                Height="34"
+                                Margin="0,0,8,0"
+                                Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                Click="ProviderButton_OnClick"
+                                Content="本地翻译"
+                                Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                Tag="local" />
+                        <Button x:Name="ApiProviderButton"
+                                Height="34"
+                                Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                Click="ProviderButton_OnClick"
+                                Content="API 翻译"
+                                Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                Tag="api" />
+                    </UniformGrid>
+
+                    <ComboBox x:Name="ApiProfileComboBox"
+                              Grid.Row="1"
+                              Grid.Column="1"
+                              Height="34"
+                              Margin="12,10,0,0"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Id"
+                              SelectionChanged="ApiProfileComboBox_OnSelectionChanged"
+                              Visibility="Collapsed" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2"
+                    Margin="0,12,0,0"
+                    Padding="10"
+                    Background="{DynamicResource Theme.Brush.CardBackground}"
+                    BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox x:Name="SourceLanguageComboBox"
+                              Height="34"
+                              SelectionChanged="LanguageComboBox_OnSelectionChanged" />
+
+                    <Border Grid.Column="1"
+                            Height="34"
+                            Margin="10,0"
+                            Padding="10,0"
+                            Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            VerticalAlignment="Center">
+                        <TextBlock x:Name="DirectionTextBlock"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                   Text="自动 -> 简体中文" />
+                    </Border>
+
+                    <ComboBox x:Name="TargetLanguageComboBox"
+                              Grid.Column="2"
+                              Height="34"
+                              SelectionChanged="LanguageComboBox_OnSelectionChanged" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3"
+                    Margin="0,12,0,0"
+                    Padding="12"
+                    Background="{DynamicResource Theme.Brush.CardBackground}"
+                    BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                               Text="原文" />
+                    <Border Margin="0,8,0,0"
+                            Padding="10"
+                            Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                            CornerRadius="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBox x:Name="SourceTextBox"
+                                     Grid.Row="0"
+                                     Style="{StaticResource PopupTextBoxStyle}"
+                                     MinHeight="90"
+                                     MaxHeight="170"
+                                     TextChanged="SourceTextBox_OnTextChanged"
+                                     VerticalScrollBarVisibility="Auto"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <TextBox.Resources>
+                                    <Style TargetType="ScrollBar"
+                                           BasedOn="{StaticResource PopupScrollBarStyle}" />
+                                </TextBox.Resources>
+                            </TextBox>
+
+                            <StackPanel Grid.Row="1"
+                                        Margin="0,8,0,0"
+                                        HorizontalAlignment="Right"
+                                        Orientation="Horizontal">
+                                <Button x:Name="RecaptureButton"
+                                        Width="30"
+                                        Height="30"
+                                        Margin="0,0,8,0"
+                                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                        Click="RecaptureButton_OnClick"
+                                        Content="选"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                        ToolTip="再次框选识别" />
+                                <Button x:Name="TranslateButton"
+                                        Width="30"
+                                        Height="30"
+                                        Margin="0,0,8,0"
+                                        Background="{DynamicResource Theme.Brush.Accent}"
+                                        BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
+                                        Click="TranslateButton_OnClick"
+                                        Content="译"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                        ToolTip="翻译当前原文" />
+                                <Button Width="30"
+                                        Height="30"
+                                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                        Click="CopySourceButton_OnClick"
+                                        Content="复"
+                                        FontSize="14"
+                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                        ToolTip="复制原文" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="4"
+                    Margin="0,12,0,0"
+                    Padding="12"
+                    Background="{DynamicResource Theme.Brush.CardBackground}"
+                    BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14">
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="{DynamicResource Theme.Brush.Highlight}"
+                               Text="译文" />
+                    <Border Margin="0,8,0,0"
+                            Padding="10"
+                            Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                            CornerRadius="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBox x:Name="TranslatedTextBox"
+                                     Grid.Row="0"
+                                     Style="{StaticResource PopupTextBoxStyle}"
+                                     MinHeight="100"
+                                     TextChanged="TranslatedTextBox_OnTextChanged"
+                                     VerticalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <TextBox.Resources>
+                                    <Style TargetType="ScrollBar"
+                                           BasedOn="{StaticResource PopupScrollBarStyle}" />
+                                </TextBox.Resources>
+                            </TextBox>
+
+                            <StackPanel Grid.Row="1"
+                                        Margin="0,8,0,0"
+                                        HorizontalAlignment="Right"
+                                        Orientation="Horizontal">
+                                <Button Width="30"
+                                        Height="30"
+                                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                        Click="CopyTranslatedButton_OnClick"
+                                        Content="复"
+                                        FontSize="14"
+                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                        ToolTip="复制译文" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

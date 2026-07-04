@@ -1,0 +1,341 @@
+<Window x:Class="SnapCat.App.Windows.CaptureActionSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        KeyDown="Window_OnKeyDown">
+    <Window.Resources>
+        <Style TargetType="{x:Type controls:Thumb}">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type controls:Thumb}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="66" />
+            <Setter Property="Height" Value="58" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonHoverBackground}" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+                                <Setter TargetName="ButtonBorder" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonPressedBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarGlyphStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+        </Style>
+
+        <Style x:Key="ToolbarLabelStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,4,0,0" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextSecondary}" />
+        </Style>
+
+        <Style x:Key="ToolbarMetaTextStyle" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextSecondary}" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+
+        <Style x:Key="ToolbarValueTextBoxStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceAltBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+        </Style>
+
+        <Style x:Key="ToolbarCheckBoxStyle" TargetType="{x:Type CheckBox}">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+
+        <Style x:Key="ToolbarActionChipStyle" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="MinWidth" Value="110" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.ButtonBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonHoverBackground}" />
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonPressedBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Canvas x:Name="RootCanvas"
+            Background="Transparent"
+            MouseLeftButtonDown="RootCanvas_OnMouseLeftButtonDown">
+        <Border x:Name="SelectionOutline"
+                Background="Transparent"
+                BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
+                BorderThickness="2"
+                SnapsToDevicePixels="True"
+                UseLayoutRounding="True" />
+
+        <controls:Thumb x:Name="MoveThumb"
+                        Background="#01000000"
+                        BorderThickness="0"
+                        Cursor="SizeAll"
+                        DragStarted="MoveThumb_OnDragStarted"
+                        DragCompleted="MoveThumb_OnDragCompleted"
+                        DragDelta="MoveThumb_OnDragDelta" />
+
+        <controls:Thumb x:Name="TopLeftThumb" Cursor="SizeNWSE" Tag="TopLeft" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="TopThumb" Cursor="SizeNS" Tag="Top" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="TopRightThumb" Cursor="SizeNESW" Tag="TopRight" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="RightThumb" Cursor="SizeWE" Tag="Right" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="BottomRightThumb" Cursor="SizeNWSE" Tag="BottomRight" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="BottomThumb" Cursor="SizeNS" Tag="Bottom" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="BottomLeftThumb" Cursor="SizeNESW" Tag="BottomLeft" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+        <controls:Thumb x:Name="LeftThumb" Cursor="SizeWE" Tag="Left" DragStarted="ResizeThumb_OnDragStarted" DragCompleted="ResizeThumb_OnDragCompleted" DragDelta="ResizeThumb_OnDragDelta" />
+
+        <Border x:Name="ToolbarHost"
+                Background="{DynamicResource Theme.Brush.WindowBackground}"
+                BorderBrush="{DynamicResource Theme.Brush.WindowBorder}"
+                BorderThickness="1"
+                CornerRadius="14"
+                Padding="6"
+                SnapsToDevicePixels="True">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="18"
+                                  ShadowDepth="6"
+                                  Opacity="0.28"
+                                  Color="{DynamicResource Theme.Color.Shadow}" />
+            </Border.Effect>
+
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="PinToScreen"
+                        ToolTip="固定到屏幕"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE840;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="固定" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="OcrOnly"
+                        ToolTip="OCR 文本识别"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE8A5;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="OCR" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="OcrAndTranslate"
+                        ToolTip="OCR 文本识别并翻译"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE8C1;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="翻译" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="QrCode"
+                        ToolTip="二维码识别"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xED14;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="二维码" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="CopyImage"
+                        ToolTip="复制截图"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE8C8;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="复制" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="Save"
+                        ToolTip="保存"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE74E;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="保存" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="SaveAs"
+                        ToolTip="另存为"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE792;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="另存为" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="Cancel"
+                        ToolTip="取消"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE711;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="取消" />
+                    </StackPanel>
+                </Button>
+                </StackPanel>
+
+                <Border Margin="2,8,2,0"
+                        Padding="10"
+                        Background="{DynamicResource Theme.Brush.CardBackground}"
+                        BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel>
+                        <TextBlock x:Name="SelectionInfoTextBlock"
+                                   Style="{StaticResource ToolbarMetaTextStyle}"
+                                   Text="屏幕 1 | 绝对 X:0 Y:0 W:0 H:0" />
+                        <TextBlock x:Name="SelectionScreenInfoTextBlock"
+                                   Margin="0,4,0,0"
+                                   Style="{StaticResource ToolbarMetaTextStyle}"
+                                   Text="屏幕内 X:0 Y:0 | 比例 1.0000" />
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="90" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock VerticalAlignment="Center"
+                                       Style="{StaticResource ToolbarMetaTextStyle}"
+                                       Text="X" />
+                            <TextBox x:Name="AbsoluteXTextBox"
+                                     Grid.Column="1"
+                                     Margin="6,0,10,0"
+                                     Style="{StaticResource ToolbarValueTextBoxStyle}"
+                                     KeyDown="BoundsTextBox_OnKeyDown" />
+
+                            <TextBlock Grid.Column="2"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource ToolbarMetaTextStyle}"
+                                       Text="Y" />
+                            <TextBox x:Name="AbsoluteYTextBox"
+                                     Grid.Column="3"
+                                     Margin="6,0,10,0"
+                                     Style="{StaticResource ToolbarValueTextBoxStyle}"
+                                     KeyDown="BoundsTextBox_OnKeyDown" />
+
+                            <TextBlock Grid.Column="4"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource ToolbarMetaTextStyle}"
+                                       Text="W" />
+                            <TextBox x:Name="WidthTextBox"
+                                     Grid.Column="5"
+                                     Margin="6,0,10,0"
+                                     Style="{StaticResource ToolbarValueTextBoxStyle}"
+                                     KeyDown="BoundsTextBox_OnKeyDown" />
+
+                            <TextBlock Grid.Column="6"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource ToolbarMetaTextStyle}"
+                                       Text="H" />
+                            <TextBox x:Name="HeightTextBox"
+                                     Grid.Column="7"
+                                     Margin="6,0,0,0"
+                                     Style="{StaticResource ToolbarValueTextBoxStyle}"
+                                     KeyDown="BoundsTextBox_OnKeyDown" />
+                        </Grid>
+
+                        <WrapPanel Margin="0,10,0,0"
+                                   VerticalAlignment="Center">
+                            <CheckBox x:Name="LockAspectRatioCheckBox"
+                                      Style="{StaticResource ToolbarCheckBoxStyle}"
+                                      Content="锁定比例" />
+                            <Button x:Name="ApplyPreviousBoundsButton"
+                                    Style="{StaticResource ToolbarActionChipStyle}"
+                                    Click="ApplyPreviousBoundsButton_OnClick"
+                                    Content="应用上一次线框" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Canvas>
+</Window>

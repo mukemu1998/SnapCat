@@ -1,0 +1,112 @@
+<Window x:Class="SnapCat.App.Windows.PinnedImageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        AllowsTransparency="True"
+        KeyDown="Window_OnKeyDown">
+    <Window.Resources>
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Margin="6"
+                                Padding="8"
+                                Background="#E51F1F23"
+                                BorderBrush="#B84B5563"
+                                BorderThickness="1"
+                                CornerRadius="16">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="16"
+                                                  ShadowDepth="4"
+                                                  Opacity="0.24"
+                                                  Color="#FF000000" />
+                            </Border.Effect>
+                            <StackPanel IsItemsHost="True"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="#FFF3F4F6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="ItemBorder"
+                                Margin="0,0,0,2"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="9">
+                            <Grid>
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True"
+                                                  ContentSource="Header" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#66374151" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Separator">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Separator">
+                        <Border Height="1"
+                                Margin="0,4,0,6"
+                                Background="#664B5563" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="Transparent"
+            MouseLeftButtonDown="Border_OnMouseLeftButtonDown">
+        <Border.ContextMenu>
+            <ContextMenu Opened="ContextMenu_OnOpened">
+                <MenuItem Header="复制图片" Click="CopyImageMenuItem_OnClick" />
+                <MenuItem Header="打开截图位置" Click="OpenImageLocationMenuItem_OnClick" />
+                <Separator />
+                <MenuItem Header="OCR 文本识别" Click="OcrMenuItem_OnClick" />
+                <MenuItem Header="OCR 文本识别并翻译" Click="OcrTranslateMenuItem_OnClick" />
+                <MenuItem Header="二维码识别" Click="QrCodeMenuItem_OnClick" />
+                <Separator />
+                <MenuItem Header="保存" Click="SaveMenuItem_OnClick" />
+                <MenuItem Header="另存为" Click="SaveAsMenuItem_OnClick" />
+                <Separator />
+                <MenuItem x:Name="CloseOtherPinnedMenuItem"
+                          Header="关闭其他贴图"
+                          Click="CloseOtherPinnedMenuItem_OnClick" />
+                <MenuItem Header="关闭全部贴图" Click="CloseAllPinnedMenuItem_OnClick" />
+                <MenuItem Header="关闭当前贴图" Click="CloseMenuItem_OnClick" />
+            </ContextMenu>
+        </Border.ContextMenu>
+
+        <Image x:Name="PinnedImage"
+               Stretch="None"
+               SnapsToDevicePixels="True"
+               UseLayoutRounding="True" />
+    </Border>
+</Window>
