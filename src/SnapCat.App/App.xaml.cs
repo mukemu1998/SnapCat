@@ -1,25 +1,44 @@
 using System.IO;
 using System.Net.Http;
 using SnapCat.App.Services;
+using SnapCat.App.Windows;
 using SnapCat.Core.Models;
 using SnapCat.Core.Services;
 using SnapCat.Infrastructure.Services;
 using WpfApplication = System.Windows.Application;
 using ExitEventArgs = System.Windows.ExitEventArgs;
 using StartupEventArgs = System.Windows.StartupEventArgs;
+using DispatcherPriority = System.Windows.Threading.DispatcherPriority;
 
 namespace SnapCat.App;
 
 public partial class App : WpfApplication
 {
+    private static readonly TimeSpan StartupSettingsLoadTimeout = TimeSpan.FromSeconds(2);
+    private readonly string _appDataDirectory;
+    private bool _pinnedWindowsPreparedForExit;
+    private bool _runtimeServicesInitialized;
+
     public App()
     {
-        var appDataDirectory = Path.Combine(
+        _appDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "SnapCat");
 
-        SettingsStore = new JsonSettingsStore(appDataDirectory);
-        HistoryStore = new JsonHistoryStore(appDataDirectory);
+        SettingsStore = new JsonSettingsStore(_appDataDirectory);
+        ThemeService = new ThemeService();
+        ThemeService.ApplyTheme(this, null);
+    }
+
+    private void InitializeRuntimeServices()
+    {
+        if (_runtimeServicesInitialized)
+        {
+            return;
+        }
+
+        HistoryStore = new JsonHistoryStore(_appDataDirectory);
+        PinnedWindowLayoutStore = new PinnedWindowLayoutStore(_appDataDirectory);
         var tesseractCliOcrService = new TesseractCliOcrService();
         var enhancedTesseractOcrService = new EnhancedTesseractOcrService(tesseractCliOcrService);
         var windowsMediaOcrService = new WindowsMediaOcrService();
@@ -38,68 +57,169 @@ public partial class App : WpfApplication
         CapturedImageFileService = new CapturedImageFileService();
         GlobalHotkeyService = new GlobalHotkeyService();
         TrayIconService = new TrayIconService();
-        PinnedWindowRegistryService = new PinnedWindowRegistryService();
+        PinnedWindowRegistryService = new PinnedWindowRegistryService(PinnedWindowLayoutStore);
         StartupRegistrationService = new StartupRegistrationService();
         StartupDiagnosticsService = new StartupDiagnosticsService();
-        ThemeService = new ThemeService();
         CaptureActionService = new CaptureActionService(
             OcrService,
             TranslationService,
             QrCodeService,
             HistoryStore,
             CapturedImageFileService);
+
+        _runtimeServicesInitialized = true;
     }
 
     public ISettingsStore SettingsStore { get; }
 
-    public IHistoryStore HistoryStore { get; }
+    public IHistoryStore HistoryStore { get; private set; } = null!;
 
-    public IOcrService OcrService { get; }
+    public PinnedWindowLayoutStore PinnedWindowLayoutStore { get; private set; } = null!;
 
-    public IQrCodeService QrCodeService { get; }
+    public IOcrService OcrService { get; private set; } = null!;
 
-    public ITranslationService TranslationService { get; }
+    public IQrCodeService QrCodeService { get; private set; } = null!;
 
-    public ScreenCaptureService ScreenCaptureService { get; }
+    public ITranslationService TranslationService { get; private set; } = null!;
 
-    public CapturedImageFileService CapturedImageFileService { get; }
+    public ScreenCaptureService ScreenCaptureService { get; private set; } = null!;
 
-    public GlobalHotkeyService GlobalHotkeyService { get; }
+    public CapturedImageFileService CapturedImageFileService { get; private set; } = null!;
 
-    public TrayIconService TrayIconService { get; }
+    public GlobalHotkeyService GlobalHotkeyService { get; private set; } = null!;
 
-    public PinnedWindowRegistryService PinnedWindowRegistryService { get; }
+    public TrayIconService TrayIconService { get; private set; } = null!;
 
-    public StartupRegistrationService StartupRegistrationService { get; }
+    public PinnedWindowRegistryService PinnedWindowRegistryService { get; private set; } = null!;
 
-    public StartupDiagnosticsService StartupDiagnosticsService { get; }
+    public StartupRegistrationService StartupRegistrationService { get; private set; } = null!;
+
+    public StartupDiagnosticsService StartupDiagnosticsService { get; private set; } = null!;
 
     public ThemeService ThemeService { get; }
 
-    public CaptureActionService CaptureActionService { get; }
+    public CaptureActionService CaptureActionService { get; private set; } = null!;
+
+    public AppSettings StartupSettingsSnapshot { get; private set; } = new();
+
+    public string StartupSettingsWarning { get; private set; } = string.Empty;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        var startupSettings = SettingsStore.LoadAsync().GetAwaiter().GetResult();
+        var startInTray = e.Args.Any(static arg => string.Equals(arg, "--tray", StringComparison.OrdinalIgnoreCase));
+        var startupSplash = ShowStartupSplashIfNeeded(startInTray);
+        var startupSettings = LoadStartupSettingsSafely();
+        StartupSettingsSnapshot = startupSettings;
         ThemeService.ApplyTheme(this, startupSettings.ThemeId);
+        InitializeRuntimeServices();
 
         var mainWindow = new MainWindow();
         MainWindow = mainWindow;
         mainWindow.Show();
+        CloseStartupSplashWhenMainWindowIsReady(startupSplash);
+        Dispatcher.BeginInvoke(
+            () => PinnedWindowRegistryService.RestorePersistedWindows(startupSettings),
+            DispatcherPriority.ApplicationIdle);
+        Dispatcher.BeginInvoke(
+            () => _ = CleanupExpiredLocalDataAsync(startupSettings),
+            DispatcherPriority.ApplicationIdle);
 
-        if (e.Args.Any(static arg => string.Equals(arg, "--tray", StringComparison.OrdinalIgnoreCase)))
+        if (startInTray)
         {
             mainWindow.StartInTray();
         }
     }
 
+    private StartupSplashWindow? ShowStartupSplashIfNeeded(bool startInTray)
+    {
+        if (startInTray)
+        {
+            return null;
+        }
+
+        var splash = new StartupSplashWindow();
+        splash.Show();
+        splash.UpdateLayout();
+        Dispatcher.Invoke(static () => { }, DispatcherPriority.Render);
+        return splash;
+    }
+
+    private void CloseStartupSplashWhenMainWindowIsReady(StartupSplashWindow? splash)
+    {
+        if (splash is null)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (splash.IsVisible)
+            {
+                splash.Close();
+            }
+        }, DispatcherPriority.ContextIdle);
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
-        PinnedWindowRegistryService.CloseAllWindows();
-        GlobalHotkeyService.Dispose();
-        TrayIconService.Dispose();
+        if (_runtimeServicesInitialized)
+        {
+            PreparePinnedWindowsForExit();
+            GlobalHotkeyService.Dispose();
+            TrayIconService.Dispose();
+        }
+
         base.OnExit(e);
+    }
+
+    public void PreparePinnedWindowsForExit()
+    {
+        if (_pinnedWindowsPreparedForExit)
+        {
+            return;
+        }
+
+        _pinnedWindowsPreparedForExit = true;
+        PinnedWindowRegistryService.CloseAllWindows(preserveState: true);
+    }
+
+    private async Task CleanupExpiredLocalDataAsync(AppSettings settings)
+    {
+        try
+        {
+            CapturedImageFileService.CleanupTempFilesOlderThan(settings.TempFileRetentionDays);
+
+            if (settings.HistoryRetentionDays > 0)
+            {
+                await HistoryStore.DeleteOlderThanAsync(DateTimeOffset.Now.AddDays(-settings.HistoryRetentionDays));
+            }
+        }
+        catch
+        {
+            // 自动清理失败不应影响启动和截图主流程。
+        }
+    }
+
+    private AppSettings LoadStartupSettingsSafely()
+    {
+        try
+        {
+            var loadTask = SettingsStore.LoadAsync();
+            if (!loadTask.Wait(StartupSettingsLoadTimeout))
+            {
+                StartupSettingsWarning = "读取本地设置超时，已用默认配置启动。可进入主菜单后重新保存设置。";
+                return new AppSettings();
+            }
+
+            StartupSettingsWarning = string.Empty;
+            return loadTask.GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            StartupSettingsWarning = $"读取本地设置失败，已用默认配置启动：{ex.Message}";
+            return new AppSettings();
+        }
     }
 }

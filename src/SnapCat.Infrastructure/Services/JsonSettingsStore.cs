@@ -171,6 +171,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string SystemPrompt { get; set; } = AppSettings.DefaultSystemPrompt;
 
+        public bool EnableApiContext { get; set; }
+
         public List<PersistedApiTranslationProfile> ApiProfiles { get; set; } = [];
 
         public string SelectedApiProfileId { get; set; } = string.Empty;
@@ -193,7 +195,35 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string HotkeyCaptureAndWaitForAction { get; set; } = "Ctrl+Shift+3";
 
+        public string HotkeyCaptureAndSave { get; set; } = "Ctrl+Shift+4";
+
+        public string PinnedCloseShortcut { get; set; } = "Esc";
+
+        public string PinnedHideShortcut { get; set; } = new AppSettings().PinnedHideShortcut;
+
+        public string HotkeyShowAllPinned { get; set; } = string.Empty;
+
+        public string HotkeyHideAllPinned { get; set; } = string.Empty;
+
+        public string HotkeyShowUngroupedPinned { get; set; } = string.Empty;
+
+        public string HotkeyShowPinnedGroupOne { get; set; } = string.Empty;
+
+        public string HotkeyShowPinnedGroupTwo { get; set; } = string.Empty;
+
+        public string HotkeyShowPinnedGroupThree { get; set; } = string.Empty;
+
+        public string HotkeyShowMainWindow { get; set; } = string.Empty;
+
+        public string HotkeyExitApplication { get; set; } = string.Empty;
+
         public string TrayLeftClickAction { get; set; } = nameof(CaptureWorkflowKind.CaptureAndWaitForAction);
+
+        public string ThemeId { get; set; } = "ocean-blue";
+
+        public int TempFileRetentionDays { get; set; } = 5;
+
+        public int HistoryRetentionDays { get; set; } = 30;
 
         public bool LaunchAtStartup { get; set; }
 
@@ -205,6 +235,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 ApiKey = Unprotect(ProtectedApiKey, ApiKey),
                 Model = Unprotect(ProtectedModel, Model),
                 SystemPrompt = string.IsNullOrWhiteSpace(SystemPrompt) ? AppSettings.DefaultSystemPrompt : SystemPrompt,
+                EnableApiContext = EnableApiContext,
                 ApiProfiles = ApiProfiles.Select(static profile => profile.ToModel()).ToList(),
                 SelectedApiProfileId = SelectedApiProfileId,
                 TargetLanguage = TargetLanguage,
@@ -216,7 +247,21 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndPin = HotkeyCaptureAndPin,
                 HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitForAction,
+                HotkeyCaptureAndSave = HotkeyCaptureAndSave,
+                PinnedCloseShortcut = PinnedCloseShortcut,
+                PinnedHideShortcut = NormalizePinnedHideShortcut(PinnedHideShortcut),
+                HotkeyShowAllPinned = HotkeyShowAllPinned,
+                HotkeyHideAllPinned = HotkeyHideAllPinned,
+                HotkeyShowUngroupedPinned = HotkeyShowUngroupedPinned,
+                HotkeyShowPinnedGroupOne = HotkeyShowPinnedGroupOne,
+                HotkeyShowPinnedGroupTwo = HotkeyShowPinnedGroupTwo,
+                HotkeyShowPinnedGroupThree = HotkeyShowPinnedGroupThree,
+                HotkeyShowMainWindow = HotkeyShowMainWindow,
+                HotkeyExitApplication = HotkeyExitApplication,
                 TrayLeftClickAction = TrayLeftClickAction,
+                ThemeId = ThemeId,
+                TempFileRetentionDays = TempFileRetentionDays,
+                HistoryRetentionDays = HistoryRetentionDays,
                 LaunchAtStartup = LaunchAtStartup
             };
 
@@ -232,6 +277,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 ApiKey = settings.ApiKey,
                 Model = settings.Model,
                 SystemPrompt = settings.SystemPrompt,
+                EnableApiContext = settings.EnableApiContext,
                 ApiProfiles = AppSettings.CloneApiProfiles(settings.ApiProfiles),
                 SelectedApiProfileId = settings.SelectedApiProfileId,
                 TargetLanguage = settings.TargetLanguage,
@@ -243,7 +289,21 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndPin = settings.HotkeyCaptureAndPin,
                 HotkeyCaptureAndTranslate = settings.HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = settings.HotkeyCaptureAndWaitForAction,
+                HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
+                PinnedCloseShortcut = settings.PinnedCloseShortcut,
+                PinnedHideShortcut = settings.PinnedHideShortcut,
+                HotkeyShowAllPinned = settings.HotkeyShowAllPinned,
+                HotkeyHideAllPinned = settings.HotkeyHideAllPinned,
+                HotkeyShowUngroupedPinned = settings.HotkeyShowUngroupedPinned,
+                HotkeyShowPinnedGroupOne = settings.HotkeyShowPinnedGroupOne,
+                HotkeyShowPinnedGroupTwo = settings.HotkeyShowPinnedGroupTwo,
+                HotkeyShowPinnedGroupThree = settings.HotkeyShowPinnedGroupThree,
+                HotkeyShowMainWindow = settings.HotkeyShowMainWindow,
+                HotkeyExitApplication = settings.HotkeyExitApplication,
                 TrayLeftClickAction = settings.TrayLeftClickAction,
+                ThemeId = settings.ThemeId,
+                TempFileRetentionDays = settings.TempFileRetentionDays,
+                HistoryRetentionDays = settings.HistoryRetentionDays,
                 LaunchAtStartup = settings.LaunchAtStartup
             };
 
@@ -255,6 +315,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 ProtectedApiKey = Protect(clone.ApiKey),
                 ProtectedModel = Protect(clone.Model),
                 SystemPrompt = clone.SystemPrompt,
+                EnableApiContext = clone.EnableApiContext,
                 ApiProfiles = clone.ApiProfiles.Select(static profile => PersistedApiTranslationProfile.FromModel(profile)).ToList(),
                 SelectedApiProfileId = clone.SelectedApiProfileId,
                 TargetLanguage = clone.TargetLanguage,
@@ -266,9 +327,30 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndPin = clone.HotkeyCaptureAndPin,
                 HotkeyCaptureAndTranslate = clone.HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = clone.HotkeyCaptureAndWaitForAction,
+                HotkeyCaptureAndSave = clone.HotkeyCaptureAndSave,
+                PinnedCloseShortcut = clone.PinnedCloseShortcut,
+                PinnedHideShortcut = clone.PinnedHideShortcut,
+                HotkeyShowAllPinned = clone.HotkeyShowAllPinned,
+                HotkeyHideAllPinned = clone.HotkeyHideAllPinned,
+                HotkeyShowUngroupedPinned = clone.HotkeyShowUngroupedPinned,
+                HotkeyShowPinnedGroupOne = clone.HotkeyShowPinnedGroupOne,
+                HotkeyShowPinnedGroupTwo = clone.HotkeyShowPinnedGroupTwo,
+                HotkeyShowPinnedGroupThree = clone.HotkeyShowPinnedGroupThree,
+                HotkeyShowMainWindow = clone.HotkeyShowMainWindow,
+                HotkeyExitApplication = clone.HotkeyExitApplication,
                 TrayLeftClickAction = clone.TrayLeftClickAction,
+                ThemeId = clone.ThemeId,
+                TempFileRetentionDays = clone.TempFileRetentionDays,
+                HistoryRetentionDays = clone.HistoryRetentionDays,
                 LaunchAtStartup = clone.LaunchAtStartup
             };
+        }
+
+        private static string NormalizePinnedHideShortcut(string? shortcut)
+        {
+            return string.Equals(shortcut?.Trim(), "H", StringComparison.OrdinalIgnoreCase)
+                ? new AppSettings().PinnedHideShortcut
+                : shortcut ?? string.Empty;
         }
     }
 
@@ -292,6 +374,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string SystemPrompt { get; set; } = AppSettings.DefaultSystemPrompt;
 
+        public bool EnableContext { get; set; }
+
         public ApiTranslationProfile ToModel() => new()
         {
             Id = Id,
@@ -299,7 +383,8 @@ public sealed class JsonSettingsStore : ISettingsStore
             BaseUrl = Unprotect(ProtectedBaseUrl, BaseUrl),
             ApiKey = Unprotect(ProtectedApiKey, ApiKey),
             Model = Unprotect(ProtectedModel, Model),
-            SystemPrompt = string.IsNullOrWhiteSpace(SystemPrompt) ? AppSettings.DefaultSystemPrompt : SystemPrompt
+            SystemPrompt = string.IsNullOrWhiteSpace(SystemPrompt) ? AppSettings.DefaultSystemPrompt : SystemPrompt,
+            EnableContext = EnableContext
         };
 
         public static PersistedApiTranslationProfile FromModel(ApiTranslationProfile profile) => new()
@@ -309,7 +394,8 @@ public sealed class JsonSettingsStore : ISettingsStore
             ProtectedBaseUrl = Protect(profile.BaseUrl),
             ProtectedApiKey = Protect(profile.ApiKey),
             ProtectedModel = Protect(profile.Model),
-            SystemPrompt = string.IsNullOrWhiteSpace(profile.SystemPrompt) ? AppSettings.DefaultSystemPrompt : profile.SystemPrompt
+            SystemPrompt = string.IsNullOrWhiteSpace(profile.SystemPrompt) ? AppSettings.DefaultSystemPrompt : profile.SystemPrompt,
+            EnableContext = profile.EnableContext
         };
     }
 

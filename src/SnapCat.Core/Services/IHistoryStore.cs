@@ -10,5 +10,7 @@ public interface IHistoryStore
 
     Task DeleteAsync(CaptureTranslationRecord record, CancellationToken cancellationToken = default);
 
+    Task DeleteOlderThanAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
+
     Task ClearAsync(CancellationToken cancellationToken = default);
 }

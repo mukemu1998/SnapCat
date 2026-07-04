@@ -13,26 +13,104 @@
           Background="Transparent"
           MouseLeftButtonDown="RootSurface_OnMouseLeftButtonDown"
           MouseLeftButtonUp="RootSurface_OnMouseLeftButtonUp"
+          MouseRightButtonDown="RootSurface_OnMouseRightButtonDown"
           MouseMove="RootSurface_OnMouseMove">
-        <Canvas IsHitTestVisible="False">
+        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
+            <Rectangle x:Name="SmartPreviewRectangle"
+                       Stroke="{DynamicResource Theme.Brush.HighlightAlt}"
+                       Fill="#18000000"
+                       StrokeThickness="2"
+                       StrokeDashArray="6 4"
+                       Visibility="Collapsed" />
+
             <Rectangle x:Name="SelectionRectangle"
                        Stroke="{DynamicResource Theme.Brush.AccentBorder}"
                        Fill="{DynamicResource Theme.Brush.AccentSoft}"
                        StrokeThickness="2"
                        Visibility="Collapsed" />
-        </Canvas>
 
-        <Border Background="{DynamicResource Theme.Brush.WindowBackground}"
-                BorderBrush="{DynamicResource Theme.Brush.WindowBorder}"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="10"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="24">
-            <TextBlock Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                       FontSize="14"
-                       Text="拖动鼠标进行自由框选，松开后继续。按 Esc 取消。" />
-        </Border>
+            <Border x:Name="ColorInspectorPanel"
+                    Width="256"
+                    Height="320"
+                    Background="{DynamicResource Theme.Brush.WindowBackground}"
+                    BorderBrush="{DynamicResource Theme.Brush.WindowBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Visibility="Collapsed">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="16"
+                                      ShadowDepth="4"
+                                      Opacity="0.24"
+                                      Color="{DynamicResource Theme.Color.Shadow}" />
+                </Border.Effect>
+
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="164" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            ClipToBounds="True">
+                        <Grid>
+                            <Image x:Name="MagnifierImage"
+                                   Stretch="Fill"
+                                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                   SnapsToDevicePixels="True" />
+                            <Rectangle Width="1"
+                                       HorizontalAlignment="Center"
+                                       Fill="{DynamicResource Theme.Brush.AccentBorder}" />
+                            <Rectangle Height="1"
+                                       VerticalAlignment="Center"
+                                       Fill="{DynamicResource Theme.Brush.AccentBorder}" />
+                            <Border Width="12"
+                                    Height="12"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    BorderBrush="{DynamicResource Theme.Brush.TextPrimary}"
+                                    BorderThickness="1"
+                                    Background="#33000000" />
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Row="1"
+                                Margin="0,9,0,0"
+                                HorizontalAlignment="Center">
+                        <TextBlock x:Name="CoordinateTextBlock"
+                                   HorizontalAlignment="Center"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Theme.Brush.TextPrimary}" />
+                        <StackPanel Margin="0,8,0,0"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Center">
+                            <Border x:Name="ColorPreviewSwatch"
+                                    Width="20"
+                                    Height="20"
+                                    Margin="0,0,10,0"
+                                    BorderBrush="{DynamicResource Theme.Brush.TextPrimary}"
+                                    BorderThickness="1" />
+                            <TextBlock x:Name="ColorValueTextBlock"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Theme.Brush.TextPrimary}" />
+                        </StackPanel>
+                        <TextBlock Margin="0,8,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                   Text="按 C 复制颜色值" />
+                        <TextBlock Margin="0,4,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                   Text="按 Shift 切换 RGB/HEX" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Canvas>
     </Grid>
 </Window>

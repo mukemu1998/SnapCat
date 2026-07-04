@@ -20,7 +20,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.1.0" src="https://img.shields.io/badge/Version-0.1.0-22c55e" />
+  <img alt="Version 0.2.0" src="https://img.shields.io/badge/Version-0.2.0-22c55e" />
 </p>
 
 ## 项目简介
@@ -31,12 +31,14 @@ SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本
 
 | 能力 | 说明 |
 | --- | --- |
-| 自由框选截图 | 以自由框选为核心入口，适合快速截取局部内容。 |
-| 等待式操作流程 | 默认先框选，再决定固定、OCR、翻译、识别二维码或保存。 |
-| 截图固定到屏幕 | 截图可直接固定在桌面上方显示，便于对照查看。 |
-| 本地 OCR 识别 | 使用本地 OCR 引擎识别截图文字，兼顾隐私和离线可用性。 |
-| 接口翻译 | OCR 后可继续调用兼容 OpenAI 的接口进行翻译，适合接入 DeepSeek 等服务。 |
-| 托盘与快捷键 | 支持托盘常驻、右键菜单和三组独立快捷键工作流。 |
+| 自由框选截图 | 支持等待操作、固定到屏幕、自动翻译和保存到默认位置。 |
+| 智能预框选 | 框选时可预选窗口、屏幕边缘和部分控件区域，单击即可确认。 |
+| 截图固定到屏幕 | 贴图支持拖动、缩放、翻转、阵列、隐藏、分组和启动后恢复。 |
+| 本地 OCR 识别 | 内置本地 OCR 流程，支持识别增强、结果调试和系统 OCR 回退。 |
+| 本地与 API 翻译 | 默认可用本地轻量翻译，也可添加多套兼容 OpenAI 的 API 配置。 |
+| 翻译浮窗 | 截图翻译后在框选附近显示小浮窗，支持语言选择、复制和再次框选。 |
+| 托盘与快捷键 | 支持托盘常驻、托盘菜单、左键默认动作和多类自定义快捷键。 |
+| 主题与图标 | 内置多套深色主题，默认主题图标与 EXE 图标色调保持一致。 |
 
 ## 适用场景
 
@@ -57,7 +59,7 @@ SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本
 | 包类型 | 说明 |
 | --- | --- |
 | `portable` | 解压后可直接双击 `SnapCat.exe` 使用，适合普通用户。 |
-| `runtime-dependent` | 体积更小，但需要系统已安装 `.NET 8 Desktop Runtime`，否则可能无法启动。 |
+| `runtime-dependent` | 体积更小，但需要系统已安装 `.NET 8 Desktop Runtime` 才能启动。 |
 
 也可以直接在仓库本地双击以下启动文件：
 
@@ -77,7 +79,7 @@ dotnet run --project .\src\SnapCat.App\SnapCat.App.csproj
 ### 发布打包
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\package-release.ps1 -Configuration Release -Runtime win-x64 -SelfContained -Zip
+powershell -ExecutionPolicy Bypass -File .\tools\package-release.ps1 -Configuration Release -Runtime win-x64 -PackageKind portable -Zip
 ```
 
 打包脚本会生成当前版本的便携目录、压缩包和 `sha256` 校验文件，方便手动上传到 GitHub Releases。
@@ -96,7 +98,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.1.0`，属于本地基础版，可完成自由框选、等待式操作、截图固定、OCR、翻译和托盘常驻这些核心流程。
+当前版本为 `0.2.0`，属于本地增强版，已经覆盖自由框选、智能预框选、翻译浮窗、贴图管理、主题切换、OCR、翻译和托盘常驻这些核心流程。
 
 ## 许可
 

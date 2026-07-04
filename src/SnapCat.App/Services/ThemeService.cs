@@ -29,15 +29,15 @@ public sealed class ThemeService
                 "#FF3A4659",
                 "#FF2B3442",
                 "#FF4B5563",
-                "#FF2563EB",
-                "#FF60A5FA",
-                "#223B82F6",
-                "#333B82F6",
+                "#FF0C89F3",
+                "#FF38BDF8",
+                "#220C89F3",
+                "#330C89F3",
                 "#FF111827",
                 "#FF4B5563",
                 "#664B5563",
-                "#FF93C5FD",
-                "#FFBFDBFE",
+                "#FF38BDF8",
+                "#FF0C89F3",
                 "#FF0F172A"),
             ["forest-green"] = new(
                 "forest-green",
@@ -286,7 +286,12 @@ public sealed class ThemeService
         SetBrush(resources, "Theme.Brush.Divider", palette.Divider);
         SetBrush(resources, "Theme.Brush.Highlight", palette.Highlight);
         SetBrush(resources, "Theme.Brush.HighlightAlt", palette.HighlightAlt);
+        var accent = ParseColor(palette.Accent);
+        var highlight = ParseColor(palette.HighlightAlt);
+        SetColor(resources, "Theme.Color.Accent", accent);
+        SetColor(resources, "Theme.Color.HighlightAlt", highlight);
         SetColor(resources, "Theme.Color.Shadow", palette.ShadowColor);
+        resources["Theme.Image.AppLogo"] = ThemedLogoService.CreateLogoImage(accent, highlight);
         resources["Theme.CurrentLabel"] = palette.Label;
 
         return palette.Id;
@@ -305,7 +310,17 @@ public sealed class ThemeService
 
     private static void SetColor(ResourceDictionary resources, string key, string hex)
     {
-        resources[key] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex)!;
+        resources[key] = ParseColor(hex);
+    }
+
+    private static void SetColor(ResourceDictionary resources, string key, System.Windows.Media.Color color)
+    {
+        resources[key] = color;
+    }
+
+    private static System.Windows.Media.Color ParseColor(string hex)
+    {
+        return (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex)!;
     }
 
     public sealed record ThemeOption(string Id, string Label);

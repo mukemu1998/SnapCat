@@ -95,6 +95,62 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type CheckBox}">
+                        <BulletDecorator Background="Transparent"
+                                         SnapsToDevicePixels="True">
+                            <BulletDecorator.Bullet>
+                                <Border x:Name="CheckBoxBorder"
+                                        Width="18"
+                                        Height="18"
+                                        Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                        BorderThickness="1"
+                                        CornerRadius="5">
+                                    <Grid>
+                                        <Border x:Name="CheckedFill"
+                                                Background="{DynamicResource Theme.Brush.Accent}"
+                                                CornerRadius="4"
+                                                Opacity="0" />
+                                        <Path x:Name="CheckGlyph"
+                                              Width="10"
+                                              Height="8"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Data="M 1 4 L 4 7 L 9 1"
+                                              Stroke="{DynamicResource Theme.Brush.TextPrimary}"
+                                              StrokeThickness="2"
+                                              StrokeStartLineCap="Round"
+                                              StrokeEndLineCap="Round"
+                                              Visibility="Collapsed" />
+                                    </Grid>
+                                </Border>
+                            </BulletDecorator.Bullet>
+                            <ContentPresenter Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              ContentSource="Content"
+                                              RecognizesAccessKey="True"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </BulletDecorator>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+                                <Setter TargetName="CheckBoxBorder" Property="Background" Value="{DynamicResource Theme.Brush.SurfaceAltBackground}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckedFill" Property="Opacity" Value="1" />
+                                <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="ToolbarActionChipStyle" TargetType="{x:Type Button}">
@@ -129,6 +185,13 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style x:Key="ToolbarPresetChipStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource ToolbarActionChipStyle}">
+            <Setter Property="MinWidth" Value="54" />
+            <Setter Property="Padding" Value="8,4" />
         </Style>
     </Window.Resources>
 
@@ -328,11 +391,43 @@
                             <CheckBox x:Name="LockAspectRatioCheckBox"
                                       Style="{StaticResource ToolbarCheckBoxStyle}"
                                       Content="锁定比例" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Style="{StaticResource ToolbarMetaTextStyle}"
+                                       Text="比例" />
+                            <TextBox x:Name="AspectRatioTextBox"
+                                     Width="88"
+                                     Margin="6,0,8,0"
+                                     Style="{StaticResource ToolbarValueTextBoxStyle}"
+                                     LostKeyboardFocus="AspectRatioTextBox_OnLostKeyboardFocus"
+                                     KeyDown="BoundsTextBox_OnKeyDown" />
+                            <Button Style="{StaticResource ToolbarPresetChipStyle}"
+                                    Tag="1:1"
+                                    Click="AspectRatioPresetButton_OnClick"
+                                    Content="1:1" />
+                            <Button Margin="6,0,0,0"
+                                    Style="{StaticResource ToolbarPresetChipStyle}"
+                                    Tag="4:3"
+                                    Click="AspectRatioPresetButton_OnClick"
+                                    Content="4:3" />
+                            <Button Margin="6,0,12,0"
+                                    Style="{StaticResource ToolbarPresetChipStyle}"
+                                    Tag="16:9"
+                                    Click="AspectRatioPresetButton_OnClick"
+                                    Content="16:9" />
                             <Button x:Name="ApplyPreviousBoundsButton"
                                     Style="{StaticResource ToolbarActionChipStyle}"
                                     Click="ApplyPreviousBoundsButton_OnClick"
                                     Content="应用上一次线框" />
+                            <Button x:Name="ResetInitialBoundsButton"
+                                    Margin="8,0,0,0"
+                                    Style="{StaticResource ToolbarActionChipStyle}"
+                                    Click="ResetInitialBoundsButton_OnClick"
+                                    Content="恢复初始线框" />
                         </WrapPanel>
+
+                        <TextBlock Margin="0,8,0,0"
+                                   Style="{StaticResource ToolbarMetaTextStyle}"
+                                   Text="方向键微调位置，Ctrl+方向键大步移动，Shift+方向键改尺寸。" />
                     </StackPanel>
                 </Border>
             </StackPanel>

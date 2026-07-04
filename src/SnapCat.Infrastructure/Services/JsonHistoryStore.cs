@@ -60,6 +60,21 @@ public sealed class JsonHistoryStore : IHistoryStore
         await RewriteAllRecordsAsync(updatedRecords, cancellationToken);
     }
 
+    public async Task DeleteOlderThanAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(_historyPath))
+        {
+            return;
+        }
+
+        var records = await ReadAllRecordsAsync(cancellationToken);
+        var updatedRecords = records
+            .Where(record => record.Timestamp >= cutoff)
+            .ToList();
+
+        await RewriteAllRecordsAsync(updatedRecords, cancellationToken);
+    }
+
     public Task ClearAsync(CancellationToken cancellationToken = default)
     {
         if (File.Exists(_historyPath))

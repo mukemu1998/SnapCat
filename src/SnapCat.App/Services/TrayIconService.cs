@@ -1,11 +1,14 @@
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using SnapCat.App.Windows;
+using SnapCat.Core.Models;
 using CaptureWorkflowKind = SnapCat.Core.Models.CaptureWorkflowKind;
 using FormsCursor = System.Windows.Forms.Cursor;
 using FormsMouseButtons = System.Windows.Forms.MouseButtons;
 using FormsMouseEventArgs = System.Windows.Forms.MouseEventArgs;
 using FormsNotifyIcon = System.Windows.Forms.NotifyIcon;
+using MediaColor = System.Windows.Media.Color;
 using WpfApplication = System.Windows.Application;
 
 namespace SnapCat.App.Services;
@@ -13,37 +16,50 @@ namespace SnapCat.App.Services;
 public sealed class TrayIconService : IDisposable
 {
     private readonly FormsNotifyIcon _notifyIcon = new();
+    private Icon? _currentIcon;
+    private Func<AppSettings>? _settingsGetter;
     private Func<CaptureWorkflowKind>? _trayLeftClickActionGetter;
     private Action<CaptureWorkflowKind>? _startCaptureAction;
-    private Action<CaptureWorkflowKind>? _setTrayLeftClickAction;
     private Action? _openSettingsAction;
     private Action? _openHistoryAction;
     private Action? _showMainWindowAction;
     private Action? _openCaptureDirectoryAction;
+    private Action? _showAllPinnedWindowsAction;
+    private Action? _hideAllPinnedWindowsAction;
+    private Action? _showUngroupedPinnedWindowsAction;
+    private Action<string>? _showPinnedGroupAction;
     private Action? _exitAction;
     private TrayMenuWindow? _trayMenuWindow;
 
     public void Initialize(
+        Func<AppSettings> settingsGetter,
         Func<CaptureWorkflowKind> trayLeftClickActionGetter,
         Action<CaptureWorkflowKind> startCaptureAction,
-        Action<CaptureWorkflowKind> setTrayLeftClickAction,
         Action openSettingsAction,
         Action openHistoryAction,
         Action showMainWindowAction,
         Action openCaptureDirectoryAction,
+        Action showAllPinnedWindowsAction,
+        Action hideAllPinnedWindowsAction,
+        Action showUngroupedPinnedWindowsAction,
+        Action<string> showPinnedGroupAction,
         Action exitAction)
     {
+        _settingsGetter = settingsGetter;
         _trayLeftClickActionGetter = trayLeftClickActionGetter;
         _startCaptureAction = startCaptureAction;
-        _setTrayLeftClickAction = setTrayLeftClickAction;
         _openSettingsAction = openSettingsAction;
         _openHistoryAction = openHistoryAction;
         _showMainWindowAction = showMainWindowAction;
         _openCaptureDirectoryAction = openCaptureDirectoryAction;
+        _showAllPinnedWindowsAction = showAllPinnedWindowsAction;
+        _hideAllPinnedWindowsAction = hideAllPinnedWindowsAction;
+        _showUngroupedPinnedWindowsAction = showUngroupedPinnedWindowsAction;
+        _showPinnedGroupAction = showPinnedGroupAction;
         _exitAction = exitAction;
 
-        _notifyIcon.Icon = CreateAppIcon();
-        _notifyIcon.Text = "SnapCat v0.1.0";
+        RefreshThemeIcon();
+        _notifyIcon.Text = $"SnapCat v{GetAppVersion()}";
         _notifyIcon.Visible = true;
         _notifyIcon.MouseUp -= NotifyIcon_OnMouseUp;
         _notifyIcon.MouseUp += NotifyIcon_OnMouseUp;
@@ -58,7 +74,26 @@ public sealed class TrayIconService : IDisposable
         });
 
         _notifyIcon.Visible = false;
+        _currentIcon?.Dispose();
+        _currentIcon = null;
         _notifyIcon.Dispose();
+    }
+
+    private static string GetAppVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? assembly.GetName().Version?.ToString(3)
+            ?? "0.2.0";
+    }
+
+    public void RefreshThemeIcon()
+    {
+        var nextIcon = CreateThemeIconOrFallback();
+        var previousIcon = _currentIcon;
+        _notifyIcon.Icon = nextIcon;
+        _currentIcon = nextIcon;
+        previousIcon?.Dispose();
     }
 
     private void NotifyIcon_OnMouseUp(object? sender, FormsMouseEventArgs e)
@@ -82,13 +117,17 @@ public sealed class TrayIconService : IDisposable
 
     private void ShowOrToggleTrayMenu()
     {
-        if (_trayLeftClickActionGetter is null
+        if (_settingsGetter is null
+            || _trayLeftClickActionGetter is null
             || _startCaptureAction is null
-            || _setTrayLeftClickAction is null
             || _openSettingsAction is null
             || _openHistoryAction is null
             || _showMainWindowAction is null
             || _openCaptureDirectoryAction is null
+            || _showAllPinnedWindowsAction is null
+            || _hideAllPinnedWindowsAction is null
+            || _showUngroupedPinnedWindowsAction is null
+            || _showPinnedGroupAction is null
             || _exitAction is null)
         {
             return;
@@ -102,13 +141,16 @@ public sealed class TrayIconService : IDisposable
         }
 
         var menuWindow = new TrayMenuWindow(
-            _trayLeftClickActionGetter(),
+            _settingsGetter(),
             _startCaptureAction,
-            _setTrayLeftClickAction,
             _showMainWindowAction,
             _openHistoryAction,
             _openSettingsAction,
             _openCaptureDirectoryAction,
+            _showAllPinnedWindowsAction,
+            _hideAllPinnedWindowsAction,
+            _showUngroupedPinnedWindowsAction,
+            _showPinnedGroupAction,
             _exitAction);
 
         menuWindow.Closed += (_, _) =>
@@ -121,6 +163,25 @@ public sealed class TrayIconService : IDisposable
 
         _trayMenuWindow = menuWindow;
         menuWindow.ShowAt(FormsCursor.Position);
+    }
+
+    private static Icon CreateThemeIconOrFallback()
+    {
+        try
+        {
+            var resources = WpfApplication.Current?.Resources;
+            if (resources?["Theme.Color.Accent"] is MediaColor accent
+                && resources["Theme.Color.HighlightAlt"] is MediaColor highlight)
+            {
+                return ThemedLogoService.CreateTrayIcon(accent, highlight);
+            }
+        }
+        catch
+        {
+            // 图标主题化失败时回退到固定 exe 图标，避免影响托盘可用性。
+        }
+
+        return CreateAppIcon();
     }
 
     private static Icon CreateAppIcon()

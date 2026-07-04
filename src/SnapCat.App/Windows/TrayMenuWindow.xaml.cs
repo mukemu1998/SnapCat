@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Windows;
 using System.Windows.Media;
+using SnapCat.App.Services;
 using SnapCat.Core.Models;
 using DrawingPoint = System.Drawing.Point;
 using FormsScreen = System.Windows.Forms.Screen;
@@ -12,38 +13,49 @@ namespace SnapCat.App.Windows;
 public partial class TrayMenuWindow : Window
 {
     private readonly Action<CaptureWorkflowKind> _startCaptureAction;
-    private readonly Action<CaptureWorkflowKind> _setTrayLeftClickAction;
     private readonly Action _showMainWindowAction;
     private readonly Action _openHistoryAction;
     private readonly Action _openSettingsAction;
     private readonly Action _openCaptureDirectoryAction;
+    private readonly Action _showAllPinnedWindowsAction;
+    private readonly Action _hideAllPinnedWindowsAction;
+    private readonly Action _showUngroupedPinnedWindowsAction;
+    private readonly Action<string> _showPinnedGroupAction;
     private readonly Action _exitAction;
     private DrawingPoint _cursorPosition;
+    private bool _closeRequested;
 
     public TrayMenuWindow(
-        CaptureWorkflowKind currentLeftClickAction,
+        AppSettings settings,
         Action<CaptureWorkflowKind> startCaptureAction,
-        Action<CaptureWorkflowKind> setTrayLeftClickAction,
         Action showMainWindowAction,
         Action openHistoryAction,
         Action openSettingsAction,
         Action openCaptureDirectoryAction,
+        Action showAllPinnedWindowsAction,
+        Action hideAllPinnedWindowsAction,
+        Action showUngroupedPinnedWindowsAction,
+        Action<string> showPinnedGroupAction,
         Action exitAction)
     {
         InitializeComponent();
         _startCaptureAction = startCaptureAction;
-        _setTrayLeftClickAction = setTrayLeftClickAction;
         _showMainWindowAction = showMainWindowAction;
         _openHistoryAction = openHistoryAction;
         _openSettingsAction = openSettingsAction;
         _openCaptureDirectoryAction = openCaptureDirectoryAction;
+        _showAllPinnedWindowsAction = showAllPinnedWindowsAction;
+        _hideAllPinnedWindowsAction = hideAllPinnedWindowsAction;
+        _showUngroupedPinnedWindowsAction = showUngroupedPinnedWindowsAction;
+        _showPinnedGroupAction = showPinnedGroupAction;
         _exitAction = exitAction;
 
         Loaded += TrayMenuWindow_OnLoaded;
-        Deactivated += (_, _) => Close();
+        Deactivated += TrayMenuWindow_OnDeactivated;
+        Closing += (_, _) => _closeRequested = true;
         PreviewKeyDown += TrayMenuWindow_OnPreviewKeyDown;
 
-        UpdateCurrentAction(currentLeftClickAction);
+        UpdateShortcutHints(settings);
     }
 
     public void ShowAt(DrawingPoint cursorPosition)
@@ -82,32 +94,59 @@ public partial class TrayMenuWindow : Window
     {
         if (e.Key == System.Windows.Input.Key.Escape)
         {
-            Close();
+            RequestClose();
         }
     }
 
-    private void UpdateCurrentAction(CaptureWorkflowKind currentAction)
+    private void TrayMenuWindow_OnDeactivated(object? sender, EventArgs e)
     {
-        PinActionIndicator.Text = currentAction == CaptureWorkflowKind.CaptureAndPin ? "当前" : string.Empty;
-        TranslateActionIndicator.Text = currentAction == CaptureWorkflowKind.CaptureAndTranslate ? "当前" : string.Empty;
-        WaitActionIndicator.Text = currentAction == CaptureWorkflowKind.CaptureAndWaitForAction ? "当前" : string.Empty;
-        CurrentActionSummaryTextBlock.Text = $"左键托盘默认执行：{GetActionLabel(currentAction)}";
+        RequestClose();
     }
 
-    private static string GetActionLabel(CaptureWorkflowKind action)
+    private void UpdateShortcutHints(AppSettings settings)
     {
-        return action switch
-        {
-            CaptureWorkflowKind.CaptureAndPin => "固定到屏幕",
-            CaptureWorkflowKind.CaptureAndTranslate => "自动翻译",
-            _ => "等待选择"
-        };
+        CapturePinHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndPin);
+        CaptureTranslateHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndTranslate);
+        CaptureWaitHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndWaitForAction);
+        CaptureSaveHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndSave);
+        ShowMainWindowHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowMainWindow);
+        ShowAllPinnedHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowAllPinned);
+        HideAllPinnedHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyHideAllPinned);
+        ShowUngroupedPinnedHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowUngroupedPinned);
+        ShowPinnedGroupOneHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowPinnedGroupOne);
+        ShowPinnedGroupTwoHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowPinnedGroupTwo);
+        ShowPinnedGroupThreeHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowPinnedGroupThree);
+        ExitApplicationHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyExitApplication);
+    }
+
+    private static string FormatShortcut(string shortcut)
+    {
+        return string.IsNullOrWhiteSpace(shortcut) ? string.Empty : shortcut.Trim();
     }
 
     private void ExecuteAndClose(Action action)
     {
         action();
-        Close();
+        RequestClose();
+    }
+
+    private void RequestClose()
+    {
+        if (_closeRequested)
+        {
+            return;
+        }
+
+        _closeRequested = true;
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (!IsLoaded)
+            {
+                return;
+            }
+
+            Close();
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void CaptureAndPinButton_OnClick(object sender, RoutedEventArgs e)
@@ -125,19 +164,9 @@ public partial class TrayMenuWindow : Window
         ExecuteAndClose(() => _startCaptureAction(CaptureWorkflowKind.CaptureAndWaitForAction));
     }
 
-    private void PinActionButton_OnClick(object sender, RoutedEventArgs e)
+    private void CaptureAndSaveButton_OnClick(object sender, RoutedEventArgs e)
     {
-        ExecuteAndClose(() => _setTrayLeftClickAction(CaptureWorkflowKind.CaptureAndPin));
-    }
-
-    private void TranslateActionButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteAndClose(() => _setTrayLeftClickAction(CaptureWorkflowKind.CaptureAndTranslate));
-    }
-
-    private void WaitActionButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteAndClose(() => _setTrayLeftClickAction(CaptureWorkflowKind.CaptureAndWaitForAction));
+        ExecuteAndClose(() => _startCaptureAction(CaptureWorkflowKind.CaptureAndSave));
     }
 
     private void ShowMainWindowButton_OnClick(object sender, RoutedEventArgs e)
@@ -158,6 +187,36 @@ public partial class TrayMenuWindow : Window
     private void OpenCaptureDirectoryButton_OnClick(object sender, RoutedEventArgs e)
     {
         ExecuteAndClose(_openCaptureDirectoryAction);
+    }
+
+    private void ShowAllPinnedWindowsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ExecuteAndClose(_showAllPinnedWindowsAction);
+    }
+
+    private void HideAllPinnedWindowsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ExecuteAndClose(_hideAllPinnedWindowsAction);
+    }
+
+    private void ShowUngroupedPinnedWindowsButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ExecuteAndClose(_showUngroupedPinnedWindowsAction);
+    }
+
+    private void ShowPinnedGroupOneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ExecuteAndClose(() => _showPinnedGroupAction(PinnedWindowRegistryService.GroupOneName));
+    }
+
+    private void ShowPinnedGroupTwoButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ExecuteAndClose(() => _showPinnedGroupAction(PinnedWindowRegistryService.GroupTwoName));
+    }
+
+    private void ShowPinnedGroupThreeButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ExecuteAndClose(() => _showPinnedGroupAction(PinnedWindowRegistryService.GroupThreeName));
     }
 
     private void ExitButton_OnClick(object sender, RoutedEventArgs e)

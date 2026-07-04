@@ -33,13 +33,13 @@
         </Style>
 
         <Style x:Key="PopupScrollBarStyle" TargetType="ScrollBar">
-            <Setter Property="Width" Value="8" />
-            <Setter Property="Background" Value="{DynamicResource Theme.Brush.ScrollTrack}" />
+            <Setter Property="Width" Value="2" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
-                        <Border Background="{DynamicResource Theme.Brush.ScrollTrack}"
-                                CornerRadius="4">
+                        <Border Background="Transparent"
+                                CornerRadius="3">
                             <Track x:Name="PART_Track"
                                    IsDirectionReversed="True">
                                 <Track.DecreaseRepeatButton>
@@ -59,7 +59,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="Orientation" Value="Horizontal">
-                                <Setter Property="Height" Value="8" />
+                                <Setter Property="Height" Value="2" />
                                 <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
                             </Trigger>
                         </ControlTemplate.Triggers>

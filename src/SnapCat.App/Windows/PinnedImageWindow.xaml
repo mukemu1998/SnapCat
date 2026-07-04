@@ -1,13 +1,15 @@
 <Window x:Class="SnapCat.App.Windows.PinnedImageWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
         WindowStyle="None"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
         Background="Transparent"
         AllowsTransparency="True"
-        KeyDown="Window_OnKeyDown">
+        KeyDown="Window_OnKeyDown"
+        PreviewMouseWheel="Window_OnPreviewMouseWheel">
     <Window.Resources>
         <Style TargetType="ContextMenu">
             <Setter Property="Background" Value="Transparent" />
@@ -29,6 +31,7 @@
                                                   Color="#FF000000" />
                             </Border.Effect>
                             <StackPanel IsItemsHost="True"
+                                        MinWidth="156"
                                         KeyboardNavigation.DirectionalNavigation="Cycle" />
                         </Border>
                     </ControlTemplate>
@@ -45,18 +48,57 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="ItemBorder"
-                                Margin="0,0,0,2"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="9">
-                            <Grid>
-                                <ContentPresenter Margin="{TemplateBinding Padding}"
-                                                  VerticalAlignment="Center"
-                                                  RecognizesAccessKey="True"
-                                                  ContentSource="Header" />
-                            </Grid>
-                        </Border>
+                        <Grid>
+                            <Border x:Name="ItemBorder"
+                                    Margin="0,0,0,2"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="9">
+                                <Grid MinWidth="132">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="18" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                      VerticalAlignment="Center"
+                                                      RecognizesAccessKey="True"
+                                                      ContentSource="Header" />
+                                    <TextBlock x:Name="SubmenuArrow"
+                                               Grid.Column="1"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="#CCF3F4F6"
+                                               Text="›"
+                                               Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Right"
+                                   PopupAnimation="Fade">
+                                <Border Margin="6"
+                                        Padding="8"
+                                        Background="#F01F1F23"
+                                        BorderBrush="#B84B5563"
+                                        BorderThickness="1"
+                                        CornerRadius="16">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="16"
+                                                          ShadowDepth="4"
+                                                          Opacity="0.24"
+                                                          Color="#FF000000" />
+                                    </Border.Effect>
+                                    <StackPanel IsItemsHost="True"
+                                                MinWidth="156"
+                                                KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="True">
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible" />
+                            </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
                                 <Setter TargetName="ItemBorder" Property="Background" Value="#66374151" />
                             </Trigger>
@@ -80,33 +122,270 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="ArrayCountTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Width" Value="68" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Foreground" Value="#FFF3F4F6" />
+            <Setter Property="Background" Value="#CC111827" />
+            <Setter Property="BorderBrush" Value="#995B6B84" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CaretBrush" Value="#FFF3F4F6" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource Theme.Brush.Accent}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="InputBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="InputBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OverlayCircleButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Background" Value="#CC374151" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="15">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.94" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OverlayResizeThumbStyle" TargetType="primitives:Thumb">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Cursor" Value="SizeNWSE" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="primitives:Thumb">
+                        <Border Background="#CC374151"
+                                BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                BorderThickness="1"
+                                CornerRadius="17">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="14"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                       Text="↘" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Border Background="Transparent"
+    <Border x:Name="RootBorder"
+            Background="Transparent"
+            ClipToBounds="False"
+            MouseEnter="RootBorder_OnMouseEnter"
+            MouseLeave="RootBorder_OnMouseLeave"
+            MouseDown="RootBorder_OnMouseDown"
             MouseLeftButtonDown="Border_OnMouseLeftButtonDown">
         <Border.ContextMenu>
-            <ContextMenu Opened="ContextMenu_OnOpened">
-                <MenuItem Header="复制图片" Click="CopyImageMenuItem_OnClick" />
-                <MenuItem Header="打开截图位置" Click="OpenImageLocationMenuItem_OnClick" />
-                <Separator />
-                <MenuItem Header="OCR 文本识别" Click="OcrMenuItem_OnClick" />
-                <MenuItem Header="OCR 文本识别并翻译" Click="OcrTranslateMenuItem_OnClick" />
-                <MenuItem Header="二维码识别" Click="QrCodeMenuItem_OnClick" />
-                <Separator />
-                <MenuItem Header="保存" Click="SaveMenuItem_OnClick" />
-                <MenuItem Header="另存为" Click="SaveAsMenuItem_OnClick" />
-                <Separator />
-                <MenuItem x:Name="CloseOtherPinnedMenuItem"
-                          Header="关闭其他贴图"
-                          Click="CloseOtherPinnedMenuItem_OnClick" />
-                <MenuItem Header="关闭全部贴图" Click="CloseAllPinnedMenuItem_OnClick" />
-                <MenuItem Header="关闭当前贴图" Click="CloseMenuItem_OnClick" />
+            <ContextMenu x:Name="PinnedContextMenu"
+                         Opened="ContextMenu_OnOpened">
+                <MenuItem Header="复制">
+                    <MenuItem Header="复制图片" Click="CopyImageMenuItem_OnClick" />
+                    <MenuItem Header="复制并贴图" Click="DuplicatePinnedMenuItem_OnClick" />
+                    <MenuItem Header="复制图片路径" Click="CopyImagePathMenuItem_OnClick" />
+                    <MenuItem Header="打开截图位置" Click="OpenImageLocationMenuItem_OnClick" />
+                </MenuItem>
+                <MenuItem Header="贴图组">
+                    <MenuItem x:Name="UngroupedGroupMenuItem"
+                              Header="未成组"
+                              IsCheckable="True"
+                              Click="UngroupedGroupMenuItem_OnClick" />
+                    <MenuItem x:Name="GroupOneMenuItem"
+                              Header="贴图组 1"
+                              IsCheckable="True"
+                              Click="GroupOneMenuItem_OnClick" />
+                    <MenuItem x:Name="GroupTwoMenuItem"
+                              Header="贴图组 2"
+                              IsCheckable="True"
+                              Click="GroupTwoMenuItem_OnClick" />
+                    <MenuItem x:Name="GroupThreeMenuItem"
+                              Header="贴图组 3"
+                              IsCheckable="True"
+                              Click="GroupThreeMenuItem_OnClick" />
+                </MenuItem>
+                <MenuItem Header="变换">
+                    <MenuItem Header="左右翻转" Click="FlipHorizontalMenuItem_OnClick" />
+                    <MenuItem Header="上下翻转" Click="FlipVerticalMenuItem_OnClick" />
+                    <MenuItem x:Name="ResetOrientationMenuItem"
+                              Header="恢复原始方向"
+                              Click="ResetOrientationMenuItem_OnClick" />
+                </MenuItem>
+                <MenuItem Header="阵列长贴图">
+                    <MenuItem Header="向右">
+                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                 Tag="Right"
+                                 MaxLength="2"
+                                 Text="3"
+                                 ToolTip="输入 1-99，按回车执行"
+                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    </MenuItem>
+                    <MenuItem Header="向左">
+                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                 Tag="Left"
+                                 MaxLength="2"
+                                 Text="3"
+                                 ToolTip="输入 1-99，按回车执行"
+                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    </MenuItem>
+                    <MenuItem Header="向下">
+                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                 Tag="Down"
+                                 MaxLength="2"
+                                 Text="3"
+                                 ToolTip="输入 1-99，按回车执行"
+                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    </MenuItem>
+                    <MenuItem Header="向上">
+                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                 Tag="Up"
+                                 MaxLength="2"
+                                 Text="3"
+                                 ToolTip="输入 1-99，按回车执行"
+                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    </MenuItem>
+                </MenuItem>
+                <MenuItem Header="缩放">
+                    <MenuItem Header="放大 10%" Click="ZoomInMenuItem_OnClick" />
+                    <MenuItem Header="缩小 10%" Click="ZoomOutMenuItem_OnClick" />
+                    <MenuItem Header="还原 100% 尺寸" Click="ResetZoomMenuItem_OnClick" />
+                </MenuItem>
+                <MenuItem Header="识别">
+                    <MenuItem Header="OCR 文本识别" Click="OcrMenuItem_OnClick" />
+                    <MenuItem Header="OCR 文本识别并翻译" Click="OcrTranslateMenuItem_OnClick" />
+                    <MenuItem Header="二维码识别" Click="QrCodeMenuItem_OnClick" />
+                </MenuItem>
+                <MenuItem Header="保存">
+                    <MenuItem Header="保存" Click="SaveMenuItem_OnClick" />
+                    <MenuItem Header="另存为" Click="SaveAsMenuItem_OnClick" />
+                </MenuItem>
+                <MenuItem Header="关闭">
+                    <MenuItem Header="隐藏当前贴图" Click="HideCurrentMenuItem_OnClick" />
+                    <MenuItem x:Name="CloseOtherPinnedMenuItem"
+                              Header="关闭其他贴图"
+                              Click="CloseOtherPinnedMenuItem_OnClick" />
+                    <MenuItem Header="关闭全部贴图" Click="CloseAllPinnedMenuItem_OnClick" />
+                    <MenuItem Header="关闭当前贴图" Click="CloseMenuItem_OnClick" />
+                </MenuItem>
             </ContextMenu>
         </Border.ContextMenu>
 
-        <Image x:Name="PinnedImage"
-               Stretch="None"
-               SnapsToDevicePixels="True"
-               UseLayoutRounding="True" />
+        <Grid ClipToBounds="False">
+            <Image x:Name="PinnedImage"
+                   Stretch="Fill"
+                   SnapsToDevicePixels="True"
+                   UseLayoutRounding="True" />
+
+            <Grid x:Name="HoverOverlay"
+                  Panel.ZIndex="20"
+                  ClipToBounds="False"
+                  Visibility="Collapsed"
+                  Opacity="0"
+                  IsHitTestVisible="True">
+                <Border x:Name="ScaleIndicator"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="0,14,0,0"
+                        Padding="12,5"
+                        Background="#D9161A22"
+                        BorderBrush="#AA6B7280"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Visibility="Collapsed">
+                    <TextBlock x:Name="ScaleIndicatorText"
+                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Text="100%" />
+                </Border>
+
+                <Button HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,10,10,0"
+                        Click="CloseButton_OnClick"
+                        Style="{StaticResource OverlayCircleButtonStyle}"
+                        Background="#DCE5484D"
+                        BorderBrush="#FFF58A8A"
+                        ToolTip="删除当前贴图">
+                    <TextBlock Text="×" />
+                </Button>
+
+                <Button HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="10,10,0,0"
+                        Click="HideCurrentButton_OnClick"
+                        Style="{StaticResource OverlayCircleButtonStyle}"
+                        Background="#DC374151"
+                        BorderBrush="#FF64748B"
+                        ToolTip="隐藏当前贴图">
+                    <TextBlock FontFamily="Segoe MDL2 Assets"
+                               FontSize="14"
+                               Foreground="#FFE5E7EB"
+                               Text="&#xE7B3;" />
+                </Button>
+
+                <primitives:Thumb HorizontalAlignment="Right"
+                                  VerticalAlignment="Bottom"
+                                  Margin="0,0,-10,-10"
+                                  DragStarted="ScaleThumb_OnDragStarted"
+                                  DragDelta="ScaleThumb_OnDragDelta"
+                                  Style="{StaticResource OverlayResizeThumbStyle}"
+                                  ToolTip="拖动可精细缩放" />
+            </Grid>
+        </Grid>
     </Border>
 </Window>

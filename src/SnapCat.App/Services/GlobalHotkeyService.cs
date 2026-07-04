@@ -54,7 +54,16 @@ public sealed class GlobalHotkeyService : IDisposable
         AppSettings settings,
         Action pinAction,
         Action translateAction,
-        Action waitAction)
+        Action waitAction,
+        Action saveAction,
+        Action showAllPinnedAction,
+        Action hideAllPinnedAction,
+        Action showUngroupedPinnedAction,
+        Action showPinnedGroupOneAction,
+        Action showPinnedGroupTwoAction,
+        Action showPinnedGroupThreeAction,
+        Action showMainWindowAction,
+        Action exitApplicationAction)
     {
         UnregisterAll();
 
@@ -62,7 +71,16 @@ public sealed class GlobalHotkeyService : IDisposable
         [
             Register("固定到屏幕", settings.HotkeyCaptureAndPin, pinAction),
             Register("自动翻译", settings.HotkeyCaptureAndTranslate, translateAction),
-            Register("等待操作", settings.HotkeyCaptureAndWaitForAction, waitAction)
+            Register("等待操作", settings.HotkeyCaptureAndWaitForAction, waitAction),
+            Register("保存到默认位置", settings.HotkeyCaptureAndSave, saveAction),
+            Register("显示全部贴图", settings.HotkeyShowAllPinned, showAllPinnedAction),
+            Register("隐藏全部贴图", settings.HotkeyHideAllPinned, hideAllPinnedAction),
+            Register("显示未成组贴图", settings.HotkeyShowUngroupedPinned, showUngroupedPinnedAction),
+            Register("显示贴图组 1", settings.HotkeyShowPinnedGroupOne, showPinnedGroupOneAction),
+            Register("显示贴图组 2", settings.HotkeyShowPinnedGroupTwo, showPinnedGroupTwoAction),
+            Register("显示贴图组 3", settings.HotkeyShowPinnedGroupThree, showPinnedGroupThreeAction),
+            Register("打开主菜单", settings.HotkeyShowMainWindow, showMainWindowAction),
+            Register("退出软件", settings.HotkeyExitApplication, exitApplicationAction)
         ];
     }
 
@@ -107,7 +125,7 @@ public sealed class GlobalHotkeyService : IDisposable
         if (string.IsNullOrWhiteSpace(hotkeyText))
         {
             AppendLog($"register skipped label={label} reason=empty_hotkey");
-            return new HotkeyRegistrationResult(label, hotkeyText, false, "未设置快捷键");
+            return new HotkeyRegistrationResult(label, hotkeyText, true, "未设置快捷键");
         }
 
         if (!TryParseHotkey(hotkeyText, out var modifiers, out var key))

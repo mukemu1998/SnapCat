@@ -5,6 +5,11 @@ namespace SnapCat.App.Services;
 
 public sealed class CapturedImageFileService
 {
+    public string GetTempDirectoryPath()
+    {
+        return Path.Combine(Path.GetTempPath(), "SnapCat");
+    }
+
     public string GetDefaultDirectoryPath()
     {
         return Path.Combine(
@@ -40,5 +45,40 @@ public sealed class CapturedImageFileService
 
         File.Copy(sourceImagePath, dialog.FileName, overwrite: true);
         return dialog.FileName;
+    }
+
+    public int CleanupTempFilesOlderThan(int retentionDays)
+    {
+        if (retentionDays <= 0)
+        {
+            return 0;
+        }
+
+        var directory = GetTempDirectoryPath();
+        if (!Directory.Exists(directory))
+        {
+            return 0;
+        }
+
+        var cutoff = DateTime.Now.AddDays(-retentionDays);
+        var deletedCount = 0;
+
+        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+        {
+            try
+            {
+                if (File.GetLastWriteTime(file) < cutoff)
+                {
+                    File.Delete(file);
+                    deletedCount++;
+                }
+            }
+            catch
+            {
+                // 临时文件可能正被 OCR 或贴图占用，跳过即可。
+            }
+        }
+
+        return deletedCount;
     }
 }

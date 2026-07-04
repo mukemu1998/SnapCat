@@ -73,14 +73,19 @@ public partial class MainWindow : Window
         BaseUrlTextBox.TextChanged += SettingsInput_OnTextChanged;
         ApiKeyTextBox.TextChanged += SettingsInput_OnTextChanged;
         ApiProfileNameTextBox.TextChanged += ApiProfileNameTextBox_OnTextChanged;
+        ModelTextBox.TextChanged += ApiProfileModelTextBox_OnTextChanged;
         ModelTextBox.TextChanged += SettingsInput_OnTextChanged;
         SystemPromptTextBox.TextChanged += SettingsInput_OnTextChanged;
+        ApiProfileEnableContextCheckBox.Checked += ApiProfileEnableContextCheckBox_OnChanged;
+        ApiProfileEnableContextCheckBox.Unchecked += ApiProfileEnableContextCheckBox_OnChanged;
         TesseractPathTextBox.TextChanged += SettingsInput_OnTextChanged;
         TargetLanguageComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TranslationProviderComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         OcrEngineComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TesseractLanguageComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TrayLeftClickActionComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
+        TempRetentionDaysTextBox.TextChanged += SettingsInput_OnTextChanged;
+        HistoryRetentionDaysTextBox.TextChanged += SettingsInput_OnTextChanged;
         LaunchAtStartupCheckBox.Checked += SettingsToggle_OnChanged;
         LaunchAtStartupCheckBox.Unchecked += SettingsToggle_OnChanged;
         StateChanged += MainWindow_OnStateChanged;
@@ -107,12 +112,12 @@ public partial class MainWindow : Window
         }, DispatcherPriority.ApplicationIdle);
     }
 
-    private async void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
+    private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
     {
         CenterOnPrimaryScreen();
         VersionTextBlock.Text = $"Preview v{GetAppVersion()}";
 
-        _settings = await _app.SettingsStore.LoadAsync();
+        _settings = CloneSettings(_app.StartupSettingsSnapshot);
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
 
         ApplySettingsToControls(_settings);
@@ -121,12 +126,21 @@ public partial class MainWindow : Window
         RegisterHotkeys();
         ValidateHotkeyConflicts();
         RenderSettingsSummary();
-        RenderEnvironmentChecks();
         OcrTestResultTextBox.Text = "可以先调整 OCR 相关配置，再点击“测试 OCR”做一次实际验证。";
         TranslationTestResultTextBox.Text = "可以先调整翻译相关配置，再点击“测试 API 连接”或“测试翻译”做一次实际验证。";
 
-        await LoadHistoryAsync();
         SelectSection(MainSection.Status);
+
+        if (!string.IsNullOrWhiteSpace(_app.StartupSettingsWarning))
+        {
+            StatusTextBlock.Text = _app.StartupSettingsWarning;
+        }
+
+        Dispatcher.BeginInvoke(async () =>
+        {
+            RenderEnvironmentChecks();
+            await LoadHistoryAsync();
+        }, DispatcherPriority.ApplicationIdle);
     }
 
     private void MainWindow_OnSourceInitialized(object? sender, EventArgs e)
@@ -157,11 +171,29 @@ public partial class MainWindow : Window
             "历史记录",
             "这里直接查看截图历史、结果预览和图片位置，双击或点按钮可继续查看完整详情。");
 
+        _sections[MainSection.PinnedImages] = new NavigationSectionMetadata(
+            PinnedImagesNavButton,
+            PinnedImagesSection,
+            "贴图管理",
+            "这里管理当前屏幕上的贴图窗口、贴图组和显示状态。");
+
+        _sections[MainSection.ScreenshotManagement] = new NavigationSectionMetadata(
+            ScreenshotManagementNavButton,
+            ScreenshotManagementSection,
+            "截图管理",
+            "这里管理默认截图目录、临时文件目录和过期数据清理。");
+
+        _sections[MainSection.ExecuteActions] = new NavigationSectionMetadata(
+            ExecuteActionsNavButton,
+            ExecuteActionsSection,
+            "执行操作与快捷键",
+            "这里集中管理可直接执行的自由框选命令和贴图快捷键，每个命令可以独立绑定快捷键。");
+
         _sections[MainSection.CaptureSettings] = new NavigationSectionMetadata(
             CaptureSettingsNavButton,
             CaptureSettingsSection,
-            "截图与快捷键",
-            "这里整理截图工作流和三组快捷键设置，修改后直接保存到当前窗口。");
+            "系统快捷键",
+            "这里整理主窗口、托盘和系统级操作快捷键；截图与贴图命令快捷键在“执行操作与快捷键”目录里设置。");
 
         _sections[MainSection.AppearanceSettings] = new NavigationSectionMetadata(
             AppearanceSettingsNavButton,
@@ -209,6 +241,16 @@ public partial class MainWindow : Window
         var selected = _sections[section];
         SectionTitleTextBlock.Text = selected.Title;
         SectionDescriptionTextBlock.Text = selected.Description;
+
+        if (section == MainSection.PinnedImages)
+        {
+            RefreshPinnedImagesList();
+        }
+
+        if (section == MainSection.ScreenshotManagement)
+        {
+            RenderScreenshotManagementInfo();
+        }
     }
 
     private async void SaveSettingsButton_OnClick(object sender, RoutedEventArgs e)
@@ -226,6 +268,26 @@ public partial class MainWindow : Window
         await StartCaptureWorkflowAsync(
             CaptureWorkflowKind.CaptureAndWaitForAction,
             returnToMainWindow: true);
+    }
+
+    private async void RunPinActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin, returnToMainWindow: true);
+    }
+
+    private async void RunTranslateActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: true);
+    }
+
+    private async void RunWaitActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: true);
+    }
+
+    private async void RunSaveActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: true);
     }
 
     private void TitleBar_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -283,6 +345,70 @@ public partial class MainWindow : Window
         await ClearHistoryAsync();
     }
 
+    private void CleanupTempNowButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var settings = BuildCurrentSettings();
+        var deletedTempCount = _app.CapturedImageFileService.CleanupTempFilesOlderThan(settings.TempFileRetentionDays);
+
+        StatusTextBlock.Text = $"已清理 {deletedTempCount} 个过期临时文件。";
+    }
+
+    private void OpenDefaultCaptureDirectoryButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        OpenDirectory(_app.CapturedImageFileService.GetDefaultDirectoryPath(), "默认截图目录");
+    }
+
+    private void OpenTempCaptureDirectoryButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        OpenDirectory(_app.CapturedImageFileService.GetTempDirectoryPath(), "临时文件目录");
+    }
+
+    private void RefreshDefaultCapturesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        RefreshDefaultCapturesList();
+        StatusTextBlock.Text = "默认保存截图列表已刷新。";
+    }
+
+    private void SelectAllDefaultCapturesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        DefaultCapturesListBox.SelectAll();
+    }
+
+    private void DeleteSelectedDefaultCapturesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        DeleteSelectedDefaultCaptures();
+    }
+
+    private void DefaultCapturesListBox_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source)
+        {
+            return;
+        }
+
+        var item = FindParent<ListBoxItem>(source);
+        if (item is null)
+        {
+            return;
+        }
+
+        if (!item.IsSelected)
+        {
+            DefaultCapturesListBox.SelectedItems.Clear();
+            item.IsSelected = true;
+        }
+    }
+
+    private void OpenSelectedDefaultCaptureLocationMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        OpenSelectedDefaultCaptureLocation();
+    }
+
+    private void DeleteSelectedDefaultCapturesMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        DeleteSelectedDefaultCaptures();
+    }
+
     private void HistoryListBox_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is DependencyObject source && FindParent<ListBoxItem>(source) is not null)
@@ -306,6 +432,231 @@ public partial class MainWindow : Window
     {
         Clipboard.SetText(HistorySecondaryTextBox.Text ?? string.Empty);
         StatusTextBlock.Text = "已复制右侧预览内容。";
+    }
+
+    private void RefreshPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = "贴图列表已刷新。";
+    }
+
+    private void SelectAllPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        PinnedImagesListBox.SelectAll();
+    }
+
+    private void DeleteSelectedPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var ids = PinnedImagesListBox.SelectedItems
+            .OfType<PinnedImageListItem>()
+            .Select(item => item.Id)
+            .ToList();
+
+        _app.PinnedWindowRegistryService.CloseSnapshots(ids);
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = ids.Count == 0 ? "请先选择要删除的贴图。" : $"已删除 {ids.Count} 个贴图。";
+    }
+
+    private void DeleteAllPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        _app.PinnedWindowRegistryService.CloseAllWindows();
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = "已删除全部贴图。";
+    }
+
+    private void ShowAllPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ShowAllPinnedImages();
+    }
+
+    private void HideAllPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        HideAllPinnedImages();
+    }
+
+    private void ShowUngroupedPinnedImagesButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ShowUngroupedPinnedImages();
+    }
+
+    private void ShowPinnedGroupOneButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ShowPinnedGroup(PinnedWindowRegistryService.GroupOneName);
+    }
+
+    private void ShowPinnedGroupTwoButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ShowPinnedGroup(PinnedWindowRegistryService.GroupTwoName);
+    }
+
+    private void ShowPinnedGroupThreeButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ShowPinnedGroup(PinnedWindowRegistryService.GroupThreeName);
+    }
+
+    private void ShowPinnedGroup(string groupName)
+    {
+        _app.PinnedWindowRegistryService.ShowGroup(groupName);
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = $"已显示{groupName}。";
+    }
+
+    private void ShowAllPinnedImages()
+    {
+        _app.PinnedWindowRegistryService.ShowAllWindows();
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = "已显示全部贴图。";
+    }
+
+    private void HideAllPinnedImages()
+    {
+        _app.PinnedWindowRegistryService.HideAllWindows();
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = "已隐藏全部贴图。";
+    }
+
+    private void ShowUngroupedPinnedImages()
+    {
+        _app.PinnedWindowRegistryService.ShowUngroupedWindows();
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = "已显示未成组贴图。";
+    }
+
+    private void PinnedImagesListBox_OnPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source)
+        {
+            return;
+        }
+
+        var item = FindParent<ListBoxItem>(source);
+        if (item is null)
+        {
+            return;
+        }
+
+        if (!item.IsSelected)
+        {
+            PinnedImagesListBox.SelectedItems.Clear();
+            item.IsSelected = true;
+        }
+    }
+
+    private void AssignPinnedImagesToUngroupedMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.UngroupedGroupName);
+    }
+
+    private void AssignPinnedImagesToGroupOneMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.GroupOneName);
+    }
+
+    private void AssignPinnedImagesToGroupTwoMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.GroupTwoName);
+    }
+
+    private void AssignPinnedImagesToGroupThreeMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.GroupThreeName);
+    }
+
+    private void DeleteSelectedPinnedImagesMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        DeleteSelectedPinnedImagesButton_OnClick(sender, e);
+    }
+
+    private void AssignSelectedPinnedImagesToGroup(string groupName)
+    {
+        var ids = GetSelectedPinnedImageIds();
+        _app.PinnedWindowRegistryService.SetSnapshotsGroup(ids, groupName);
+        RefreshPinnedImagesList();
+        StatusTextBlock.Text = ids.Count == 0
+            ? "请先选择要指定分组的贴图。"
+            : $"已更新 {ids.Count} 个贴图的分组。";
+    }
+
+    private void RefreshPinnedImagesList()
+    {
+        PinnedImagesListBox.ItemsSource = _app.PinnedWindowRegistryService
+            .GetActiveSnapshots()
+            .Select(static snapshot => new PinnedImageListItem(snapshot))
+            .ToList();
+    }
+
+    private List<string> GetSelectedPinnedImageIds()
+    {
+        return PinnedImagesListBox.SelectedItems
+            .OfType<PinnedImageListItem>()
+            .Select(item => item.Id)
+            .ToList();
+    }
+
+    private void RefreshDefaultCapturesList()
+    {
+        var directory = _app.CapturedImageFileService.GetDefaultDirectoryPath();
+        if (!Directory.Exists(directory))
+        {
+            DefaultCapturesListBox.ItemsSource = Array.Empty<DefaultCaptureListItem>();
+            return;
+        }
+
+        DefaultCapturesListBox.ItemsSource = Directory
+            .EnumerateFiles(directory, "*.png", SearchOption.TopDirectoryOnly)
+            .OrderByDescending(File.GetLastWriteTime)
+            .Select(static path => new DefaultCaptureListItem(path))
+            .ToList();
+    }
+
+    private void OpenSelectedDefaultCaptureLocation()
+    {
+        if (DefaultCapturesListBox.SelectedItem is not DefaultCaptureListItem item || !File.Exists(item.Path))
+        {
+            StatusTextBlock.Text = "请先选择要打开位置的截图。";
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            Arguments = $"/select,\"{item.Path}\"",
+            UseShellExecute = true
+        });
+    }
+
+    private void DeleteSelectedDefaultCaptures()
+    {
+        var defaultDirectory = Path.GetFullPath(_app.CapturedImageFileService.GetDefaultDirectoryPath())
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var selectedItems = DefaultCapturesListBox.SelectedItems
+            .OfType<DefaultCaptureListItem>()
+            .ToList();
+
+        var deletedCount = 0;
+        foreach (var item in selectedItems)
+        {
+            try
+            {
+                var fullPath = Path.GetFullPath(item.Path);
+                if (fullPath.StartsWith(defaultDirectory, StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(fullPath))
+                {
+                    File.Delete(fullPath);
+                    deletedCount++;
+                }
+            }
+            catch
+            {
+                // 文件可能正被外部程序占用，跳过即可。
+            }
+        }
+
+        RefreshDefaultCapturesList();
+        StatusTextBlock.Text = selectedItems.Count == 0
+            ? "请先选择要删除的截图。"
+            : $"已删除 {deletedCount} 个默认保存截图。";
     }
 
     private async void TestOcrButton_OnClick(object sender, RoutedEventArgs e)
@@ -431,6 +782,61 @@ public partial class MainWindow : Window
         BeginHotkeyRecording(HotkeyCaptureAndWaitTextBox, "等待操作");
     }
 
+    private void RecordSaveHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyCaptureAndSaveTextBox, "保存截图");
+    }
+
+    private void RecordPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(PinnedCloseShortcutTextBox, "关闭贴图");
+    }
+
+    private void RecordPinnedHideShortcutButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(PinnedHideShortcutTextBox, "隐藏贴图");
+    }
+
+    private void RecordShowAllPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyShowAllPinnedTextBox, "显示全部贴图");
+    }
+
+    private void RecordHideAllPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyHideAllPinnedTextBox, "隐藏全部贴图");
+    }
+
+    private void RecordShowUngroupedPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyShowUngroupedPinnedTextBox, "显示未成组贴图");
+    }
+
+    private void RecordShowPinnedGroupOneHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyShowPinnedGroupOneTextBox, "显示贴图组 1");
+    }
+
+    private void RecordShowPinnedGroupTwoHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyShowPinnedGroupTwoTextBox, "显示贴图组 2");
+    }
+
+    private void RecordShowPinnedGroupThreeHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyShowPinnedGroupThreeTextBox, "显示贴图组 3");
+    }
+
+    private void RecordShowMainWindowHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyShowMainWindowTextBox, "打开主菜单");
+    }
+
+    private void RecordExitApplicationHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyExitApplicationTextBox, "退出软件");
+    }
+
     private void ClearPinHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
         HotkeyCaptureAndPinTextBox.Text = string.Empty;
@@ -452,12 +858,91 @@ public partial class MainWindow : Window
         UpdateSaveButtonVisibility();
     }
 
+    private void ClearSaveHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        HotkeyCaptureAndSaveTextBox.Text = string.Empty;
+        ValidateHotkeyConflicts();
+        UpdateSaveButtonVisibility();
+    }
+
+    private void ClearPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        PinnedCloseShortcutTextBox.Text = string.Empty;
+        ValidateHotkeyConflicts();
+        UpdateSaveButtonVisibility();
+    }
+
+    private void ClearPinnedHideShortcutButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        PinnedHideShortcutTextBox.Text = string.Empty;
+        ValidateHotkeyConflicts();
+        UpdateSaveButtonVisibility();
+    }
+
+    private void ClearShowAllPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyShowAllPinnedTextBox);
+    }
+
+    private void ClearHideAllPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyHideAllPinnedTextBox);
+    }
+
+    private void ClearShowUngroupedPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyShowUngroupedPinnedTextBox);
+    }
+
+    private void ClearShowPinnedGroupOneHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyShowPinnedGroupOneTextBox);
+    }
+
+    private void ClearShowPinnedGroupTwoHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyShowPinnedGroupTwoTextBox);
+    }
+
+    private void ClearShowPinnedGroupThreeHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyShowPinnedGroupThreeTextBox);
+    }
+
+    private void ClearShowMainWindowHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyShowMainWindowTextBox);
+    }
+
+    private void ClearExitApplicationHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyExitApplicationTextBox);
+    }
+
+    private void ClearHotkeyTextBox(WpfTextBox textBox)
+    {
+        textBox.Text = string.Empty;
+        ValidateHotkeyConflicts();
+        UpdateSaveButtonVisibility();
+    }
+
     private void RestoreDefaultHotkeysButton_OnClick(object sender, RoutedEventArgs e)
     {
         var defaults = new AppSettings();
         HotkeyCaptureAndPinTextBox.Text = defaults.HotkeyCaptureAndPin;
         HotkeyCaptureAndTranslateTextBox.Text = defaults.HotkeyCaptureAndTranslate;
         HotkeyCaptureAndWaitTextBox.Text = defaults.HotkeyCaptureAndWaitForAction;
+        HotkeyCaptureAndSaveTextBox.Text = defaults.HotkeyCaptureAndSave;
+        PinnedCloseShortcutTextBox.Text = defaults.PinnedCloseShortcut;
+        PinnedHideShortcutTextBox.Text = defaults.PinnedHideShortcut;
+        HotkeyShowAllPinnedTextBox.Text = defaults.HotkeyShowAllPinned;
+        HotkeyHideAllPinnedTextBox.Text = defaults.HotkeyHideAllPinned;
+        HotkeyShowUngroupedPinnedTextBox.Text = defaults.HotkeyShowUngroupedPinned;
+        HotkeyShowPinnedGroupOneTextBox.Text = defaults.HotkeyShowPinnedGroupOne;
+        HotkeyShowPinnedGroupTwoTextBox.Text = defaults.HotkeyShowPinnedGroupTwo;
+        HotkeyShowPinnedGroupThreeTextBox.Text = defaults.HotkeyShowPinnedGroupThree;
+        HotkeyShowMainWindowTextBox.Text = defaults.HotkeyShowMainWindow;
+        HotkeyExitApplicationTextBox.Text = defaults.HotkeyExitApplication;
         ValidateHotkeyConflicts();
         UpdateSaveButtonVisibility();
         StatusTextBlock.Text = "已还原默认快捷键。";
@@ -519,7 +1004,18 @@ public partial class MainWindow : Window
         {
             ["固定到屏幕"] = HotkeyCaptureAndPinTextBox.Text.Trim(),
             ["自动翻译"] = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
-            ["等待操作"] = HotkeyCaptureAndWaitTextBox.Text.Trim()
+            ["等待操作"] = HotkeyCaptureAndWaitTextBox.Text.Trim(),
+            ["保存截图"] = HotkeyCaptureAndSaveTextBox.Text.Trim(),
+            ["关闭贴图"] = PinnedCloseShortcutTextBox.Text.Trim(),
+            ["隐藏贴图"] = PinnedHideShortcutTextBox.Text.Trim(),
+            ["显示全部贴图"] = HotkeyShowAllPinnedTextBox.Text.Trim(),
+            ["隐藏全部贴图"] = HotkeyHideAllPinnedTextBox.Text.Trim(),
+            ["显示未成组贴图"] = HotkeyShowUngroupedPinnedTextBox.Text.Trim(),
+            ["显示贴图组 1"] = HotkeyShowPinnedGroupOneTextBox.Text.Trim(),
+            ["显示贴图组 2"] = HotkeyShowPinnedGroupTwoTextBox.Text.Trim(),
+            ["显示贴图组 3"] = HotkeyShowPinnedGroupThreeTextBox.Text.Trim(),
+            ["打开主菜单"] = HotkeyShowMainWindowTextBox.Text.Trim(),
+            ["退出软件"] = HotkeyExitApplicationTextBox.Text.Trim()
         };
 
         var duplicates = hotkeys
@@ -535,7 +1031,9 @@ public partial class MainWindow : Window
         if (duplicates.Count == 0 && registrationFailures.Count == 0)
         {
             HotkeyValidationTextBlock.Foreground = new SolidColorBrush(MediaColor.FromRgb(22, 101, 52));
-            HotkeyValidationTextBlock.Text = "当前快捷键没有发现重复冲突。";
+            HotkeyValidationTextBlock.Text = hotkeys.Any(static pair => !string.IsNullOrWhiteSpace(pair.Value))
+                ? "当前快捷键没有发现重复冲突。"
+                : "当前没有设置可选快捷键，需要时可在上方录制。";
             return;
         }
 
@@ -584,6 +1082,7 @@ public partial class MainWindow : Window
 
         _settings = settings;
         _settings.ThemeId = _app.ThemeService.ApplyTheme(WpfApplication.Current, settings.ThemeId);
+        _app.TrayIconService.RefreshThemeIcon();
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
 
         await _app.SettingsStore.SaveAsync(_settings);
@@ -612,8 +1111,21 @@ public partial class MainWindow : Window
             HotkeyCaptureAndPin = HotkeyCaptureAndPinTextBox.Text.Trim(),
             HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
             HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitTextBox.Text.Trim(),
+            HotkeyCaptureAndSave = HotkeyCaptureAndSaveTextBox.Text.Trim(),
+            PinnedCloseShortcut = PinnedCloseShortcutTextBox.Text.Trim(),
+            PinnedHideShortcut = PinnedHideShortcutTextBox.Text.Trim(),
+            HotkeyShowAllPinned = HotkeyShowAllPinnedTextBox.Text.Trim(),
+            HotkeyHideAllPinned = HotkeyHideAllPinnedTextBox.Text.Trim(),
+            HotkeyShowUngroupedPinned = HotkeyShowUngroupedPinnedTextBox.Text.Trim(),
+            HotkeyShowPinnedGroupOne = HotkeyShowPinnedGroupOneTextBox.Text.Trim(),
+            HotkeyShowPinnedGroupTwo = HotkeyShowPinnedGroupTwoTextBox.Text.Trim(),
+            HotkeyShowPinnedGroupThree = HotkeyShowPinnedGroupThreeTextBox.Text.Trim(),
+            HotkeyShowMainWindow = HotkeyShowMainWindowTextBox.Text.Trim(),
+            HotkeyExitApplication = HotkeyExitApplicationTextBox.Text.Trim(),
             TrayLeftClickAction = GetSelectedTrayLeftClickAction(),
             ThemeId = GetSelectedThemeId(),
+            TempFileRetentionDays = ParseRetentionDays(TempRetentionDaysTextBox.Text, new AppSettings().TempFileRetentionDays),
+            HistoryRetentionDays = ParseRetentionDays(HistoryRetentionDaysTextBox.Text, new AppSettings().HistoryRetentionDays),
             LaunchAtStartup = LaunchAtStartupCheckBox.IsChecked == true,
             Temperature = _settings.Temperature
         };
@@ -637,6 +1149,19 @@ public partial class MainWindow : Window
         HotkeyCaptureAndPinTextBox.Text = settings.HotkeyCaptureAndPin;
         HotkeyCaptureAndTranslateTextBox.Text = settings.HotkeyCaptureAndTranslate;
         HotkeyCaptureAndWaitTextBox.Text = settings.HotkeyCaptureAndWaitForAction;
+        HotkeyCaptureAndSaveTextBox.Text = settings.HotkeyCaptureAndSave;
+        PinnedCloseShortcutTextBox.Text = settings.PinnedCloseShortcut;
+        PinnedHideShortcutTextBox.Text = settings.PinnedHideShortcut;
+        HotkeyShowAllPinnedTextBox.Text = settings.HotkeyShowAllPinned;
+        HotkeyHideAllPinnedTextBox.Text = settings.HotkeyHideAllPinned;
+        HotkeyShowUngroupedPinnedTextBox.Text = settings.HotkeyShowUngroupedPinned;
+        HotkeyShowPinnedGroupOneTextBox.Text = settings.HotkeyShowPinnedGroupOne;
+        HotkeyShowPinnedGroupTwoTextBox.Text = settings.HotkeyShowPinnedGroupTwo;
+        HotkeyShowPinnedGroupThreeTextBox.Text = settings.HotkeyShowPinnedGroupThree;
+        HotkeyShowMainWindowTextBox.Text = settings.HotkeyShowMainWindow;
+        HotkeyExitApplicationTextBox.Text = settings.HotkeyExitApplication;
+        TempRetentionDaysTextBox.Text = settings.TempFileRetentionDays.ToString();
+        HistoryRetentionDaysTextBox.Text = settings.HistoryRetentionDays.ToString();
         LaunchAtStartupCheckBox.IsChecked = settings.LaunchAtStartup;
         SetOcrEngineSelection(settings.OcrEngine);
         SetTrayLeftClickSelection(settings.TrayLeftClickAction);
@@ -666,7 +1191,7 @@ public partial class MainWindow : Window
         if (_editingApiProfiles.Count == 0)
         {
             _selectedApiProfileId = string.Empty;
-            ApiProfileComboBox.ItemsSource = null;
+            ApiProfileCardsListBox.ItemsSource = null;
             ApiProfileManagerGrid.Visibility = Visibility.Collapsed;
             EmptyApiProfileStatePanel.Visibility = Visibility.Visible;
             DeleteApiProfileButton.Visibility = Visibility.Collapsed;
@@ -683,9 +1208,9 @@ public partial class MainWindow : Window
             _selectedApiProfileId = _editingApiProfiles[0].Id;
         }
 
-        ApiProfileComboBox.ItemsSource = null;
-        ApiProfileComboBox.ItemsSource = _editingApiProfiles;
-        ApiProfileComboBox.SelectedValue = _selectedApiProfileId;
+        ApiProfileCardsListBox.ItemsSource = null;
+        ApiProfileCardsListBox.ItemsSource = _editingApiProfiles;
+        ApiProfileCardsListBox.SelectedValue = _selectedApiProfileId;
         ApiProfileManagerGrid.Visibility = Visibility.Visible;
         EmptyApiProfileStatePanel.Visibility = Visibility.Collapsed;
         DeleteApiProfileButton.Visibility = Visibility.Visible;
@@ -709,6 +1234,7 @@ public partial class MainWindow : Window
         SetApiKeyValue(profile.ApiKey);
         ModelTextBox.Text = profile.Model;
         SystemPromptTextBox.Text = profile.SystemPrompt;
+        ApiProfileEnableContextCheckBox.IsChecked = profile.EnableContext;
     }
 
     private void PersistCurrentApiProfileEditor()
@@ -728,6 +1254,7 @@ public partial class MainWindow : Window
         profile.SystemPrompt = string.IsNullOrWhiteSpace(SystemPromptTextBox.Text)
             ? AppSettings.DefaultSystemPrompt
             : SystemPromptTextBox.Text.Trim();
+        profile.EnableContext = ApiProfileEnableContextCheckBox.IsChecked == true;
     }
 
     private ApiTranslationProfile? GetSelectedEditingApiProfile()
@@ -742,6 +1269,7 @@ public partial class MainWindow : Window
         SetApiKeyValue(string.Empty);
         ModelTextBox.Text = string.Empty;
         SystemPromptTextBox.Text = AppSettings.DefaultSystemPrompt;
+        ApiProfileEnableContextCheckBox.IsChecked = false;
     }
 
     private string GenerateNextApiProfileName()
@@ -785,6 +1313,13 @@ public partial class MainWindow : Window
     private string GetCurrentApiKey()
     {
         return _isApiKeyVisible ? ApiKeyTextBox.Text : ApiKeyPasswordBox.Password;
+    }
+
+    private static int ParseRetentionDays(string? value, int fallback)
+    {
+        return int.TryParse(value?.Trim(), out var days)
+            ? Math.Max(0, days)
+            : Math.Max(0, fallback);
     }
 
     private void SetApiKeyValue(string value)
@@ -857,7 +1392,38 @@ public partial class MainWindow : Window
             profile.Name = string.IsNullOrWhiteSpace(ApiProfileNameTextBox.Text)
                 ? profile.Name
                 : ApiProfileNameTextBox.Text.Trim();
-            ApiProfileComboBox.Items.Refresh();
+            ApiProfileCardsListBox.Items.Refresh();
+        }
+
+        UpdateSaveButtonVisibility();
+    }
+
+    private void ApiProfileModelTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isApplyingApiProfileState)
+        {
+            return;
+        }
+
+        var profile = GetSelectedEditingApiProfile();
+        if (profile is not null)
+        {
+            profile.Model = ModelTextBox.Text.Trim();
+            ApiProfileCardsListBox.Items.Refresh();
+        }
+    }
+
+    private void ApiProfileEnableContextCheckBox_OnChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isApplyingApiProfileState)
+        {
+            return;
+        }
+
+        var profile = GetSelectedEditingApiProfile();
+        if (profile is not null)
+        {
+            profile.EnableContext = ApiProfileEnableContextCheckBox.IsChecked == true;
         }
 
         UpdateSaveButtonVisibility();
@@ -893,7 +1459,12 @@ public partial class MainWindow : Window
 
     private void DeleteApiProfileButton_OnClick(object sender, RoutedEventArgs e)
     {
-        var profile = GetSelectedEditingApiProfile();
+        DeleteApiProfileById(_selectedApiProfileId);
+    }
+
+    private void DeleteApiProfileById(string profileId)
+    {
+        var profile = _editingApiProfiles.FirstOrDefault(item => string.Equals(item.Id, profileId, StringComparison.Ordinal));
         if (profile is null)
         {
             return;
@@ -914,7 +1485,7 @@ public partial class MainWindow : Window
         StatusTextBlock.Text = $"已删除 API 配置：{profile.Name}";
     }
 
-    private void ApiProfileComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ApiProfileCardsListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isApplyingApiProfileState)
         {
@@ -922,7 +1493,7 @@ public partial class MainWindow : Window
         }
 
         PersistCurrentApiProfileEditor();
-        _selectedApiProfileId = ApiProfileComboBox.SelectedValue?.ToString() ?? string.Empty;
+        _selectedApiProfileId = ApiProfileCardsListBox.SelectedValue?.ToString() ?? string.Empty;
         LoadSelectedApiProfileIntoEditor();
         UpdateSaveButtonVisibility();
     }
@@ -935,11 +1506,17 @@ public partial class MainWindow : Window
         StatusTextBlock.Text = "请在屏幕上进行自由框选。";
 
         Window? owner = null;
+        var wasMinimizedToTaskbar = IsVisible
+            && WindowState == WindowState.Minimized
+            && ShowInTaskbar;
 
         try
         {
-            HideMainWindow();
-            await Task.Delay(180);
+            if (!wasMinimizedToTaskbar)
+            {
+                HideMainWindow();
+                await Task.Delay(180);
+            }
 
             var overlay = new SelectionOverlayWindow();
             var selectionConfirmed = overlay.ShowDialog() == true && overlay.SelectedRegion is not null;
@@ -967,6 +1544,9 @@ public partial class MainWindow : Window
                 case CaptureWorkflowKind.CaptureAndTranslate:
                     action = CaptureActionKind.OcrAndTranslate;
                     break;
+                case CaptureWorkflowKind.CaptureAndSave:
+                    action = CaptureActionKind.Save;
+                    break;
                 default:
                 {
                     var selection = await SelectActionAsync(captureRegion);
@@ -989,6 +1569,27 @@ public partial class MainWindow : Window
 
             await Task.Delay(120);
             var workingImagePath = _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
+            if (action == CaptureActionKind.Save)
+            {
+                var savedPath = await SaveCaptureToDefaultDirectoryAsync(workingImagePath);
+                StatusTextBlock.Text = $"截图已保存到默认目录：{savedPath}";
+                await LoadHistoryAsync();
+
+                if (returnToMainWindow)
+                {
+                    ShowMainWindow();
+                }
+
+                return;
+            }
+
+            if (action is CaptureActionKind.PinToScreen
+                or CaptureActionKind.OcrOnly
+                or CaptureActionKind.OcrAndTranslate
+                or CaptureActionKind.QrCode)
+            {
+                workingImagePath = _app.CapturedImageFileService.SaveToDefaultDirectory(workingImagePath);
+            }
 
             var status = await _app.CaptureActionService.ExecuteAsync(
                 action,
@@ -1019,8 +1620,25 @@ public partial class MainWindow : Window
         }
         finally
         {
+            if (wasMinimizedToTaskbar && !returnToMainWindow && !_isExitRequested)
+            {
+                KeepMainWindowMinimizedInTaskbar();
+            }
+
             CaptureButton.IsEnabled = true;
         }
+    }
+
+    private async Task<string> SaveCaptureToDefaultDirectoryAsync(string imagePath)
+    {
+        var savedPath = _app.CapturedImageFileService.SaveToDefaultDirectory(imagePath);
+        await _app.HistoryStore.AppendAsync(new CaptureTranslationRecord
+        {
+            WorkflowType = "save",
+            ImagePath = savedPath
+        });
+
+        return savedPath;
     }
 
     private async Task<CaptureActionSelectionResult> SelectActionAsync(Int32Rect captureRegion)
@@ -1048,25 +1666,38 @@ public partial class MainWindow : Window
             _settings,
             () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin, returnToMainWindow: false),
             () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false),
-            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false));
+            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false),
+            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false),
+            ShowAllPinnedImages,
+            HideAllPinnedImages,
+            ShowUngroupedPinnedImages,
+            () => ShowPinnedGroup(PinnedWindowRegistryService.GroupOneName),
+            () => ShowPinnedGroup(PinnedWindowRegistryService.GroupTwoName),
+            () => ShowPinnedGroup(PinnedWindowRegistryService.GroupThreeName),
+            ShowMainWindow,
+            ExitApplication);
 
         var failedCount = _hotkeyRegistrationResults.Count(static result => !result.IsRegistered);
         if (failedCount > 0)
         {
-            StatusTextBlock.Text = $"有 {failedCount} 组快捷键注册失败，请到“截图与快捷键”查看原因。";
+            StatusTextBlock.Text = $"有 {failedCount} 组快捷键注册失败，请到“执行操作与快捷键”或“系统快捷键”查看原因。";
         }
     }
 
     private void InitializeTray()
     {
         _app.TrayIconService.Initialize(
+            () => _settings,
             GetTrayLeftClickAction,
             workflow => _ = StartCaptureWorkflowAsync(workflow, returnToMainWindow: false),
-            ChangeTrayLeftClickActionFromTray,
             OpenSettingsFromTray,
             OpenHistoryFromTray,
             ShowMainWindow,
             OpenCaptureDirectoryFromTray,
+            _app.PinnedWindowRegistryService.ShowAllWindows,
+            _app.PinnedWindowRegistryService.HideAllWindows,
+            _app.PinnedWindowRegistryService.ShowUngroupedWindows,
+            _app.PinnedWindowRegistryService.ShowGroup,
             ExitApplication);
     }
 
@@ -1149,8 +1780,35 @@ public partial class MainWindow : Window
         });
     }
 
+    private void OpenDirectory(string directory, string label)
+    {
+        try
+        {
+            Directory.CreateDirectory(directory);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{directory}\"",
+                UseShellExecute = true
+            });
+
+            StatusTextBlock.Text = $"已打开{label}。";
+        }
+        catch (Exception ex)
+        {
+            StatusTextBlock.Text = $"打开{label}失败：{ex.Message}";
+        }
+    }
+
     private void ShowMainWindow()
     {
+        ShowInTaskbar = true;
+
+        if (!IsVisible)
+        {
+            Show();
+        }
+
         WindowState = WindowState.Normal;
         CenterOnPrimaryScreen();
 
@@ -1159,9 +1817,11 @@ public partial class MainWindow : Window
             Show();
         }
 
-        ShowInTaskbar = true;
         UpdateMaximizeRestoreButtonText();
         Activate();
+        Focus();
+        Topmost = true;
+        Topmost = false;
     }
 
     private void HideMainWindow()
@@ -1170,9 +1830,23 @@ public partial class MainWindow : Window
         Hide();
     }
 
+    private void KeepMainWindowMinimizedInTaskbar()
+    {
+        ShowInTaskbar = true;
+
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        WindowState = WindowState.Minimized;
+        UpdateMaximizeRestoreButtonText();
+    }
+
     private void ExitApplication()
     {
         _isExitRequested = true;
+        _app.PreparePinnedWindowsForExit();
         Close();
         WpfApplication.Current.Shutdown();
     }
@@ -1235,6 +1909,7 @@ public partial class MainWindow : Window
             $"当前 API 配置：{FormatSummaryValue(selectedProfile?.Name ?? string.Empty)}\n" +
             $"接口地址：{FormatSummaryValue(selectedProfile?.BaseUrl ?? string.Empty)}\n" +
             $"模型：{FormatSummaryValue(selectedProfile?.Model ?? string.Empty)}\n" +
+            $"上下文翻译：{(selectedProfile?.EnableContext == true ? "已开启" : "未开启")}\n" +
             $"翻译来源：{FormatTranslationProvider(_settings.TranslationProviderPreference)}\n" +
             $"目标语言：{FormatSummaryValue(_settings.TargetLanguage)}\n" +
             $"API Key：{maskedKey}\n" +
@@ -1244,7 +1919,21 @@ public partial class MainWindow : Window
             $"快捷键 1（固定到屏幕）：{FormatSummaryValue(_settings.HotkeyCaptureAndPin)}\n" +
             $"快捷键 2（自动翻译）：{FormatSummaryValue(_settings.HotkeyCaptureAndTranslate)}\n" +
             $"快捷键 3（等待操作）：{FormatSummaryValue(_settings.HotkeyCaptureAndWaitForAction)}\n" +
+            $"快捷键 4（保存截图）：{FormatSummaryValue(_settings.HotkeyCaptureAndSave)}\n" +
+            $"贴图关闭键：{FormatSummaryValue(_settings.PinnedCloseShortcut)}\n" +
+            $"贴图隐藏键：{FormatSummaryValue(_settings.PinnedHideShortcut)}\n" +
+            $"打开主菜单：{FormatSummaryValue(_settings.HotkeyShowMainWindow)}\n" +
+            $"退出软件：{FormatSummaryValue(_settings.HotkeyExitApplication)}\n" +
+            $"临时文件保留：{FormatRetentionDays(_settings.TempFileRetentionDays)}\n" +
+            $"历史记录保留：{FormatRetentionDays(_settings.HistoryRetentionDays)}\n" +
             $"托盘左键：{FormatTrayLeftClickAction(_settings.TrayLeftClickAction)}";
+    }
+
+    private void RenderScreenshotManagementInfo()
+    {
+        DefaultCaptureDirectoryTextBlock.Text = _app.CapturedImageFileService.GetDefaultDirectoryPath();
+        TempCaptureDirectoryTextBlock.Text = _app.CapturedImageFileService.GetTempDirectoryPath();
+        RefreshDefaultCapturesList();
     }
 
     private void RenderEnvironmentChecks()
@@ -1442,6 +2131,14 @@ public partial class MainWindow : Window
                 record.ImagePath,
                 "备注",
                 "固定到屏幕不会额外产生 OCR 或翻译结果。",
+                imagePath: record.ImagePath),
+            "save" => new ResultWindow(
+                "历史详情 - 保存截图",
+                "这条记录表示该截图已保存到默认目录。",
+                "截图路径",
+                record.ImagePath,
+                "备注",
+                "保存截图不会额外产生 OCR 或翻译结果。",
                 imagePath: record.ImagePath),
             _ => null
         };
@@ -1713,8 +2410,8 @@ public partial class MainWindow : Window
         using var titleFont = CreateFont(30, DrawingFontStyle.Bold);
         using var bodyFont = CreateFont(22, DrawingFontStyle.Regular);
 
-        graphics.DrawString("SnapCat OCR Test 123", titleFont, DrawingBrushes.Black, 28, 34);
-        graphics.DrawString("DeepSeek Ready", bodyFont, DrawingBrushes.Black, 32, 104);
+        graphics.DrawString("SnapCat OCR 识别测试 123", titleFont, DrawingBrushes.Black, 28, 34);
+        graphics.DrawString("本地识别与接口翻译", bodyFont, DrawingBrushes.Black, 32, 104);
         graphics.DrawString("自由框选 screenshot translation", bodyFont, DrawingBrushes.Black, 32, 154);
 
         bitmap.Save(filePath, ImageFormat.Png);
@@ -1819,6 +2516,7 @@ public partial class MainWindow : Window
 
         var selectedThemeId = GetSelectedThemeId();
         _app.ThemeService.ApplyTheme(WpfApplication.Current, selectedThemeId);
+        _app.TrayIconService.RefreshThemeIcon();
         UpdateSaveButtonVisibility();
     }
 
@@ -1843,14 +2541,28 @@ public partial class MainWindow : Window
             && string.Equals(left.SelectedApiProfileId, right.SelectedApiProfileId, StringComparison.Ordinal)
             && string.Equals(left.TargetLanguage, right.TargetLanguage, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.TranslationProviderPreference, right.TranslationProviderPreference, StringComparison.OrdinalIgnoreCase)
+            && left.EnableApiContext == right.EnableApiContext
             && string.Equals(left.OcrEngine, right.OcrEngine, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.TesseractExecutablePath, right.TesseractExecutablePath, StringComparison.Ordinal)
             && string.Equals(left.TesseractLanguage, right.TesseractLanguage, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndPin, right.HotkeyCaptureAndPin, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndTranslate, right.HotkeyCaptureAndTranslate, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndWaitForAction, right.HotkeyCaptureAndWaitForAction, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.PinnedCloseShortcut, right.PinnedCloseShortcut, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.PinnedHideShortcut, right.PinnedHideShortcut, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyShowAllPinned, right.HotkeyShowAllPinned, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyHideAllPinned, right.HotkeyHideAllPinned, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyShowUngroupedPinned, right.HotkeyShowUngroupedPinned, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyShowPinnedGroupOne, right.HotkeyShowPinnedGroupOne, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyShowPinnedGroupTwo, right.HotkeyShowPinnedGroupTwo, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyShowPinnedGroupThree, right.HotkeyShowPinnedGroupThree, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyShowMainWindow, right.HotkeyShowMainWindow, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyExitApplication, right.HotkeyExitApplication, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.TrayLeftClickAction, right.TrayLeftClickAction, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.ThemeId, right.ThemeId, StringComparison.OrdinalIgnoreCase)
+            && left.TempFileRetentionDays == right.TempFileRetentionDays
+            && left.HistoryRetentionDays == right.HistoryRetentionDays
             && left.LaunchAtStartup == right.LaunchAtStartup;
     }
 
@@ -1872,7 +2584,8 @@ public partial class MainWindow : Window
                 || !string.Equals(leftProfile.BaseUrl, rightProfile.BaseUrl, StringComparison.Ordinal)
                 || !string.Equals(leftProfile.ApiKey, rightProfile.ApiKey, StringComparison.Ordinal)
                 || !string.Equals(leftProfile.Model, rightProfile.Model, StringComparison.Ordinal)
-                || !string.Equals(leftProfile.SystemPrompt, rightProfile.SystemPrompt, StringComparison.Ordinal))
+                || !string.Equals(leftProfile.SystemPrompt, rightProfile.SystemPrompt, StringComparison.Ordinal)
+                || leftProfile.EnableContext != rightProfile.EnableContext)
             {
                 return false;
             }
@@ -2006,6 +2719,7 @@ public partial class MainWindow : Window
             {
                 CaptureWorkflowKind.CaptureAndPin => "自由框选并固定到屏幕",
                 CaptureWorkflowKind.CaptureAndTranslate => "自由框选后自动翻译",
+                CaptureWorkflowKind.CaptureAndSave => "自由框选并保存到默认位置",
                 _ => "自由框选后等待操作选择"
             }
             : "自由框选后等待操作选择";
@@ -2019,6 +2733,7 @@ public partial class MainWindow : Window
             "ocr" => "OCR 识别",
             "ocr-translate" => "OCR 并翻译",
             "qr" => "二维码识别",
+            "save" => "保存截图",
             _ => "未知操作"
         };
     }
@@ -2028,12 +2743,17 @@ public partial class MainWindow : Window
         return string.IsNullOrWhiteSpace(value) ? "未填写" : value;
     }
 
+    private static string FormatRetentionDays(int days)
+    {
+        return days <= 0 ? "不自动清理" : $"{days} 天";
+    }
+
     private static string GetAppVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
         return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.1.0";
+            ?? "0.2.0";
     }
 
     private static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
@@ -2057,6 +2777,7 @@ public partial class MainWindow : Window
         ApiKey = settings.ApiKey,
         Model = settings.Model,
         SystemPrompt = settings.SystemPrompt,
+        EnableApiContext = settings.EnableApiContext,
         ApiProfiles = AppSettings.CloneApiProfiles(settings.ApiProfiles),
         SelectedApiProfileId = settings.SelectedApiProfileId,
         TargetLanguage = settings.TargetLanguage,
@@ -2068,8 +2789,21 @@ public partial class MainWindow : Window
         HotkeyCaptureAndPin = settings.HotkeyCaptureAndPin,
         HotkeyCaptureAndTranslate = settings.HotkeyCaptureAndTranslate,
         HotkeyCaptureAndWaitForAction = settings.HotkeyCaptureAndWaitForAction,
+        HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
+        PinnedCloseShortcut = settings.PinnedCloseShortcut,
+        PinnedHideShortcut = settings.PinnedHideShortcut,
+        HotkeyShowAllPinned = settings.HotkeyShowAllPinned,
+        HotkeyHideAllPinned = settings.HotkeyHideAllPinned,
+        HotkeyShowUngroupedPinned = settings.HotkeyShowUngroupedPinned,
+        HotkeyShowPinnedGroupOne = settings.HotkeyShowPinnedGroupOne,
+        HotkeyShowPinnedGroupTwo = settings.HotkeyShowPinnedGroupTwo,
+        HotkeyShowPinnedGroupThree = settings.HotkeyShowPinnedGroupThree,
+        HotkeyShowMainWindow = settings.HotkeyShowMainWindow,
+        HotkeyExitApplication = settings.HotkeyExitApplication,
         TrayLeftClickAction = settings.TrayLeftClickAction,
         ThemeId = settings.ThemeId,
+        TempFileRetentionDays = settings.TempFileRetentionDays,
+        HistoryRetentionDays = settings.HistoryRetentionDays,
         LaunchAtStartup = settings.LaunchAtStartup
     };
 
@@ -2145,6 +2879,121 @@ public partial class MainWindow : Window
         }
     }
 
+    private sealed record PinnedImageListItem(PinnedWindowSnapshot Snapshot)
+    {
+        public string Id => Snapshot.Id;
+
+        public ImageSource? Thumbnail { get; } = LoadThumbnail(Snapshot.ImagePath);
+
+        public string Title
+        {
+            get
+            {
+                var fileName = string.IsNullOrWhiteSpace(Snapshot.ImagePath)
+                    ? "未知图片"
+                    : Path.GetFileName(Snapshot.ImagePath);
+                var groupName = string.IsNullOrWhiteSpace(Snapshot.GroupName) ? "未成组" : Snapshot.GroupName;
+                return $"{fileName} · {groupName}";
+            }
+        }
+
+        public string Summary
+        {
+            get
+            {
+                var groupName = string.IsNullOrWhiteSpace(Snapshot.GroupName) ? "未成组" : Snapshot.GroupName;
+                var visibility = Snapshot.IsVisible ? "显示中" : "已隐藏";
+                var fileName = string.IsNullOrWhiteSpace(Snapshot.ImagePath)
+                    ? "未知图片"
+                    : Path.GetFileName(Snapshot.ImagePath);
+                return $"{groupName} | {visibility} | {Math.Round(Snapshot.Width)}x{Math.Round(Snapshot.Height)} | X:{Math.Round(Snapshot.Left)} Y:{Math.Round(Snapshot.Top)} | {fileName}";
+            }
+        }
+
+        private static ImageSource? LoadThumbnail(string? imagePath)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                bitmap.DecodePixelWidth = 96;
+                bitmap.UriSource = new Uri(imagePath);
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    private sealed record DefaultCaptureListItem(string Path)
+    {
+        public ImageSource? Thumbnail { get; } = LoadThumbnail(Path);
+
+        public string Title => System.IO.Path.GetFileName(Path);
+
+        public string Summary
+        {
+            get
+            {
+                try
+                {
+                    var info = new FileInfo(Path);
+                    return $"{info.LastWriteTime:yyyy-MM-dd HH:mm:ss} | {FormatFileSize(info.Length)} | {Path}";
+                }
+                catch
+                {
+                    return Path;
+                }
+            }
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            if (bytes >= 1024 * 1024)
+            {
+                return $"{bytes / 1024d / 1024d:0.##} MB";
+            }
+
+            return $"{Math.Max(1, bytes / 1024d):0.#} KB";
+        }
+
+        private static ImageSource? LoadThumbnail(string? imagePath)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                bitmap.DecodePixelWidth = 96;
+                bitmap.UriSource = new Uri(imagePath);
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
     private sealed record CaptureActionSelectionResult(
         CaptureActionKind Action,
         Int32Rect CaptureRegion);
@@ -2169,6 +3018,9 @@ public partial class MainWindow : Window
         OcrSettings,
         TranslationSettings,
         History,
+        ScreenshotManagement,
+        PinnedImages,
+        ExecuteActions,
         CaptureSettings,
         AppearanceSettings,
         TraySettings,
