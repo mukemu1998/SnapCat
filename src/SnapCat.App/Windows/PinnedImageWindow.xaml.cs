@@ -29,14 +29,6 @@ public partial class PinnedImageWindow : Window
     private bool _isHoverOverlayVisible;
     private readonly DispatcherTimer _scaleIndicatorTimer;
 
-    private enum ArrayDirection
-    {
-        Left,
-        Right,
-        Up,
-        Down
-    }
-
     public PinnedImageWindow(
         string imagePath,
         AppSettings settings,
@@ -49,7 +41,7 @@ public partial class PinnedImageWindow : Window
         _persistedSnapshot = persistedSnapshot;
         _imagePath = imagePath;
         _settings = settings;
-        _sourceBitmap = LoadImage(imagePath);
+        _sourceBitmap = PinnedImageBitmapService.LoadImage(imagePath);
         PinnedId = string.IsNullOrWhiteSpace(persistedSnapshot?.Id)
             ? Guid.NewGuid().ToString("N")
             : persistedSnapshot.Id;

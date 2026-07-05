@@ -107,8 +107,7 @@ public partial class MainWindow
         }
 
         var selected = _sections[section];
-        SectionTitleTextBlock.Text = selected.Title;
-        SectionDescriptionTextBlock.Text = selected.Description;
+        _viewModel.SetCurrentSection(selected.Title, selected.Description);
 
         if (section == MainSection.PinnedImages)
         {
@@ -125,10 +124,6 @@ public partial class MainWindow
             RenderUserConfigLocationInfo();
         }
 
-        if (section == MainSection.About)
-        {
-            AboutVersionTextBlock.Text = $"版本 {GetAppVersion()}";
-        }
     }
 
     private void ApplyNavigationStyle(WpfButton button, bool isSelected)

@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using SnapCat.App.Services;
+using SnapCat.App.ViewModels;
 using SnapCat.App.Windows;
 using SnapCat.Core.Models;
 using SnapCat.Infrastructure.Services;
@@ -41,6 +42,7 @@ namespace SnapCat.App;
 public partial class MainWindow : Window
 {
     private readonly App _app;
+    private readonly MainWindowViewModel _viewModel;
     private readonly Dictionary<MainSection, NavigationSectionMetadata> _sections = new();
     private AppSettings _settings = new();
     private bool _isExitRequested;
@@ -57,15 +59,16 @@ public partial class MainWindow : Window
     private bool _isSyncingApiKeyInputs;
     private bool _isApplyingSettings;
     private bool _hasLoadedSettings;
-    private List<ApiTranslationProfile> _editingApiProfiles = [];
+    private bool _hasUnsavedSettings;
     private readonly List<string> _operationLogs = [];
-    private string _selectedApiProfileId = string.Empty;
     private bool _isApplyingApiProfileState;
 
     public MainWindow()
     {
         InitializeComponent();
         _app = (App)WpfApplication.Current;
+        _viewModel = new MainWindowViewModel();
+        DataContext = _viewModel;
         WindowBackdropService.ApplyToWindow(this, WindowBackdropService.BackdropKind.TransientWindow, useSystemRoundedCorners: true);
         ConfigureSections();
         Loaded += MainWindow_OnLoaded;
@@ -75,14 +78,13 @@ public partial class MainWindow : Window
         BaseUrlTextBox.TextChanged += TranslationProviderInputs_OnTextChanged;
         ModelTextBox.TextChanged += TranslationProviderInputs_OnTextChanged;
         TranslationProviderComboBox.SelectionChanged += TranslationProviderComboBox_OnSelectionChanged;
-        BaseUrlTextBox.TextChanged += SettingsInput_OnTextChanged;
         ApiKeyTextBox.TextChanged += SettingsInput_OnTextChanged;
-        ApiProfileNameTextBox.TextChanged += ApiProfileNameTextBox_OnTextChanged;
-        ModelTextBox.TextChanged += ApiProfileModelTextBox_OnTextChanged;
-        ModelTextBox.TextChanged += SettingsInput_OnTextChanged;
-        SystemPromptTextBox.TextChanged += SettingsInput_OnTextChanged;
-        ApiProfileEnableContextCheckBox.Checked += ApiProfileEnableContextCheckBox_OnChanged;
-        ApiProfileEnableContextCheckBox.Unchecked += ApiProfileEnableContextCheckBox_OnChanged;
+        ApiProfileNameTextBox.TextChanged += ApiProfileEditor_OnChanged;
+        BaseUrlTextBox.TextChanged += ApiProfileEditor_OnChanged;
+        ModelTextBox.TextChanged += ApiProfileEditor_OnChanged;
+        SystemPromptTextBox.TextChanged += ApiProfileEditor_OnChanged;
+        ApiProfileEnableContextCheckBox.Checked += ApiProfileEditor_OnChanged;
+        ApiProfileEnableContextCheckBox.Unchecked += ApiProfileEditor_OnChanged;
         TesseractPathTextBox.TextChanged += SettingsInput_OnTextChanged;
         TargetLanguageComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TranslationProviderComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
@@ -120,15 +122,14 @@ public partial class MainWindow : Window
     private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
     {
         CenterOnPrimaryScreen();
-        VersionTextBlock.Text = $"Preview v{GetAppVersion()}";
+        _viewModel.SetVersion(GetAppVersion());
 
-        _settings = CloneSettings(_app.StartupSettingsSnapshot);
+        _settings = TranslationLanguageHelper.CloneSettings(_app.StartupSettingsSnapshot);
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
-        AboutVersionTextBlock.Text = $"版本 {GetAppVersion()}";
 
         ApplySettingsToControls(_settings);
         _hasLoadedSettings = true;
-        UpdateSaveButtonVisibility();
+        MarkSettingsClean();
         RegisterHotkeys();
         ValidateHotkeyConflicts();
         RenderSettingsSummary();

@@ -816,7 +816,8 @@
                     <TextBlock x:Name="VersionTextBlock"
                                Margin="0,6,0,0"
                                FontSize="12"
-                               Foreground="{DynamicResource Theme.Brush.TextMuted}" />
+                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                               Text="{Binding AppVersionLabel}" />
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="1"
@@ -1034,10 +1035,12 @@
                         <TextBlock x:Name="SectionTitleTextBlock"
                                    FontSize="26"
                                    FontWeight="Bold"
-                                   Foreground="{DynamicResource Theme.Brush.TextPrimary}" />
+                                   Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                   Text="{Binding CurrentSectionTitle}" />
                         <TextBlock x:Name="SectionDescriptionTextBlock"
                                    Margin="0,8,0,0"
                                    Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                   Text="{Binding CurrentSectionDescription}"
                                    TextWrapping="Wrap" />
                     </StackPanel>
 
@@ -1340,6 +1343,8 @@
                                                  Grid.Row="0"
                                                  Grid.Column="1"
                                                  Margin="0,0,0,12"
+                                                 ItemsSource="{Binding ApiProfilesEditor.Profiles}"
+                                                 SelectedValue="{Binding ApiProfilesEditor.SelectedProfileId, Mode=TwoWay}"
                                                  SelectedValuePath="Id"
                                                  SelectionChanged="ApiProfileCardsListBox_OnSelectionChanged"
                                                  BorderThickness="0"
@@ -2217,7 +2222,8 @@
                                                 BorderThickness="1"
                                                 CornerRadius="10">
                                             <TextBlock x:Name="AboutVersionTextBlock"
-                                                       Foreground="{DynamicResource Theme.Brush.Highlight}" />
+                                                       Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                                       Text="{Binding AboutVersionLabel}" />
                                         </Border>
                                         <Border Margin="0,0,8,8"
                                                 Padding="10,5"

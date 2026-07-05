@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using System.Windows;
+using SnapCat.App.Services;
 
 namespace SnapCat.App;
 
@@ -67,7 +68,7 @@ public partial class MainWindow
 
             var currentVersion = GetAppVersion();
             var latestVersionText = string.IsNullOrWhiteSpace(latestTag)
-                ? FormatSummaryValue(latestName)
+                ? SettingsSummaryFormatter.FormatSummaryValue(latestName)
                 : latestTag;
 
             AboutUpdateStatusTextBlock.Text = IsRemoteVersionNewer(currentVersion, latestVersionText)

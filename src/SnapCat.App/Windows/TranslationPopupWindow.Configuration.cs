@@ -11,35 +11,11 @@ namespace SnapCat.App.Windows;
 
 public partial class TranslationPopupWindow
 {
-    private void ConfigureLanguageChoices(string sourceText)
-    {
-        var languages = new[]
-        {
-            new LanguageOption(TranslationLanguageHelper.AutoLanguage, "自动"),
-            new LanguageOption(TranslationLanguageHelper.ChineseSimplified, "简体中文"),
-            new LanguageOption(TranslationLanguageHelper.English, "英语"),
-            new LanguageOption(TranslationLanguageHelper.Japanese, "日语"),
-            new LanguageOption(TranslationLanguageHelper.Korean, "韩语")
-        };
-
-        SourceLanguageComboBox.ItemsSource = languages;
-        TargetLanguageComboBox.ItemsSource = languages;
-
-        SourceLanguageComboBox.ItemTemplate = (DataTemplate)FindResource("LanguageOptionTemplate");
-        TargetLanguageComboBox.ItemTemplate = (DataTemplate)FindResource("LanguageOptionTemplate");
-        SourceLanguageComboBox.SelectedValuePath = nameof(LanguageOption.Code);
-        TargetLanguageComboBox.SelectedValuePath = nameof(LanguageOption.Code);
-
-        SourceLanguageComboBox.SelectedValue = TranslationLanguageHelper.AutoLanguage;
-        TargetLanguageComboBox.SelectedValue = TranslationLanguageHelper.AutoLanguage;
-        UpdateDirectionHint();
-    }
-
     private void ConfigureApiProfiles()
     {
         _settings.NormalizeApiProfiles();
         _isApplyingApiProfileSelection = true;
-        ApiProfileComboBox.ItemsSource = null;
+        _viewModel.RefreshApiProfiles();
 
         if (_settings.ApiProfiles.Count == 0)
         {
@@ -48,8 +24,7 @@ public partial class TranslationPopupWindow
             return;
         }
 
-        ApiProfileComboBox.ItemsSource = _settings.ApiProfiles;
-        ApiProfileComboBox.SelectedValue = _settings.SelectedApiProfileId;
+        _viewModel.SelectedApiProfileId = _settings.SelectedApiProfileId;
         _isApplyingApiProfileSelection = false;
         UpdateApiProfileVisibility();
     }
@@ -68,6 +43,7 @@ public partial class TranslationPopupWindow
 
         _settings.SyncLegacyApiFieldsFromSelectedProfile();
         UpdateProviderButtons();
+        UpdateViewModelTranslationContext();
     }
 
     private void UpdateProviderButtons()
@@ -99,53 +75,6 @@ public partial class TranslationPopupWindow
             ?? new SolidColorBrush(WpfColor.FromRgb(55, 65, 81));
     }
 
-    private string GetAutoTargetLanguage(string sourceText)
-    {
-        var selectedSourceLanguage = SourceLanguageComboBox.SelectedValue as string;
-        if (!string.IsNullOrWhiteSpace(selectedSourceLanguage)
-            && !string.Equals(selectedSourceLanguage, TranslationLanguageHelper.AutoLanguage, StringComparison.OrdinalIgnoreCase))
-        {
-            return string.Equals(selectedSourceLanguage, TranslationLanguageHelper.ChineseSimplified, StringComparison.OrdinalIgnoreCase)
-                ? TranslationLanguageHelper.English
-                : TranslationLanguageHelper.ChineseSimplified;
-        }
-
-        return TranslationLanguageHelper.ResolveTargetLanguage(_settings, sourceText);
-    }
-
-    private void UpdateDirectionHint()
-    {
-        var sourceLabel = GetComboLabel(SourceLanguageComboBox);
-        var targetLabel = string.Equals(TargetLanguageComboBox.SelectedValue as string, TranslationLanguageHelper.AutoLanguage, StringComparison.OrdinalIgnoreCase)
-            ? GetLanguageLabel(GetAutoTargetLanguage(SourceTextBox.Text?.Trim() ?? string.Empty))
-            : GetComboLabel(TargetLanguageComboBox);
-        DirectionTextBlock.Text = $"{sourceLabel} -> {targetLabel}";
-    }
-
-    private static string GetLanguageLabel(string languageCode)
-    {
-        return languageCode switch
-        {
-            TranslationLanguageHelper.ChineseSimplified => "简体中文",
-            TranslationLanguageHelper.English => "英语",
-            TranslationLanguageHelper.Japanese => "日语",
-            TranslationLanguageHelper.Korean => "韩语",
-            _ => "自动"
-        };
-    }
-
-    private static string GetComboLabel(WpfComboBox comboBox)
-    {
-        return comboBox.SelectedItem is LanguageOption option ? option.Label : "自动";
-    }
-
-    private string GetSelectedTargetLanguageLabel()
-    {
-        return string.Equals(TargetLanguageComboBox.SelectedValue as string, TranslationLanguageHelper.AutoLanguage, StringComparison.OrdinalIgnoreCase)
-            ? GetLanguageLabel(GetAutoTargetLanguage(SourceTextBox.Text?.Trim() ?? string.Empty))
-            : GetComboLabel(TargetLanguageComboBox);
-    }
-
     private string GetSelectedProviderLabel()
     {
         return _settings.TranslationProviderPreference switch
@@ -167,5 +96,8 @@ public partial class TranslationPopupWindow
             && !string.IsNullOrWhiteSpace(profile.Model);
     }
 
-    private sealed record LanguageOption(string Code, string Label);
+    private void UpdateViewModelTranslationContext()
+    {
+        _viewModel.SelectedProviderLabel = GetSelectedProviderLabel();
+    }
 }

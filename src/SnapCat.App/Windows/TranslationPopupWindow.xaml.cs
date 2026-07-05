@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using SnapCat.App.Services;
+using SnapCat.App.ViewModels;
 using SnapCat.Core.Models;
 using Clipboard = System.Windows.Clipboard;
 using FormsScreen = System.Windows.Forms.Screen;
@@ -28,6 +29,7 @@ public partial class TranslationPopupWindow : Window
     private Int32Rect? _captureRegion;
     private readonly Window? _ownerWindow;
     private AppSettings _settings;
+    private readonly TranslationPopupViewModel _viewModel;
     private Func<Task>? _repeatCaptureAction;
     private bool _hasAnchoredPosition;
     private bool _isApplyingApiProfileSelection;
@@ -45,17 +47,15 @@ public partial class TranslationPopupWindow : Window
         _app = (App)WpfApplication.Current;
         _settings = TranslationLanguageHelper.CloneSettings(settings);
         _settings.NormalizeApiProfiles();
+        _viewModel = new TranslationPopupViewModel(_app.TranslationService, _settings);
+        DataContext = _viewModel;
         _captureRegion = captureRegion;
         _ownerWindow = ownerWindow;
         _repeatCaptureAction = repeatCaptureAction;
 
         Title = title;
-        TitleTextBlock.Text = title;
-        StatusTextBlock.Text = status;
-        SourceTextBox.Text = sourceText;
-        TranslatedTextBox.Text = translatedText;
+        _viewModel.Reset(title, status, sourceText, translatedText, _settings, repeatCaptureAction);
 
-        ConfigureLanguageChoices(sourceText);
         ConfigureApiProfiles();
         SetTranslationProvider(_settings.TranslationProviderPreference);
         Loaded += TranslationPopupWindow_OnLoaded;
@@ -75,16 +75,11 @@ public partial class TranslationPopupWindow : Window
         _hasAnchoredPosition = preserveCurrentPosition;
 
         Title = title;
-        TitleTextBlock.Text = title;
-        StatusTextBlock.Text = "正在识别文本...";
-        SourceTextBox.Text = string.Empty;
-        TranslatedTextBox.Text = string.Empty;
+        _viewModel.Reset(title, "正在识别文本...", string.Empty, string.Empty, _settings, repeatCaptureAction);
         TranslatedTextBox.Height = double.NaN;
 
-        ConfigureLanguageChoices(string.Empty);
         ConfigureApiProfiles();
         SetTranslationProvider(_settings.TranslationProviderPreference);
-        RecaptureButton.IsEnabled = _repeatCaptureAction is not null;
 
         if (IsLoaded)
         {
@@ -99,24 +94,17 @@ public partial class TranslationPopupWindow : Window
 
     public void SetBusyState(string status)
     {
-        StatusTextBlock.Text = status;
-        TranslateButton.IsEnabled = false;
-        RecaptureButton.IsEnabled = false;
+        _viewModel.SetBusyState(status);
     }
 
     public void UpdateRecognizedSource(string sourceText, string status)
     {
-        SourceTextBox.Text = sourceText;
-        StatusTextBlock.Text = status;
-        UpdateDirectionHint();
+        _viewModel.UpdateRecognizedSource(sourceText, status);
     }
 
     public void UpdateTranslationResult(string translatedText, string status)
     {
-        TranslatedTextBox.Text = translatedText;
-        StatusTextBlock.Text = status;
-        TranslateButton.IsEnabled = true;
-        RecaptureButton.IsEnabled = _repeatCaptureAction is not null;
+        _viewModel.UpdateTranslationResult(translatedText, status);
         AdjustTranslatedTextBoxHeight();
     }
 
@@ -124,12 +112,10 @@ public partial class TranslationPopupWindow : Window
     {
         if (!string.IsNullOrWhiteSpace(translatedText))
         {
-            TranslatedTextBox.Text = translatedText;
+            _viewModel.TranslatedText = translatedText;
         }
 
-        StatusTextBlock.Text = status;
-        TranslateButton.IsEnabled = true;
-        RecaptureButton.IsEnabled = _repeatCaptureAction is not null;
+        _viewModel.UpdateFailure(status);
         AdjustTranslatedTextBoxHeight();
     }
 
@@ -138,7 +124,6 @@ public partial class TranslationPopupWindow : Window
         ApplyWindowHeightConstraints();
         AdjustTranslatedTextBoxHeight();
         PositionWindowIfNeeded();
-        RecaptureButton.IsEnabled = _repeatCaptureAction is not null;
         Activate();
     }
 

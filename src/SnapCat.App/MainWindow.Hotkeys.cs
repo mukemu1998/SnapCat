@@ -112,44 +112,32 @@ public partial class MainWindow
 
     private void ClearPinHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
-        HotkeyCaptureAndPinTextBox.Text = string.Empty;
-        ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        ClearHotkeyTextBox(HotkeyCaptureAndPinTextBox);
     }
 
     private void ClearTranslateHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
-        HotkeyCaptureAndTranslateTextBox.Text = string.Empty;
-        ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        ClearHotkeyTextBox(HotkeyCaptureAndTranslateTextBox);
     }
 
     private void ClearWaitHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
-        HotkeyCaptureAndWaitTextBox.Text = string.Empty;
-        ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        ClearHotkeyTextBox(HotkeyCaptureAndWaitTextBox);
     }
 
     private void ClearSaveHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
-        HotkeyCaptureAndSaveTextBox.Text = string.Empty;
-        ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        ClearHotkeyTextBox(HotkeyCaptureAndSaveTextBox);
     }
 
     private void ClearPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
     {
-        PinnedCloseShortcutTextBox.Text = string.Empty;
-        ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        ClearHotkeyTextBox(PinnedCloseShortcutTextBox);
     }
 
     private void ClearPinnedHideShortcutButton_OnClick(object sender, RoutedEventArgs e)
     {
-        PinnedHideShortcutTextBox.Text = string.Empty;
-        ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        ClearHotkeyTextBox(PinnedHideShortcutTextBox);
     }
 
     private void ClearShowAllPinnedHotkeyButton_OnClick(object sender, RoutedEventArgs e)
@@ -196,7 +184,7 @@ public partial class MainWindow
     {
         textBox.Text = string.Empty;
         ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        MarkSettingsDirty();
     }
 
     private void RestoreDefaultHotkeysButton_OnClick(object sender, RoutedEventArgs e)
@@ -217,7 +205,7 @@ public partial class MainWindow
         HotkeyShowMainWindowTextBox.Text = defaults.HotkeyShowMainWindow;
         HotkeyExitApplicationTextBox.Text = defaults.HotkeyExitApplication;
         ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        MarkSettingsDirty();
         StatusTextBlock.Text = "已还原默认快捷键。";
     }
 
@@ -250,18 +238,18 @@ public partial class MainWindow
             return;
         }
 
-        if (IsModifierOnlyKey(key))
+        if (HotkeyTextFormatter.IsModifierOnlyKey(key))
         {
             _recordingHotkeyTextBox.Text = "请继续按下主键...";
             return;
         }
 
-        var hotkeyText = FormatHotkeyText(key, Keyboard.Modifiers);
+        var hotkeyText = HotkeyTextFormatter.Format(key, Keyboard.Modifiers);
         _recordingHotkeyTextBox.Text = hotkeyText;
         StatusTextBlock.Text = $"已录制“{_recordingHotkeyLabel}”快捷键：{hotkeyText}";
         ResetHotkeyRecordingState();
         ValidateHotkeyConflicts();
-        UpdateSaveButtonVisibility();
+        MarkSettingsDirty();
     }
 
     private void ResetHotkeyRecordingState()
@@ -273,7 +261,16 @@ public partial class MainWindow
 
     private void ValidateHotkeyConflicts()
     {
-        var hotkeys = new Dictionary<string, string>
+        var summary = HotkeyValidationFormatter.Build(GetHotkeyValidationInputs(), _hotkeyRegistrationResults);
+        HotkeyValidationTextBlock.Foreground = new SolidColorBrush(summary.HasIssue
+            ? System.Windows.Media.Color.FromRgb(185, 28, 28)
+            : System.Windows.Media.Color.FromRgb(22, 101, 52));
+        HotkeyValidationTextBlock.Text = summary.Text;
+    }
+
+    private Dictionary<string, string> GetHotkeyValidationInputs()
+    {
+        return new Dictionary<string, string>
         {
             ["固定到屏幕"] = HotkeyCaptureAndPinTextBox.Text.Trim(),
             ["自动翻译"] = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
@@ -290,100 +287,5 @@ public partial class MainWindow
             ["打开主菜单"] = HotkeyShowMainWindowTextBox.Text.Trim(),
             ["退出软件"] = HotkeyExitApplicationTextBox.Text.Trim()
         };
-
-        var duplicates = hotkeys
-            .Where(static pair => !string.IsNullOrWhiteSpace(pair.Value))
-            .GroupBy(static pair => pair.Value, StringComparer.OrdinalIgnoreCase)
-            .Where(static group => group.Count() > 1)
-            .ToList();
-
-        var registrationFailures = _hotkeyRegistrationResults
-            .Where(static result => !result.IsRegistered)
-            .ToList();
-
-        if (duplicates.Count == 0 && registrationFailures.Count == 0)
-        {
-            HotkeyValidationTextBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(22, 101, 52));
-            HotkeyValidationTextBlock.Text = hotkeys.Any(static pair => !string.IsNullOrWhiteSpace(pair.Value))
-                ? "当前快捷键没有发现重复冲突。"
-                : "当前没有设置可选快捷键，需要时可在上方录制。";
-            return;
-        }
-
-        if (duplicates.Count == 0)
-        {
-            HotkeyValidationTextBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(185, 28, 28));
-            HotkeyValidationTextBlock.Text = string.Join(
-                Environment.NewLine,
-                registrationFailures.Select(result =>
-                    $"注册失败：{result.Label} ({FormatSummaryValue(result.HotkeyText)}) - {result.Message}"));
-            return;
-        }
-
-        var messages = duplicates.Select(group =>
-        {
-            var labels = string.Join("、", group.Select(static pair => pair.Key));
-            return $"快捷键冲突：{labels} 都使用了 {group.Key}";
-        });
-
-        if (registrationFailures.Count > 0)
-        {
-            messages = messages.Concat(registrationFailures.Select(result =>
-                $"注册失败：{result.Label} ({FormatSummaryValue(result.HotkeyText)}) - {result.Message}"));
-        }
-
-        HotkeyValidationTextBlock.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(185, 28, 28));
-        HotkeyValidationTextBlock.Text = string.Join(Environment.NewLine, messages);
-    }
-
-    private static bool IsModifierOnlyKey(Key key)
-    {
-        return key is Key.LeftCtrl or Key.RightCtrl
-            or Key.LeftAlt or Key.RightAlt
-            or Key.LeftShift or Key.RightShift
-            or Key.LWin or Key.RWin;
-    }
-
-    private static string FormatHotkeyText(Key key, ModifierKeys modifiers)
-    {
-        var parts = new List<string>();
-
-        if (modifiers.HasFlag(ModifierKeys.Control))
-        {
-            parts.Add("Ctrl");
-        }
-
-        if (modifiers.HasFlag(ModifierKeys.Alt))
-        {
-            parts.Add("Alt");
-        }
-
-        if (modifiers.HasFlag(ModifierKeys.Shift))
-        {
-            parts.Add("Shift");
-        }
-
-        if (modifiers.HasFlag(ModifierKeys.Windows))
-        {
-            parts.Add("Win");
-        }
-
-        parts.Add(FormatPrimaryKey(key));
-        return string.Join("+", parts);
-    }
-
-    private static string FormatPrimaryKey(Key key)
-    {
-        if (key is >= Key.A and <= Key.Z)
-        {
-            return key.ToString().ToUpperInvariant();
-        }
-
-        if (key is >= Key.D0 and <= Key.D9)
-        {
-            return ((int)(key - Key.D0)).ToString();
-        }
-
-        return key.ToString();
     }
 }

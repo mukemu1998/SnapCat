@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.IO;
+using SnapCat.App.Services;
 
 namespace SnapCat.App;
 
@@ -9,14 +9,7 @@ public partial class MainWindow
     {
         try
         {
-            Directory.CreateDirectory(directory);
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "explorer.exe",
-                Arguments = $"\"{directory}\"",
-                UseShellExecute = true
-            });
-
+            WindowsExplorerService.OpenDirectory(directory, createIfMissing: true);
             StatusTextBlock.Text = $"已打开{label}。";
         }
         catch (Exception ex)

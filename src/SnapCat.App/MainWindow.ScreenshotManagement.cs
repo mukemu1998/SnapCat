@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SnapCat.App.Services;
 
 namespace SnapCat.App;
 
@@ -96,12 +96,7 @@ public partial class MainWindow
             return;
         }
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "explorer.exe",
-            Arguments = $"/select,\"{item.Path}\"",
-            UseShellExecute = true
-        });
+        WindowsExplorerService.OpenFileOrContainingDirectory(item.Path);
     }
 
     private void DeleteSelectedDefaultCaptures()

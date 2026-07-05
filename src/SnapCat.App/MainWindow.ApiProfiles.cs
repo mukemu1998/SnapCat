@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using SnapCat.App.Services;
+using SnapCat.App.ViewModels;
 using SnapCat.Core.Models;
 using SnapCat.Infrastructure.Services;
 
@@ -7,6 +9,8 @@ namespace SnapCat.App;
 
 public partial class MainWindow
 {
+    private ApiProfilesEditorViewModel ApiProfilesEditor => _viewModel.ApiProfilesEditor;
+
     private async void TestTranslationButton_OnClick(object sender, RoutedEventArgs e)
     {
         var settings = BuildCurrentSettings();
@@ -17,10 +21,7 @@ public partial class MainWindow
         {
             const string sourceText = "Hello from SnapCat. This is a translation test.";
             var result = await _app.TranslationService.TranslateAsync(sourceText, settings);
-
-            TranslationTestResultTextBox.Text = result.Success
-                ? $"翻译测试成功。\n\n原文：\n{sourceText}\n\n译文：\n{result.Text}"
-                : $"翻译测试失败。\n\n错误信息：\n{result.ErrorMessage}";
+            TranslationTestResultTextBox.Text = TranslationTestMessageFormatter.BuildTranslationTestResult(sourceText, result);
         }
         catch (Exception ex)
         {
@@ -39,9 +40,7 @@ public partial class MainWindow
 
         if (!SmartTranslationService.HasCustomApiSettings(settings))
         {
-            var message = settings.ApiProfiles.Count == 0
-                ? "API 连接测试前请先添加一套 API 配置。"
-                : "API 连接测试前请先填写完整的 API Key 和模型。";
+            var message = TranslationTestMessageFormatter.BuildApiMissingConfigurationMessage(settings);
             TranslationTestResultTextBox.Text = message;
             StatusTextBlock.Text = message;
             SetTestButtonsEnabled(true);
@@ -53,7 +52,7 @@ public partial class MainWindow
 
         try
         {
-            var testSettings = CloneSettings(settings);
+            var testSettings = TranslationLanguageHelper.CloneSettings(settings);
             testSettings.TranslationProviderPreference = TranslationProviderPreference.Api;
             testSettings.NormalizeApiProfiles();
             var selectedProfile = testSettings.GetSelectedApiProfile();
@@ -61,20 +60,8 @@ public partial class MainWindow
             const string sourceText = "SnapCat API connection test.";
             var result = await _app.TranslationService.TranslateAsync(sourceText, testSettings);
 
-            if (result.Success)
-            {
-                var message =
-                    $"API 连接测试成功。\n\n配置名称：{FormatSummaryValue(selectedProfile?.Name ?? string.Empty)}\n接口地址：{FormatSummaryValue(selectedProfile?.BaseUrl ?? string.Empty)}\n模型：{FormatSummaryValue(selectedProfile?.Model ?? string.Empty)}\n返回内容：\n{result.Text}";
-                TranslationTestResultTextBox.Text = message;
-                StatusTextBlock.Text = "API 连接测试成功。";
-            }
-            else
-            {
-                var message =
-                    $"API 连接测试失败。\n\n配置名称：{FormatSummaryValue(selectedProfile?.Name ?? string.Empty)}\n接口地址：{FormatSummaryValue(selectedProfile?.BaseUrl ?? string.Empty)}\n模型：{FormatSummaryValue(selectedProfile?.Model ?? string.Empty)}\n错误信息：\n{result.ErrorMessage}";
-                TranslationTestResultTextBox.Text = message;
-                StatusTextBlock.Text = "API 连接测试失败。";
-            }
+            TranslationTestResultTextBox.Text = TranslationTestMessageFormatter.BuildApiConnectionResult(selectedProfile, result);
+            StatusTextBlock.Text = result.Success ? "API 连接测试成功。" : "API 连接测试失败。";
         }
         catch (Exception ex)
         {
@@ -94,85 +81,78 @@ public partial class MainWindow
             return;
         }
 
-        SetTranslationProviderSelection(ResolveDefaultTranslationProvider(BuildCurrentSettings()));
+        SetTranslationProviderSelection(ResolveDefaultTranslationProviderFromEditor());
+    }
+
+    private string ResolveDefaultTranslationProviderFromEditor()
+    {
+        return ApiProfilesEditor.HasProfiles
+            && !string.IsNullOrWhiteSpace(GetCurrentApiKey())
+            && !string.IsNullOrWhiteSpace(ModelTextBox.Text)
+            ? TranslationProviderPreference.Api
+            : TranslationProviderPreference.Local;
     }
 
     private void ApplyApiProfileState()
     {
         _isApplyingApiProfileState = true;
-
-        if (_editingApiProfiles.Count == 0)
+        try
         {
-            _selectedApiProfileId = string.Empty;
-            ApiProfileCardsListBox.ItemsSource = null;
-            ApiProfileManagerGrid.Visibility = Visibility.Collapsed;
-            EmptyApiProfileStatePanel.Visibility = Visibility.Visible;
-            DeleteApiProfileButton.Visibility = Visibility.Collapsed;
-            SetApiEditorVisibility(Visibility.Collapsed);
-            ClearApiProfileEditor();
+            var state = ApiProfilesEditor.PrepareEditorState();
+            if (!state.HasProfiles)
+            {
+                ApiProfileManagerGrid.Visibility = Visibility.Collapsed;
+                EmptyApiProfileStatePanel.Visibility = Visibility.Visible;
+                DeleteApiProfileButton.Visibility = Visibility.Collapsed;
+                SetApiEditorVisibility(Visibility.Collapsed);
+                ClearApiProfileEditor();
+                UpdateApiKeyVisibility(false);
+                return;
+            }
+
+            ApiProfileCardsListBox.SelectedValue = state.SelectedProfileId;
+            ApiProfileManagerGrid.Visibility = Visibility.Visible;
+            EmptyApiProfileStatePanel.Visibility = Visibility.Collapsed;
+            DeleteApiProfileButton.Visibility = Visibility.Visible;
+            SetApiEditorVisibility(Visibility.Visible);
+            ApplyApiProfileDraftToEditor(state.Draft);
             UpdateApiKeyVisibility(false);
-            _isApplyingApiProfileState = false;
-            return;
         }
-
-        if (string.IsNullOrWhiteSpace(_selectedApiProfileId)
-            || _editingApiProfiles.All(profile => !string.Equals(profile.Id, _selectedApiProfileId, StringComparison.Ordinal)))
+        finally
         {
-            _selectedApiProfileId = _editingApiProfiles[0].Id;
+            _isApplyingApiProfileState = false;
         }
-
-        ApiProfileCardsListBox.ItemsSource = null;
-        ApiProfileCardsListBox.ItemsSource = _editingApiProfiles;
-        ApiProfileCardsListBox.SelectedValue = _selectedApiProfileId;
-        ApiProfileManagerGrid.Visibility = Visibility.Visible;
-        EmptyApiProfileStatePanel.Visibility = Visibility.Collapsed;
-        DeleteApiProfileButton.Visibility = Visibility.Visible;
-        SetApiEditorVisibility(Visibility.Visible);
-        LoadSelectedApiProfileIntoEditor();
-        UpdateApiKeyVisibility(false);
-        _isApplyingApiProfileState = false;
     }
 
     private void LoadSelectedApiProfileIntoEditor()
     {
-        var profile = GetSelectedEditingApiProfile();
-        if (profile is null)
-        {
-            ClearApiProfileEditor();
-            return;
-        }
-
-        ApiProfileNameTextBox.Text = profile.Name;
-        BaseUrlTextBox.Text = profile.BaseUrl;
-        SetApiKeyValue(profile.ApiKey);
-        ModelTextBox.Text = profile.Model;
-        SystemPromptTextBox.Text = profile.SystemPrompt;
-        ApiProfileEnableContextCheckBox.IsChecked = profile.EnableContext;
+        ApplyApiProfileDraftToEditor(ApiProfilesEditor.PrepareEditorState().Draft);
     }
 
     private void PersistCurrentApiProfileEditor()
     {
-        var profile = GetSelectedEditingApiProfile();
-        if (profile is null)
-        {
-            return;
-        }
-
-        profile.Name = string.IsNullOrWhiteSpace(ApiProfileNameTextBox.Text)
-            ? profile.Name
-            : ApiProfileNameTextBox.Text.Trim();
-        profile.BaseUrl = BaseUrlTextBox.Text.Trim();
-        profile.ApiKey = GetCurrentApiKey();
-        profile.Model = ModelTextBox.Text.Trim();
-        profile.SystemPrompt = string.IsNullOrWhiteSpace(SystemPromptTextBox.Text)
-            ? AppSettings.DefaultSystemPrompt
-            : SystemPromptTextBox.Text.Trim();
-        profile.EnableContext = ApiProfileEnableContextCheckBox.IsChecked == true;
+        ApiProfilesEditor.ApplyDraftToEditingProfile(BuildApiProfileEditorDraft());
     }
 
-    private ApiTranslationProfile? GetSelectedEditingApiProfile()
+    private ApiProfileEditorDraft BuildApiProfileEditorDraft()
     {
-        return _editingApiProfiles.FirstOrDefault(profile => string.Equals(profile.Id, _selectedApiProfileId, StringComparison.Ordinal));
+        return new ApiProfileEditorDraft(
+            ApiProfileNameTextBox.Text,
+            BaseUrlTextBox.Text,
+            GetCurrentApiKey(),
+            ModelTextBox.Text,
+            SystemPromptTextBox.Text,
+            ApiProfileEnableContextCheckBox.IsChecked == true);
+    }
+
+    private void ApplyApiProfileDraftToEditor(ApiProfileEditorDraft draft)
+    {
+        ApiProfileNameTextBox.Text = draft.Name;
+        BaseUrlTextBox.Text = draft.BaseUrl;
+        SetApiKeyValue(draft.ApiKey);
+        ModelTextBox.Text = draft.Model;
+        SystemPromptTextBox.Text = draft.SystemPrompt;
+        ApiProfileEnableContextCheckBox.IsChecked = draft.EnableContext;
     }
 
     private void ClearApiProfileEditor()
@@ -185,27 +165,24 @@ public partial class MainWindow
         ApiProfileEnableContextCheckBox.IsChecked = false;
     }
 
-    private string GenerateNextApiProfileName()
-    {
-        var index = 1;
-        while (_editingApiProfiles.Any(profile => string.Equals(profile.Name, $"API 配置 {index}", StringComparison.OrdinalIgnoreCase)))
-        {
-            index++;
-        }
-
-        return $"API 配置 {index}";
-    }
-
     private void SetApiEditorVisibility(Visibility visibility)
     {
-        BaseUrlLabelTextBlock.Visibility = visibility;
-        BaseUrlTextBox.Visibility = visibility;
-        ApiKeyLabelTextBlock.Visibility = visibility;
-        ApiKeyEditorGrid.Visibility = visibility;
-        ModelLabelTextBlock.Visibility = visibility;
-        ModelTextBox.Visibility = visibility;
-        SystemPromptLabelTextBlock.Visibility = visibility;
-        SystemPromptTextBox.Visibility = visibility;
+        foreach (var element in GetApiEditorElements())
+        {
+            element.Visibility = visibility;
+        }
+    }
+
+    private IEnumerable<UIElement> GetApiEditorElements()
+    {
+        yield return BaseUrlLabelTextBlock;
+        yield return BaseUrlTextBox;
+        yield return ApiKeyLabelTextBlock;
+        yield return ApiKeyEditorGrid;
+        yield return ModelLabelTextBlock;
+        yield return ModelTextBox;
+        yield return SystemPromptLabelTextBlock;
+        yield return SystemPromptTextBox;
     }
 
     private string GetCurrentApiKey()
@@ -216,9 +193,15 @@ public partial class MainWindow
     private void SetApiKeyValue(string value)
     {
         _isSyncingApiKeyInputs = true;
-        ApiKeyPasswordBox.Password = value ?? string.Empty;
-        ApiKeyTextBox.Text = value ?? string.Empty;
-        _isSyncingApiKeyInputs = false;
+        try
+        {
+            ApiKeyPasswordBox.Password = value ?? string.Empty;
+            ApiKeyTextBox.Text = value ?? string.Empty;
+        }
+        finally
+        {
+            _isSyncingApiKeyInputs = false;
+        }
     }
 
     private void UpdateApiKeyVisibility(bool isVisible)
@@ -248,11 +231,9 @@ public partial class MainWindow
             return;
         }
 
-        _isSyncingApiKeyInputs = true;
-        ApiKeyTextBox.Text = ApiKeyPasswordBox.Password;
-        _isSyncingApiKeyInputs = false;
+        SyncApiKeyInputs(() => ApiKeyTextBox.Text = ApiKeyPasswordBox.Password);
         TranslationProviderInputs_OnTextChanged(ApiKeyTextBox, new TextChangedEventArgs(System.Windows.Controls.TextBox.TextChangedEvent, UndoAction.None));
-        UpdateSaveButtonVisibility();
+        UpdateCurrentApiProfileDraftFromEditor();
     }
 
     private void ApiKeyTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
@@ -263,61 +244,38 @@ public partial class MainWindow
             return;
         }
 
-        _isSyncingApiKeyInputs = true;
-        ApiKeyPasswordBox.Password = ApiKeyTextBox.Text;
-        _isSyncingApiKeyInputs = false;
+        SyncApiKeyInputs(() => ApiKeyPasswordBox.Password = ApiKeyTextBox.Text);
         TranslationProviderInputs_OnTextChanged(sender, e);
-        UpdateSaveButtonVisibility();
+        UpdateCurrentApiProfileDraftFromEditor();
     }
 
-    private void ApiProfileNameTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
+    private void SyncApiKeyInputs(Action syncAction)
+    {
+        _isSyncingApiKeyInputs = true;
+        try
+        {
+            syncAction();
+        }
+        finally
+        {
+            _isSyncingApiKeyInputs = false;
+        }
+    }
+
+    private void ApiProfileEditor_OnChanged(object sender, RoutedEventArgs e)
+    {
+        UpdateCurrentApiProfileDraftFromEditor();
+    }
+
+    private void UpdateCurrentApiProfileDraftFromEditor()
     {
         if (_isApplyingApiProfileState)
         {
             return;
         }
 
-        var profile = GetSelectedEditingApiProfile();
-        if (profile is not null)
-        {
-            profile.Name = string.IsNullOrWhiteSpace(ApiProfileNameTextBox.Text)
-                ? profile.Name
-                : ApiProfileNameTextBox.Text.Trim();
-            ApiProfileCardsListBox.Items.Refresh();
-        }
-
-        UpdateSaveButtonVisibility();
-    }
-
-    private void ApiProfileModelTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_isApplyingApiProfileState)
-        {
-            return;
-        }
-
-        var profile = GetSelectedEditingApiProfile();
-        if (profile is not null)
-        {
-            profile.Model = ModelTextBox.Text.Trim();
-            ApiProfileCardsListBox.Items.Refresh();
-        }
-    }
-
-    private void ApiProfileEnableContextCheckBox_OnChanged(object sender, RoutedEventArgs e)
-    {
-        if (_isApplyingApiProfileState)
-        {
-            return;
-        }
-
-        var profile = GetSelectedEditingApiProfile();
-        if (profile is not null)
-        {
-            profile.EnableContext = ApiProfileEnableContextCheckBox.IsChecked == true;
-        }
-
-        UpdateSaveButtonVisibility();
+        ApiProfilesEditor.ApplyDraftToEditingProfile(BuildApiProfileEditorDraft());
+        MarkSettingsDirty();
     }
 
     private void TranslationProviderComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -328,51 +286,40 @@ public partial class MainWindow
         }
 
         _translationProviderSelectionTouched = true;
-        UpdateSaveButtonVisibility();
+        MarkSettingsDirty();
     }
 
     private void AddApiProfileButton_OnClick(object sender, RoutedEventArgs e)
     {
-        PersistCurrentApiProfileEditor();
-
-        var profile = new ApiTranslationProfile
-        {
-            Name = GenerateNextApiProfileName(),
-            SystemPrompt = AppSettings.DefaultSystemPrompt
-        };
-
-        _editingApiProfiles.Add(profile);
-        _selectedApiProfileId = profile.Id;
+        var profile = ApiProfilesEditor.AddNewProfileAfterEditingDraft(BuildApiProfileEditorDraft());
         ApplyApiProfileState();
-        UpdateSaveButtonVisibility();
+        MarkSettingsDirty();
         StatusTextBlock.Text = $"已添加新的 API 配置：{profile.Name}";
     }
 
     private void DeleteApiProfileButton_OnClick(object sender, RoutedEventArgs e)
     {
-        DeleteApiProfileById(_selectedApiProfileId);
+        DeleteSelectedApiProfile();
     }
 
-    private void DeleteApiProfileById(string profileId)
+    private void DeleteSelectedApiProfile()
     {
-        var profile = _editingApiProfiles.FirstOrDefault(item => string.Equals(item.Id, profileId, StringComparison.Ordinal));
+        var profile = ApiProfilesEditor.DeleteSelectedProfile();
         if (profile is null)
         {
             return;
         }
 
-        _editingApiProfiles.RemoveAll(item => string.Equals(item.Id, profile.Id, StringComparison.Ordinal));
-        _selectedApiProfileId = _editingApiProfiles.FirstOrDefault()?.Id ?? string.Empty;
         ApplyApiProfileState();
 
-        if (_editingApiProfiles.Count == 0)
+        if (!ApiProfilesEditor.HasProfiles)
         {
             _suppressTranslationProviderEvents = true;
             SetTranslationProviderSelection(TranslationProviderPreference.Local);
             _suppressTranslationProviderEvents = false;
         }
 
-        UpdateSaveButtonVisibility();
+        MarkSettingsDirty();
         StatusTextBlock.Text = $"已删除 API 配置：{profile.Name}";
     }
 
@@ -383,9 +330,10 @@ public partial class MainWindow
             return;
         }
 
-        PersistCurrentApiProfileEditor();
-        _selectedApiProfileId = ApiProfileCardsListBox.SelectedValue?.ToString() ?? string.Empty;
-        LoadSelectedApiProfileIntoEditor();
-        UpdateSaveButtonVisibility();
+        var draft = ApiProfilesEditor.SelectProfileForEditing(
+            ApiProfileCardsListBox.SelectedValue?.ToString() ?? string.Empty,
+            BuildApiProfileEditorDraft());
+        ApplyApiProfileDraftToEditor(draft);
+        MarkSettingsDirty();
     }
 }

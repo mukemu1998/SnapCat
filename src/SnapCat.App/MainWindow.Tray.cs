@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using SnapCat.App.Services;
 using SnapCat.Core.Models;
 
 namespace SnapCat.App;
@@ -68,7 +69,7 @@ public partial class MainWindow
                 await _app.SettingsStore.SaveAsync(_settings);
                 ApplySettingsToControls(_settings);
                 RenderSettingsSummary();
-                StatusTextBlock.Text = $"托盘左键默认动作已切换为：{FormatTrayLeftClickAction(_settings.TrayLeftClickAction)}";
+                StatusTextBlock.Text = $"托盘左键默认动作已切换为：{SettingsSummaryFormatter.FormatTrayLeftClickAction(_settings.TrayLeftClickAction)}";
             }
             catch (Exception ex)
             {
@@ -84,14 +85,7 @@ public partial class MainWindow
             try
             {
                 var directory = _app.CapturedImageFileService.GetDefaultDirectoryPath();
-                Directory.CreateDirectory(directory);
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"\"{directory}\"",
-                    UseShellExecute = true
-                });
+                WindowsExplorerService.OpenDirectory(directory, createIfMissing: true);
 
                 StatusTextBlock.Text = "已打开 SnapCat 默认截图目录。";
             }

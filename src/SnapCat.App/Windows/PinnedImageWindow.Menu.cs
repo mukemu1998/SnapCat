@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using SnapCat.App.Services;
@@ -60,30 +59,11 @@ public partial class PinnedImageWindow
     {
         try
         {
-            if (File.Exists(_imagePath))
+            var result = WindowsExplorerService.OpenFileOrContainingDirectory(_imagePath);
+            if (result == ExplorerOpenResult.Missing)
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"/select,\"{_imagePath}\"",
-                    UseShellExecute = true
-                });
-                return;
+                WpfMessageBox.Show(this, "截图文件和目录都不存在。", "打开失败");
             }
-
-            var directory = Path.GetDirectoryName(_imagePath);
-            if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"\"{directory}\"",
-                    UseShellExecute = true
-                });
-                return;
-            }
-
-            WpfMessageBox.Show(this, "截图文件和目录都不存在。", "打开失败");
         }
         catch (Exception ex)
         {
@@ -112,22 +92,22 @@ public partial class PinnedImageWindow
 
     private void ArrayRightMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        CreateArrayPinnedWindow(ArrayDirection.Right, ResolveArrayTileCount(sender));
+        CreateArrayPinnedWindow(PinnedArrayDirection.Right, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
     }
 
     private void ArrayLeftMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        CreateArrayPinnedWindow(ArrayDirection.Left, ResolveArrayTileCount(sender));
+        CreateArrayPinnedWindow(PinnedArrayDirection.Left, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
     }
 
     private void ArrayDownMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        CreateArrayPinnedWindow(ArrayDirection.Down, ResolveArrayTileCount(sender));
+        CreateArrayPinnedWindow(PinnedArrayDirection.Down, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
     }
 
     private void ArrayUpMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        CreateArrayPinnedWindow(ArrayDirection.Up, ResolveArrayTileCount(sender));
+        CreateArrayPinnedWindow(PinnedArrayDirection.Up, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
     }
 
     private void ArrayCountTextBox_OnGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -140,7 +120,7 @@ public partial class PinnedImageWindow
 
     private void ArrayCountTextBox_OnPreviewTextInput(object sender, TextCompositionEventArgs e)
     {
-        e.Handled = e.Text.Any(character => !char.IsDigit(character));
+        e.Handled = !PinnedArrayCommandParser.IsNumericInput(e.Text);
     }
 
     private void ArrayCountTextBox_OnKeyDown(object sender, KeyEventArgs e)
@@ -150,18 +130,13 @@ public partial class PinnedImageWindow
             return;
         }
 
-        if (!TryResolveArrayDirection(textBox.Tag, out var direction))
+        if (!PinnedArrayCommandParser.TryResolveDirection(textBox.Tag, out var direction))
         {
             e.Handled = true;
             return;
         }
 
-        if (!int.TryParse(textBox.Text, out var tileCount))
-        {
-            tileCount = 3;
-        }
-
-        tileCount = Math.Clamp(tileCount, 1, 99);
+        var tileCount = PinnedArrayCommandParser.NormalizeTileCount(textBox.Text);
         textBox.Text = tileCount.ToString();
         PinnedContextMenu.IsOpen = false;
         CreateArrayPinnedWindow(direction, tileCount);
@@ -170,22 +145,27 @@ public partial class PinnedImageWindow
 
     private void UngroupedGroupMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        _app.PinnedWindowRegistryService.SetWindowGroup(this, PinnedWindowRegistryService.UngroupedGroupName);
+        SetPinnedGroup(PinnedWindowRegistryService.UngroupedGroupName);
     }
 
     private void GroupOneMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        _app.PinnedWindowRegistryService.SetWindowGroup(this, PinnedWindowRegistryService.GroupOneName);
+        SetPinnedGroup(PinnedWindowRegistryService.GroupOneName);
     }
 
     private void GroupTwoMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        _app.PinnedWindowRegistryService.SetWindowGroup(this, PinnedWindowRegistryService.GroupTwoName);
+        SetPinnedGroup(PinnedWindowRegistryService.GroupTwoName);
     }
 
     private void GroupThreeMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        _app.PinnedWindowRegistryService.SetWindowGroup(this, PinnedWindowRegistryService.GroupThreeName);
+        SetPinnedGroup(PinnedWindowRegistryService.GroupThreeName);
+    }
+
+    private void SetPinnedGroup(string groupName)
+    {
+        _app.PinnedWindowRegistryService.SetWindowGroup(this, groupName);
     }
 
     private void ZoomInMenuItem_OnClick(object sender, RoutedEventArgs e)
@@ -205,48 +185,37 @@ public partial class PinnedImageWindow
 
     private async void OcrMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        await _app.CaptureActionService.ExecuteAsync(
-            CaptureActionKind.OcrOnly,
-            CreateOperationImagePath(),
-            _settings,
-            this);
+        await ExecutePinnedCaptureActionAsync(CaptureActionKind.OcrOnly);
     }
 
     private async void OcrTranslateMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        await _app.CaptureActionService.ExecuteAsync(
-            CaptureActionKind.OcrAndTranslate,
-            CreateOperationImagePath(),
-            _settings,
-            this,
-            _captureRegion);
+        await ExecutePinnedCaptureActionAsync(CaptureActionKind.OcrAndTranslate, includeCaptureRegion: true);
     }
 
     private async void QrCodeMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        await _app.CaptureActionService.ExecuteAsync(
-            CaptureActionKind.QrCode,
-            CreateOperationImagePath(),
-            _settings,
-            this);
+        await ExecutePinnedCaptureActionAsync(CaptureActionKind.QrCode);
     }
 
     private async void SaveMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        await _app.CaptureActionService.ExecuteAsync(
-            CaptureActionKind.Save,
-            CreateOperationImagePath(),
-            _settings,
-            this);
+        await ExecutePinnedCaptureActionAsync(CaptureActionKind.Save);
     }
 
     private async void SaveAsMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        await _app.CaptureActionService.ExecuteAsync(
-            CaptureActionKind.SaveAs,
+        await ExecutePinnedCaptureActionAsync(CaptureActionKind.SaveAs);
+    }
+
+    private Task ExecutePinnedCaptureActionAsync(CaptureActionKind actionKind, bool includeCaptureRegion = false)
+    {
+        return _app.CaptureActionService.ExecuteAsync(
+            actionKind,
             CreateOperationImagePath(),
             _settings,
-            this);
+            this,
+            includeCaptureRegion ? _captureRegion : null);
     }
 
     private void CloseOtherPinnedMenuItem_OnClick(object sender, RoutedEventArgs e)

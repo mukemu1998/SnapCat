@@ -1,4 +1,5 @@
 using System.Windows;
+using SnapCat.App.Services;
 using SnapCat.App.Windows;
 using SnapCat.Core.Models;
 
@@ -104,7 +105,7 @@ public partial class MainWindow
             var status = await _app.CaptureActionService.ExecuteAsync(
                 action,
                 workingImagePath,
-                CloneSettings(_settings),
+                TranslationLanguageHelper.CloneSettings(_settings),
                 owner,
                 workingCaptureRegion,
                 action == CaptureActionKind.OcrAndTranslate

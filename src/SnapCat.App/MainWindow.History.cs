@@ -1,11 +1,9 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using SnapCat.App.Windows;
-using SnapCat.Core.Models;
+using SnapCat.App.Services;
 using Clipboard = System.Windows.Clipboard;
 using WpfMessageBox = System.Windows.MessageBox;
 
@@ -93,9 +91,7 @@ public partial class MainWindow
             return;
         }
 
-        var window = BuildHistoryDetailWindow(item.Record)
-            ?? BuildUnsupportedHistoryWindow(item.Record);
-
+        var window = HistoryDetailWindowFactory.Create(item.Record);
         window.Owner = this;
         window.ShowDialog();
     }
@@ -117,34 +113,13 @@ public partial class MainWindow
 
         try
         {
-            if (File.Exists(imagePath))
+            var result = WindowsExplorerService.OpenFileOrContainingDirectory(imagePath);
+            StatusTextBlock.Text = result switch
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"/select,\"{imagePath}\"",
-                    UseShellExecute = true
-                });
-
-                StatusTextBlock.Text = "已打开截图所在位置。";
-                return;
-            }
-
-            var directory = Path.GetDirectoryName(imagePath);
-            if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"\"{directory}\"",
-                    UseShellExecute = true
-                });
-
-                StatusTextBlock.Text = "截图文件不存在，已打开所在文件夹。";
-                return;
-            }
-
-            StatusTextBlock.Text = "截图文件和目录都不存在。";
+                ExplorerOpenResult.FileSelected => "已打开截图所在位置。",
+                ExplorerOpenResult.DirectoryOpened => "截图文件不存在，已打开所在文件夹。",
+                _ => "截图文件和目录都不存在。"
+            };
         }
         catch (Exception ex)
         {
@@ -204,84 +179,6 @@ public partial class MainWindow
         StatusTextBlock.Text = "历史记录已清空。";
     }
 
-    private static ResultWindow? BuildHistoryDetailWindow(CaptureTranslationRecord record)
-    {
-        return record.WorkflowType switch
-        {
-            "ocr" => new ResultWindow(
-                "历史详情 - OCR 识别",
-                string.IsNullOrWhiteSpace(record.OcrError) ? "OCR 识别已完成。" : $"OCR 失败：{record.OcrError}",
-                "OCR 文本",
-                string.IsNullOrWhiteSpace(record.SourceText) ? record.OcrError : record.SourceText,
-                "截图路径",
-                record.ImagePath,
-                record.OcrDebugInfo,
-                imagePath: record.ImagePath),
-            "ocr-translate" => new ResultWindow(
-                "历史详情 - OCR 并翻译",
-                BuildHistoryTranslateStatus(record),
-                "原文",
-                string.IsNullOrWhiteSpace(record.SourceText) ? record.OcrError : record.SourceText,
-                "译文",
-                string.IsNullOrWhiteSpace(record.TranslatedText) ? record.TranslationError : record.TranslatedText,
-                record.OcrDebugInfo,
-                imagePath: record.ImagePath),
-            "qr" => new ResultWindow(
-                "历史详情 - 二维码识别",
-                string.IsNullOrWhiteSpace(record.OcrError) ? "二维码识别已完成。" : $"二维码识别失败：{record.OcrError}",
-                "二维码内容",
-                string.IsNullOrWhiteSpace(record.QrCodeText) ? record.OcrError : record.QrCodeText,
-                "截图路径",
-                record.ImagePath,
-                imagePath: record.ImagePath),
-            "pin" => new ResultWindow(
-                "历史详情 - 固定到屏幕",
-                "这条记录表示该截图曾被固定到屏幕。",
-                "截图路径",
-                record.ImagePath,
-                "备注",
-                "固定到屏幕不会额外产生 OCR 或翻译结果。",
-                imagePath: record.ImagePath),
-            "save" => new ResultWindow(
-                "历史详情 - 保存截图",
-                "这条记录表示该截图已保存到默认目录。",
-                "截图路径",
-                record.ImagePath,
-                "备注",
-                "保存截图不会额外产生 OCR 或翻译结果。",
-                imagePath: record.ImagePath),
-            _ => null
-        };
-    }
-
-    private static ResultWindow BuildUnsupportedHistoryWindow(CaptureTranslationRecord record)
-    {
-        return new ResultWindow(
-            "历史详情",
-            "该记录类型暂未定义专用详情视图。",
-            "记录类型",
-            record.WorkflowType,
-            "截图路径",
-            record.ImagePath,
-            record.OcrDebugInfo,
-            imagePath: record.ImagePath);
-    }
-
-    private static string BuildHistoryTranslateStatus(CaptureTranslationRecord record)
-    {
-        if (string.IsNullOrWhiteSpace(record.OcrError) && string.IsNullOrWhiteSpace(record.TranslationError))
-        {
-            return "OCR 和翻译已完成。";
-        }
-
-        if (!string.IsNullOrWhiteSpace(record.OcrError))
-        {
-            return $"OCR 失败：{record.OcrError}";
-        }
-
-        return $"翻译失败：{record.TranslationError}";
-    }
-
     private void RenderHistoryPreview(HistoryListItem? item)
     {
         if (item is null)
@@ -299,7 +196,7 @@ public partial class MainWindow
             return;
         }
 
-        var preview = BuildHistoryPreviewData(item.Record);
+        var preview = HistoryPreviewBuilder.Build(item.Record);
 
         HistoryPreviewEmptyTextBlock.Visibility = Visibility.Collapsed;
         HistoryPreviewPanelScrollViewer.Visibility = Visibility.Visible;
@@ -362,89 +259,4 @@ public partial class MainWindow
         HistoryPreviewUnavailableTextBlock.Visibility = Visibility.Collapsed;
     }
 
-    private static HistoryPreviewData BuildHistoryPreviewData(CaptureTranslationRecord record)
-    {
-        var timestamp = record.Timestamp.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
-        var workflow = FormatWorkflow(record.WorkflowType);
-        var meta = $"时间：{timestamp}\n类型：{workflow}\n路径：{FormatSummaryValue(record.ImagePath)}";
-
-        return record.WorkflowType switch
-        {
-            "ocr" => new HistoryPreviewData(
-                "OCR 识别记录",
-                meta,
-                string.IsNullOrWhiteSpace(record.OcrError) ? "OCR 识别已完成。" : $"OCR 失败：{record.OcrError}",
-                "OCR 文本",
-                PickValue(record.SourceText, record.OcrError),
-                "调试信息",
-                PickValue(record.OcrDebugInfo, "当前没有额外调试信息。")),
-            "ocr-translate" => new HistoryPreviewData(
-                "OCR 并翻译记录",
-                meta,
-                BuildHistoryTranslateStatus(record),
-                "原文",
-                PickValue(record.SourceText, record.OcrError),
-                "译文",
-                PickValue(record.TranslatedText, record.TranslationError)),
-            "qr" => new HistoryPreviewData(
-                "二维码识别记录",
-                meta,
-                string.IsNullOrWhiteSpace(record.OcrError) ? "二维码识别已完成。" : $"二维码识别失败：{record.OcrError}",
-                "二维码内容",
-                PickValue(record.QrCodeText, record.OcrError),
-                "补充信息",
-                "这条记录来自二维码识别流程。"),
-            "pin" => new HistoryPreviewData(
-                "固定到屏幕记录",
-                meta,
-                "这条记录表示该截图曾被固定到屏幕。",
-                "截图路径",
-                PickValue(record.ImagePath, "没有可用的截图路径。"),
-                "补充信息",
-                "固定到屏幕不会额外产生 OCR 或翻译结果。"),
-            _ => new HistoryPreviewData(
-                "历史记录",
-                meta,
-                "该记录类型暂未定义专用预览结构。",
-                "主要内容",
-                PickMainHistoryContent(record),
-                "补充信息",
-                PickValue(record.OcrDebugInfo, "暂无补充信息。"))
-        };
-    }
-
-    private static string PickValue(string? value, string? fallback)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            return value;
-        }
-
-        return string.IsNullOrWhiteSpace(fallback) ? "暂无内容。" : fallback;
-    }
-
-    private static string PickMainHistoryContent(CaptureTranslationRecord record)
-    {
-        if (!string.IsNullOrWhiteSpace(record.QrCodeText))
-        {
-            return record.QrCodeText;
-        }
-
-        if (!string.IsNullOrWhiteSpace(record.TranslatedText))
-        {
-            return record.TranslatedText;
-        }
-
-        if (!string.IsNullOrWhiteSpace(record.SourceText))
-        {
-            return record.SourceText;
-        }
-
-        if (!string.IsNullOrWhiteSpace(record.OcrError))
-        {
-            return record.OcrError;
-        }
-
-        return PickValue(record.ImagePath, "暂无内容。");
-    }
 }

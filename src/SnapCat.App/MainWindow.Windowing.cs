@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using SnapCat.App.Services;
 using WpfApplication = System.Windows.Application;
 
 namespace SnapCat.App;
@@ -103,14 +104,15 @@ public partial class MainWindow
 
     private void SavePendingSettingsBeforeDismiss()
     {
-        if (!_hasLoadedSettings || _isApplyingSettings)
+        if (!_hasLoadedSettings || _isApplyingSettings || !_hasUnsavedSettings)
         {
             return;
         }
 
         var currentSettings = BuildCurrentSettings();
-        if (AreSettingsEquivalent(currentSettings, _settings))
+        if (SettingsComparer.AreEquivalent(currentSettings, _settings))
         {
+            MarkSettingsClean();
             return;
         }
 
@@ -119,7 +121,7 @@ public partial class MainWindow
             currentSettings.NormalizeApiProfiles();
             _app.SettingsStore.SaveAsync(currentSettings).ConfigureAwait(false).GetAwaiter().GetResult();
             _settings = currentSettings;
-            UpdateSaveButtonVisibility();
+            MarkSettingsClean();
             StatusTextBlock.Text = "设置已自动保存。";
         }
         catch (Exception ex)
