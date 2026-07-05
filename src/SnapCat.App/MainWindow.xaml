@@ -2623,10 +2623,10 @@
                                      PreviewMouseRightButtonDown="PinnedImagesListBox_OnPreviewMouseRightButtonDown">
                                 <ListBox.ContextMenu>
                                     <ContextMenu Style="{StaticResource MainContextMenuStyle}">
-                                        <MenuItem Header="指定为未成组" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToUngroupedMenuItem_OnClick" />
-                                        <MenuItem Header="指定到贴图组 1" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupOneMenuItem_OnClick" />
-                                        <MenuItem Header="指定到贴图组 2" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupTwoMenuItem_OnClick" />
-                                        <MenuItem Header="指定到贴图组 3" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupThreeMenuItem_OnClick" />
+                                        <MenuItem Header="指定为未成组" Tag="" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupMenuItem_OnClick" />
+                                        <MenuItem Header="指定到贴图组 1" Tag="贴图组 1" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupMenuItem_OnClick" />
+                                        <MenuItem Header="指定到贴图组 2" Tag="贴图组 2" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupMenuItem_OnClick" />
+                                        <MenuItem Header="指定到贴图组 3" Tag="贴图组 3" Style="{StaticResource MainContextMenuItemStyle}" Click="AssignPinnedImagesToGroupMenuItem_OnClick" />
                                         <Separator Style="{StaticResource MainContextMenuSeparatorStyle}" />
                                         <MenuItem Header="删除选中贴图" Style="{StaticResource MainContextMenuItemStyle}" Click="DeleteSelectedPinnedImagesMenuItem_OnClick" />
                                     </ContextMenu>

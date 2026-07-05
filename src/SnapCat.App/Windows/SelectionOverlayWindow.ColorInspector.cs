@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using SnapCat.App.Services;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingGraphics = System.Drawing.Graphics;
 using DrawingPoint = System.Drawing.Point;
@@ -68,37 +69,26 @@ public partial class SelectionOverlayWindow
     private void UpdateColorText()
     {
         CoordinateTextBlock.Text = $"({_currentScreenPoint.X}，{_currentScreenPoint.Y})";
-        ColorValueTextBlock.Text = FormatCurrentColor();
+        ColorValueTextBlock.Text = SelectionColorInspectorService.FormatColor(_currentColor, _showHexColor);
         ColorPreviewSwatch.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(
             _currentColor.R,
             _currentColor.G,
             _currentColor.B));
     }
 
-    private string FormatCurrentColor()
-    {
-        return _showHexColor
-            ? $"#{_currentColor.R:X2}{_currentColor.G:X2}{_currentColor.B:X2}"
-            : $"{_currentColor.R}, {_currentColor.G}, {_currentColor.B}";
-    }
-
     private void PositionColorInspector(Point localPoint)
     {
-        var left = localPoint.X + InspectorOffset;
-        var top = localPoint.Y + InspectorOffset;
+        var panelPosition = SelectionColorInspectorService.CalculatePanelPosition(
+            localPoint,
+            ColorInspectorPanel.Width,
+            ColorInspectorPanel.Height,
+            ActualWidth,
+            ActualHeight,
+            InspectorOffset,
+            8);
 
-        if (left + ColorInspectorPanel.Width > ActualWidth - 8)
-        {
-            left = localPoint.X - ColorInspectorPanel.Width - InspectorOffset;
-        }
-
-        if (top + ColorInspectorPanel.Height > ActualHeight - 8)
-        {
-            top = localPoint.Y - ColorInspectorPanel.Height - InspectorOffset;
-        }
-
-        Canvas.SetLeft(ColorInspectorPanel, Math.Max(8, left));
-        Canvas.SetTop(ColorInspectorPanel, Math.Max(8, top));
+        Canvas.SetLeft(ColorInspectorPanel, panelPosition.X);
+        Canvas.SetTop(ColorInspectorPanel, panelPosition.Y);
     }
 
     private static BitmapSource ConvertBitmapToBitmapSource(DrawingBitmap bitmap)

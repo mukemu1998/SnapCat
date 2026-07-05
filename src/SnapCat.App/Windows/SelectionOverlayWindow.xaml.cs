@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Runtime.InteropServices;
+using SnapCat.App.Services;
 using Clipboard = System.Windows.Clipboard;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingColor = System.Drawing.Color;
@@ -202,7 +203,7 @@ public partial class SelectionOverlayWindow : Window
 
         if (e.Key == Key.C)
         {
-            Clipboard.SetText(FormatCurrentColor());
+            Clipboard.SetText(SelectionColorInspectorService.FormatColor(_currentColor, _showHexColor));
             e.Handled = true;
         }
     }

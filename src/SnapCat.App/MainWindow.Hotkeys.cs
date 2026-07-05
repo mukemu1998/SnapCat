@@ -18,26 +18,32 @@ public partial class MainWindow
             return;
         }
 
-        _hotkeyRegistrationResults = _app.GlobalHotkeyService.RegisterAll(
-            _settings,
-            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin, returnToMainWindow: false),
-            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false),
-            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false),
-            () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false),
-            ShowAllPinnedImages,
-            HideAllPinnedImages,
-            ShowUngroupedPinnedImages,
-            () => ShowPinnedGroup(PinnedWindowRegistryService.GroupOneName),
-            () => ShowPinnedGroup(PinnedWindowRegistryService.GroupTwoName),
-            () => ShowPinnedGroup(PinnedWindowRegistryService.GroupThreeName),
-            ShowMainWindow,
-            ExitApplication);
+        _hotkeyRegistrationResults = _app.GlobalHotkeyService.RegisterAll(CreateHotkeyRegistrationRequests());
 
         var failedCount = _hotkeyRegistrationResults.Count(static result => !result.IsRegistered);
         if (failedCount > 0)
         {
             StatusTextBlock.Text = $"有 {failedCount} 组快捷键注册失败，请到“执行操作与快捷键”或“系统快捷键”查看原因。";
         }
+    }
+
+    private IReadOnlyList<HotkeyRegistrationRequest> CreateHotkeyRegistrationRequests()
+    {
+        return
+        [
+            new("固定到屏幕", _settings.HotkeyCaptureAndPin, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin, returnToMainWindow: false)),
+            new("自动翻译", _settings.HotkeyCaptureAndTranslate, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false)),
+            new("等待操作", _settings.HotkeyCaptureAndWaitForAction, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false)),
+            new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false)),
+            new("显示全部贴图", _settings.HotkeyShowAllPinned, ShowAllPinnedImages),
+            new("隐藏全部贴图", _settings.HotkeyHideAllPinned, HideAllPinnedImages),
+            new("显示未成组贴图", _settings.HotkeyShowUngroupedPinned, ShowUngroupedPinnedImages),
+            new("显示贴图组 1", _settings.HotkeyShowPinnedGroupOne, () => ShowPinnedGroup(PinnedWindowRegistryService.GroupOneName)),
+            new("显示贴图组 2", _settings.HotkeyShowPinnedGroupTwo, () => ShowPinnedGroup(PinnedWindowRegistryService.GroupTwoName)),
+            new("显示贴图组 3", _settings.HotkeyShowPinnedGroupThree, () => ShowPinnedGroup(PinnedWindowRegistryService.GroupThreeName)),
+            new("打开主菜单", _settings.HotkeyShowMainWindow, ShowMainWindow),
+            new("退出软件", _settings.HotkeyExitApplication, ExitApplication)
+        ];
     }
 
     private void RecordPinHotkeyButton_OnClick(object sender, RoutedEventArgs e)

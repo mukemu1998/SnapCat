@@ -1,6 +1,6 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
+using SnapCat.App.Services;
 using SnapCat.Core.Models;
 using WpfPoint = System.Windows.Point;
 using WpfRect = System.Windows.Rect;
@@ -33,7 +33,7 @@ public partial class CaptureActionSelectionWindow
     {
         if (sender is not FrameworkElement element
             || element.Tag is not string preset
-            || !TryParseAspectRatioInput(preset, out var ratio))
+            || !CaptureSelectionInputParser.TryParseAspectRatio(preset, out var ratio))
         {
             return;
         }
@@ -45,38 +45,25 @@ public partial class CaptureActionSelectionWindow
 
     private void ApplyBoundsFromInputs()
     {
-        if (!TryParseBoundsInputs(out var x, out var y, out var width, out var height))
+        if (!TryParseBoundsInputs(out var bounds))
         {
             return;
         }
 
         var current = BuildSelectedRegion();
         var ratio = GetLockedAspectRatio(new WpfRect(0, 0, current.Width, current.Height));
+        var normalizedBounds = LockAspectRatioCheckBox.IsChecked == true
+            ? CaptureSelectionResizeService.ApplyLockedAspectRatio(
+                bounds,
+                current.Width,
+                current.Height,
+                ratio,
+                (int)MinSelectionSize)
+            : CaptureSelectionResizeService.EnsureMinimumSize(bounds, (int)MinSelectionSize);
 
-        if (LockAspectRatioCheckBox.IsChecked == true)
-        {
-            var widthChanged = width != current.Width;
-            var heightChanged = height != current.Height;
-            if (widthChanged && !heightChanged)
-            {
-                height = Math.Max((int)MinSelectionSize, (int)Math.Round(width / ratio));
-            }
-            else if (!widthChanged && heightChanged)
-            {
-                width = Math.Max((int)MinSelectionSize, (int)Math.Round(height * ratio));
-            }
-            else if (widthChanged)
-            {
-                height = Math.Max((int)MinSelectionSize, (int)Math.Round(width / ratio));
-            }
-        }
-
-        width = Math.Max((int)MinSelectionSize, width);
-        height = Math.Max((int)MinSelectionSize, height);
-
-        var bottomRightX = x + width;
-        var bottomRightY = y + height;
-        var topLeftDip = _fromDevice.Transform(new WpfPoint(x, y));
+        var bottomRightX = normalizedBounds.X + normalizedBounds.Width;
+        var bottomRightY = normalizedBounds.Y + normalizedBounds.Height;
+        var topLeftDip = _fromDevice.Transform(new WpfPoint(normalizedBounds.X, normalizedBounds.Y));
         var bottomRightDip = _fromDevice.Transform(new WpfPoint(bottomRightX, bottomRightY));
 
         var localLeft = topLeftDip.X - Left;
@@ -101,7 +88,7 @@ public partial class CaptureActionSelectionWindow
             return;
         }
 
-        if (!TryParseAspectRatioInput(AspectRatioTextBox.Text, out var ratio))
+        if (!CaptureSelectionInputParser.TryParseAspectRatio(AspectRatioTextBox.Text, out var ratio))
         {
             SelectionScreenInfoTextBlock.Text = "请输入有效比例，例如 1:1、4:3、16:9 或 1.7778。";
             return;
@@ -118,59 +105,23 @@ public partial class CaptureActionSelectionWindow
             return;
         }
 
-        var allowedBounds = new WpfRect(0, 0, RootCanvas.ActualWidth, RootCanvas.ActualHeight);
-        var centerX = _selectionRect.Left + (_selectionRect.Width / 2);
-        var centerY = _selectionRect.Top + (_selectionRect.Height / 2);
-
-        var targetWidth = Math.Max(MinSelectionSize, _selectionRect.Width);
-        var targetHeight = Math.Max(MinSelectionSize, targetWidth / ratio);
-
-        if (targetHeight > allowedBounds.Height)
-        {
-            targetHeight = allowedBounds.Height;
-            targetWidth = Math.Max(MinSelectionSize, targetHeight * ratio);
-        }
-
-        if (targetWidth > allowedBounds.Width)
-        {
-            targetWidth = allowedBounds.Width;
-            targetHeight = Math.Max(MinSelectionSize, targetWidth / ratio);
-        }
-
-        if (targetHeight > allowedBounds.Height)
-        {
-            targetHeight = allowedBounds.Height;
-        }
-
-        if (targetWidth > allowedBounds.Width)
-        {
-            targetWidth = allowedBounds.Width;
-        }
-
-        var left = centerX - (targetWidth / 2);
-        var top = centerY - (targetHeight / 2);
-        var right = left + targetWidth;
-        var bottom = top + targetHeight;
-
-        ConstrainSelectionToAllowedBounds(ref left, ref top, ref right, ref bottom);
-        _selectionRect = new WpfRect(left, top, right - left, bottom - top);
+        _selectionRect = CaptureSelectionResizeService.FitAspectRatioAroundCenter(
+            _selectionRect,
+            RootCanvas.ActualWidth,
+            RootCanvas.ActualHeight,
+            MinSelectionSize,
+            ratio);
         UpdateSelectionChrome(forcePanelRefresh: true);
     }
 
-    private bool TryParseBoundsInputs(out int x, out int y, out int width, out int height)
+    private bool TryParseBoundsInputs(out SelectionBoundsInput bounds)
     {
-        x = 0;
-        y = 0;
-        width = 0;
-        height = 0;
-
-        var success =
-            int.TryParse(AbsoluteXTextBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out x)
-            && int.TryParse(AbsoluteYTextBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out y)
-            && int.TryParse(WidthTextBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out width)
-            && int.TryParse(HeightTextBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out height);
-
-        if (success)
+        if (CaptureSelectionInputParser.TryParseBounds(
+                AbsoluteXTextBox.Text,
+                AbsoluteYTextBox.Text,
+                WidthTextBox.Text,
+                HeightTextBox.Text,
+                out bounds))
         {
             return true;
         }
@@ -279,12 +230,12 @@ public partial class CaptureActionSelectionWindow
         {
             if (horizontalDelta != 0)
             {
-                right = Clamp(right + horizontalDelta, left + MinSelectionSize, RootCanvas.ActualWidth);
+                right = CaptureSelectionGeometryService.Clamp(right + horizontalDelta, left + MinSelectionSize, RootCanvas.ActualWidth);
             }
 
             if (verticalDelta != 0)
             {
-                bottom = Clamp(bottom + verticalDelta, top + MinSelectionSize, RootCanvas.ActualHeight);
+                bottom = CaptureSelectionGeometryService.Clamp(bottom + verticalDelta, top + MinSelectionSize, RootCanvas.ActualHeight);
             }
 
             if (LockAspectRatioCheckBox.IsChecked == true)
@@ -294,7 +245,19 @@ public partial class CaptureActionSelectionWindow
                     : horizontalDelta != 0
                         ? "Right"
                         : "Bottom";
-                ApplyAspectRatioConstraint(tag, originalRect, ref left, ref top, ref right, ref bottom, horizontalDelta, verticalDelta);
+                CaptureSelectionResizeService.ApplyAspectRatioConstraint(
+                    tag,
+                    originalRect,
+                    ref left,
+                    ref top,
+                    ref right,
+                    ref bottom,
+                    horizontalDelta,
+                    verticalDelta,
+                    RootCanvas.ActualWidth,
+                    RootCanvas.ActualHeight,
+                    MinSelectionSize,
+                    GetLockedAspectRatio(originalRect));
             }
 
             ConstrainSelectionToAllowedBounds(ref left, ref top, ref right, ref bottom);
@@ -303,8 +266,8 @@ public partial class CaptureActionSelectionWindow
         else
         {
             var movementBounds = GetMovementBounds(_selectionRect.Width, _selectionRect.Height);
-            var newX = Clamp(_selectionRect.X + horizontalDelta, movementBounds.Left, movementBounds.Right);
-            var newY = Clamp(_selectionRect.Y + verticalDelta, movementBounds.Top, movementBounds.Bottom);
+            var newX = CaptureSelectionGeometryService.Clamp(_selectionRect.X + horizontalDelta, movementBounds.Left, movementBounds.Right);
+            var newY = CaptureSelectionGeometryService.Clamp(_selectionRect.Y + verticalDelta, movementBounds.Top, movementBounds.Bottom);
             _selectionRect = new WpfRect(newX, newY, _selectionRect.Width, _selectionRect.Height);
         }
 
@@ -313,47 +276,9 @@ public partial class CaptureActionSelectionWindow
 
     private double GetLockedAspectRatio(WpfRect fallbackRect)
     {
-        if (TryParseAspectRatioInput(AspectRatioTextBox.Text, out var ratio))
-        {
-            return ratio;
-        }
-
-        return fallbackRect.Height <= 0 ? 1d : fallbackRect.Width / fallbackRect.Height;
-    }
-
-    private bool TryParseAspectRatioInput(string? value, out double ratio)
-    {
-        ratio = 0;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        var normalized = value.Trim();
-        var separators = new[] { ':', '/', 'x', 'X' };
-        var separatorIndex = normalized.IndexOfAny(separators);
-        if (separatorIndex > 0 && separatorIndex < normalized.Length - 1)
-        {
-            var leftPart = normalized[..separatorIndex];
-            var rightPart = normalized[(separatorIndex + 1)..];
-
-            if (double.TryParse(leftPart, NumberStyles.Float, CultureInfo.InvariantCulture, out var leftValue)
-                && double.TryParse(rightPart, NumberStyles.Float, CultureInfo.InvariantCulture, out var rightValue)
-                && leftValue > 0
-                && rightValue > 0)
-            {
-                ratio = leftValue / rightValue;
-                return true;
-            }
-        }
-
-        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var directRatio)
-            && directRatio > 0)
-        {
-            ratio = directRatio;
-            return true;
-        }
-
-        return false;
+        return CaptureSelectionInputParser.GetAspectRatioOrFallback(
+            AspectRatioTextBox.Text,
+            fallbackRect.Width,
+            fallbackRect.Height);
     }
 }

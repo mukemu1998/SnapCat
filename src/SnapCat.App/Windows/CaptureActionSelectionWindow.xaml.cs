@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using SnapCat.App.Services;
 using SnapCat.Core.Models;
 using FormsScreen = System.Windows.Forms.Screen;
 using WpfPoint = System.Windows.Point;
@@ -131,26 +132,6 @@ public partial class CaptureActionSelectionWindow : Window
             _fromDevice = PresentationSource.FromVisual(this)!.CompositionTarget.TransformFromDevice;
             _toDevice = PresentationSource.FromVisual(this)!.CompositionTarget.TransformToDevice;
         }
-    }
-
-    private static double Clamp(double value, double min, double max)
-    {
-        if (max < min)
-        {
-            return min;
-        }
-
-        return Math.Max(min, Math.Min(max, value));
-    }
-
-    private static int Clamp(int value, int min, int max)
-    {
-        if (max < min)
-        {
-            return min;
-        }
-
-        return Math.Max(min, Math.Min(max, value));
     }
 
     private FormsScreen GetSelectedScreen()

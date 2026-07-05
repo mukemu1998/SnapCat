@@ -90,26 +90,6 @@ public partial class PinnedImageWindow
         UpdateImageOrientation();
     }
 
-    private void ArrayRightMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        CreateArrayPinnedWindow(PinnedArrayDirection.Right, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
-    }
-
-    private void ArrayLeftMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        CreateArrayPinnedWindow(PinnedArrayDirection.Left, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
-    }
-
-    private void ArrayDownMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        CreateArrayPinnedWindow(PinnedArrayDirection.Down, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
-    }
-
-    private void ArrayUpMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        CreateArrayPinnedWindow(PinnedArrayDirection.Up, PinnedArrayCommandParser.ResolveTileCountFromTag(sender));
-    }
-
     private void ArrayCountTextBox_OnGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (sender is WpfTextBox textBox)
@@ -143,24 +123,12 @@ public partial class PinnedImageWindow
         e.Handled = true;
     }
 
-    private void UngroupedGroupMenuItem_OnClick(object sender, RoutedEventArgs e)
+    private void GroupMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        SetPinnedGroup(PinnedWindowRegistryService.UngroupedGroupName);
-    }
-
-    private void GroupOneMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        SetPinnedGroup(PinnedWindowRegistryService.GroupOneName);
-    }
-
-    private void GroupTwoMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        SetPinnedGroup(PinnedWindowRegistryService.GroupTwoName);
-    }
-
-    private void GroupThreeMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        SetPinnedGroup(PinnedWindowRegistryService.GroupThreeName);
+        if (sender is FrameworkElement { Tag: string groupName })
+        {
+            SetPinnedGroup(groupName);
+        }
     }
 
     private void SetPinnedGroup(string groupName)

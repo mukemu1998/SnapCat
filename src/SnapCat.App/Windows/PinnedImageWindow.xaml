@@ -236,19 +236,23 @@
                     <MenuItem x:Name="UngroupedGroupMenuItem"
                               Header="未成组"
                               IsCheckable="True"
-                              Click="UngroupedGroupMenuItem_OnClick" />
+                              Tag=""
+                              Click="GroupMenuItem_OnClick" />
                     <MenuItem x:Name="GroupOneMenuItem"
                               Header="贴图组 1"
                               IsCheckable="True"
-                              Click="GroupOneMenuItem_OnClick" />
+                              Tag="贴图组 1"
+                              Click="GroupMenuItem_OnClick" />
                     <MenuItem x:Name="GroupTwoMenuItem"
                               Header="贴图组 2"
                               IsCheckable="True"
-                              Click="GroupTwoMenuItem_OnClick" />
+                              Tag="贴图组 2"
+                              Click="GroupMenuItem_OnClick" />
                     <MenuItem x:Name="GroupThreeMenuItem"
                               Header="贴图组 3"
                               IsCheckable="True"
-                              Click="GroupThreeMenuItem_OnClick" />
+                              Tag="贴图组 3"
+                              Click="GroupMenuItem_OnClick" />
                 </MenuItem>
                 <MenuItem Header="变换">
                     <MenuItem Header="左右翻转" Click="FlipHorizontalMenuItem_OnClick" />

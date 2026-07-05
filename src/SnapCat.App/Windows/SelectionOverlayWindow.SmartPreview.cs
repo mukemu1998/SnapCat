@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using SnapCat.App.Services;
 using DrawingPoint = System.Drawing.Point;
 using FormsScreen = System.Windows.Forms.Screen;
 using Point = System.Windows.Point;
@@ -79,7 +80,13 @@ public partial class SelectionOverlayWindow
                     try
                     {
                         var rect = current.Current.BoundingRectangle;
-                        var normalized = NormalizeCandidateRect(rect.Left, rect.Top, rect.Width, rect.Height, screenPoint);
+                        var normalized = SelectionPreviewRegionService.NormalizeCandidateRect(
+                            rect.Left,
+                            rect.Top,
+                            rect.Width,
+                            rect.Height,
+                            screenPoint,
+                            _virtualScreenBounds);
                         if (normalized is not null
                             && !candidates.Any(candidate => candidate.Equals(normalized.Value)))
                         {
@@ -94,7 +101,7 @@ public partial class SelectionOverlayWindow
                     }
                 }
 
-                return ChooseAutomationCandidate(candidates, screenPoint);
+                return SelectionPreviewRegionService.ChooseAutomationCandidate(candidates, screenPoint);
             });
         }
         catch
@@ -112,7 +119,9 @@ public partial class SelectionOverlayWindow
             || Math.Abs(screenPoint.Y - (bounds.Bottom - 1)) <= ScreenEdgeSnapThreshold;
 
         return nearEdge
-            ? ClipToVirtualScreen(new Int32Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height))
+            ? SelectionPreviewRegionService.ClipToBounds(
+                new Int32Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height),
+                _virtualScreenBounds)
             : null;
     }
 
@@ -137,44 +146,22 @@ public partial class SelectionOverlayWindow
                 return null;
             }
 
-            var normalized = NormalizeCandidateRect(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top, screenPoint);
+            var normalized = SelectionPreviewRegionService.NormalizeCandidateRect(
+                rect.Left,
+                rect.Top,
+                rect.Right - rect.Left,
+                rect.Bottom - rect.Top,
+                screenPoint,
+                _virtualScreenBounds);
             if (normalized is null)
             {
                 return null;
             }
 
-            return !requireNearEdge || IsNearRectEdge(normalized.Value, screenPoint, WindowEdgeSnapThreshold)
+            return !requireNearEdge || SelectionPreviewRegionService.IsNearRectEdge(normalized.Value, screenPoint, WindowEdgeSnapThreshold)
                 ? normalized
                 : null;
         });
-    }
-
-    private Int32Rect? ChooseAutomationCandidate(IReadOnlyList<Int32Rect> candidates, DrawingPoint screenPoint)
-    {
-        if (candidates.Count == 0)
-        {
-            return null;
-        }
-
-        var screenBounds = FormsScreen.FromPoint(screenPoint).Bounds;
-        var screenArea = Math.Max(1d, screenBounds.Width * screenBounds.Height);
-        var usableCandidates = candidates
-            .Where(candidate => candidate.Width * candidate.Height <= screenArea * 0.75d)
-            .OrderBy(candidate => candidate.Width * candidate.Height)
-            .ToList();
-
-        if (usableCandidates.Count == 0)
-        {
-            return null;
-        }
-
-        var first = candidates[0];
-        if (first.Width >= 36 && first.Height >= 18)
-        {
-            return first;
-        }
-
-        return usableCandidates.FirstOrDefault(candidate => candidate.Width >= 36 && candidate.Height >= 18, first);
     }
 
     private Int32Rect? QueryBehindOverlay(Func<Int32Rect?> query)
@@ -198,66 +185,12 @@ public partial class SelectionOverlayWindow
         }
     }
 
-    private Int32Rect? NormalizeCandidateRect(double left, double top, double width, double height, DrawingPoint screenPoint)
-    {
-        if (double.IsNaN(left) || double.IsNaN(top) || double.IsNaN(width) || double.IsNaN(height)
-            || width < 10 || height < 10)
-        {
-            return null;
-        }
-
-        var rect = new Int32Rect(
-            (int)Math.Round(left),
-            (int)Math.Round(top),
-            (int)Math.Round(width),
-            (int)Math.Round(height));
-
-        if (!Contains(rect, screenPoint)
-            || rect.Width >= _virtualScreenBounds.Width - 4
-            || rect.Height >= _virtualScreenBounds.Height - 4)
-        {
-            return null;
-        }
-
-        return ClipToVirtualScreen(rect);
-    }
-
-    private Int32Rect? ClipToVirtualScreen(Int32Rect rect)
-    {
-        var clippedLeft = Math.Max(rect.X, _virtualScreenBounds.Left);
-        var clippedTop = Math.Max(rect.Y, _virtualScreenBounds.Top);
-        var clippedRight = Math.Min(rect.X + rect.Width, _virtualScreenBounds.Right);
-        var clippedBottom = Math.Min(rect.Y + rect.Height, _virtualScreenBounds.Bottom);
-        var clippedWidth = clippedRight - clippedLeft;
-        var clippedHeight = clippedBottom - clippedTop;
-
-        return clippedWidth >= 10 && clippedHeight >= 10
-            ? new Int32Rect(clippedLeft, clippedTop, clippedWidth, clippedHeight)
-            : null;
-    }
-
     private DrawingPoint ToScreenPoint(Point localPoint)
     {
         var devicePoint = _toDevice.Transform(localPoint);
         return new DrawingPoint(
             _virtualScreenBounds.Left + (int)Math.Round(devicePoint.X),
             _virtualScreenBounds.Top + (int)Math.Round(devicePoint.Y));
-    }
-
-    private static bool Contains(Int32Rect rect, DrawingPoint point)
-    {
-        return point.X >= rect.X
-            && point.Y >= rect.Y
-            && point.X <= rect.X + rect.Width
-            && point.Y <= rect.Y + rect.Height;
-    }
-
-    private static bool IsNearRectEdge(Int32Rect rect, DrawingPoint point, int threshold)
-    {
-        return Math.Abs(point.X - rect.X) <= threshold
-            || Math.Abs(point.X - (rect.X + rect.Width)) <= threshold
-            || Math.Abs(point.Y - rect.Y) <= threshold
-            || Math.Abs(point.Y - (rect.Y + rect.Height)) <= threshold;
     }
 
     private static double Distance(Point first, Point second)

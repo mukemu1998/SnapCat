@@ -115,24 +115,12 @@ public partial class MainWindow
         }
     }
 
-    private void AssignPinnedImagesToUngroupedMenuItem_OnClick(object sender, RoutedEventArgs e)
+    private void AssignPinnedImagesToGroupMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
-        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.UngroupedGroupName);
-    }
-
-    private void AssignPinnedImagesToGroupOneMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.GroupOneName);
-    }
-
-    private void AssignPinnedImagesToGroupTwoMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.GroupTwoName);
-    }
-
-    private void AssignPinnedImagesToGroupThreeMenuItem_OnClick(object sender, RoutedEventArgs e)
-    {
-        AssignSelectedPinnedImagesToGroup(PinnedWindowRegistryService.GroupThreeName);
+        if (sender is FrameworkElement { Tag: string groupName })
+        {
+            AssignSelectedPinnedImagesToGroup(groupName);
+        }
     }
 
     private void DeleteSelectedPinnedImagesMenuItem_OnClick(object sender, RoutedEventArgs e)

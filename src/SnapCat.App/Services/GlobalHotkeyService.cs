@@ -2,7 +2,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Interop;
 using SnapCat.Core.Models;
 using WpfApplication = System.Windows.Application;
@@ -14,6 +13,11 @@ public sealed record HotkeyRegistrationResult(
     string HotkeyText,
     bool IsRegistered,
     string Message);
+
+public sealed record HotkeyRegistrationRequest(
+    string Label,
+    string HotkeyText,
+    Action Action);
 
 public sealed class GlobalHotkeyService : IDisposable
 {
@@ -51,37 +55,13 @@ public sealed class GlobalHotkeyService : IDisposable
     }
 
     public IReadOnlyList<HotkeyRegistrationResult> RegisterAll(
-        AppSettings settings,
-        Action pinAction,
-        Action translateAction,
-        Action waitAction,
-        Action saveAction,
-        Action showAllPinnedAction,
-        Action hideAllPinnedAction,
-        Action showUngroupedPinnedAction,
-        Action showPinnedGroupOneAction,
-        Action showPinnedGroupTwoAction,
-        Action showPinnedGroupThreeAction,
-        Action showMainWindowAction,
-        Action exitApplicationAction)
+        IEnumerable<HotkeyRegistrationRequest> requests)
     {
         UnregisterAll();
 
-        return
-        [
-            Register("固定到屏幕", settings.HotkeyCaptureAndPin, pinAction),
-            Register("自动翻译", settings.HotkeyCaptureAndTranslate, translateAction),
-            Register("等待操作", settings.HotkeyCaptureAndWaitForAction, waitAction),
-            Register("保存到默认位置", settings.HotkeyCaptureAndSave, saveAction),
-            Register("显示全部贴图", settings.HotkeyShowAllPinned, showAllPinnedAction),
-            Register("隐藏全部贴图", settings.HotkeyHideAllPinned, hideAllPinnedAction),
-            Register("显示未成组贴图", settings.HotkeyShowUngroupedPinned, showUngroupedPinnedAction),
-            Register("显示贴图组 1", settings.HotkeyShowPinnedGroupOne, showPinnedGroupOneAction),
-            Register("显示贴图组 2", settings.HotkeyShowPinnedGroupTwo, showPinnedGroupTwoAction),
-            Register("显示贴图组 3", settings.HotkeyShowPinnedGroupThree, showPinnedGroupThreeAction),
-            Register("打开主菜单", settings.HotkeyShowMainWindow, showMainWindowAction),
-            Register("退出软件", settings.HotkeyExitApplication, exitApplicationAction)
-        ];
+        return requests
+            .Select(request => Register(request.Label, request.HotkeyText, request.Action))
+            .ToArray();
     }
 
     public void UnregisterAll()
@@ -128,17 +108,17 @@ public sealed class GlobalHotkeyService : IDisposable
             return new HotkeyRegistrationResult(label, hotkeyText, true, "未设置快捷键");
         }
 
-        if (!TryParseHotkey(hotkeyText, out var modifiers, out var key))
+        if (!HotkeyParser.TryParse(hotkeyText, out var hotkey))
         {
             AppendLog($"register failed label={label} hotkey={hotkeyText} reason=parse_failed");
             return new HotkeyRegistrationResult(label, hotkeyText, false, "快捷键格式无法识别");
         }
 
         var id = _nextId++;
-        if (RegisterHotKey(_hwndSource.Handle, id, modifiers, key))
+        if (RegisterHotKey(_hwndSource.Handle, id, hotkey.Modifiers, hotkey.Key))
         {
             _handlers[id] = action;
-            AppendLog($"register ok label={label} hotkey={hotkeyText} id={id} modifiers=0x{modifiers:X} key=0x{key:X}");
+            AppendLog($"register ok label={label} hotkey={hotkeyText} id={id} modifiers=0x{hotkey.Modifiers:X} key=0x{hotkey.Key:X}");
             return new HotkeyRegistrationResult(label, hotkeyText, true, "注册成功");
         }
 
@@ -166,65 +146,6 @@ public sealed class GlobalHotkeyService : IDisposable
         }
 
         return IntPtr.Zero;
-    }
-
-    private static bool TryParseHotkey(string text, out uint modifiers, out uint key)
-    {
-        modifiers = 0;
-        key = 0;
-
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return false;
-        }
-
-        var parts = text.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-        {
-            return false;
-        }
-
-        for (var index = 0; index < parts.Length; index++)
-        {
-            var part = parts[index];
-            var isLast = index == parts.Length - 1;
-
-            if (!isLast)
-            {
-                var modifier = part.ToLowerInvariant() switch
-                {
-                    "ctrl" or "control" => 0x0002u,
-                    "alt" => 0x0001u,
-                    "shift" => 0x0004u,
-                    "win" or "windows" => 0x0008u,
-                    _ => uint.MaxValue
-                };
-
-                if (modifier == uint.MaxValue)
-                {
-                    return false;
-                }
-
-                modifiers |= modifier;
-                continue;
-            }
-
-            if (part.Length == 1 && char.IsLetterOrDigit(part[0]))
-            {
-                key = char.ToUpperInvariant(part[0]);
-                return true;
-            }
-
-            if (Enum.TryParse<Key>(part, true, out var wpfKey))
-            {
-                key = (uint)KeyInterop.VirtualKeyFromKey(wpfKey);
-                return key != 0;
-            }
-
-            return false;
-        }
-
-        return false;
     }
 
     private static string GetRegisterFailureMessage(int errorCode)

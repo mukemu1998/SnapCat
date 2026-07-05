@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SnapCat.App.Services;
 using FormsScreen = System.Windows.Forms.Screen;
 using WpfPoint = System.Windows.Point;
 using WpfRect = System.Windows.Rect;
@@ -60,46 +61,14 @@ public partial class CaptureActionSelectionWindow
     private WpfPoint CalculateToolbarPosition(double toolbarWidth, double toolbarHeight)
     {
         var workArea = GetCurrentScreenWorkAreaLocalBounds();
-        var maxX = Math.Max(workArea.Left, workArea.Right - toolbarWidth);
-        var maxY = Math.Max(workArea.Top, workArea.Bottom - toolbarHeight);
+        var localPosition = CaptureSelectionToolbarLayoutService.CalculateToolbarPosition(
+            _selectionRect,
+            workArea,
+            toolbarWidth,
+            toolbarHeight,
+            ToolbarGap);
 
-        var centeredX = Clamp(
-            _selectionRect.X + (_selectionRect.Width - toolbarWidth) / 2,
-            workArea.Left,
-            maxX);
-
-        var centeredY = Clamp(
-            _selectionRect.Y + (_selectionRect.Height - toolbarHeight) / 2,
-            workArea.Top,
-            maxY);
-
-        var candidates = new[]
-        {
-            new WpfPoint(centeredX, _selectionRect.Bottom + ToolbarGap),
-            new WpfPoint(centeredX, _selectionRect.Y - toolbarHeight - ToolbarGap),
-            new WpfPoint(_selectionRect.Right + ToolbarGap, centeredY),
-            new WpfPoint(_selectionRect.X - toolbarWidth - ToolbarGap, centeredY)
-        };
-
-        foreach (var candidate in candidates)
-        {
-            if (candidate.X >= workArea.Left
-                && candidate.Y >= workArea.Top
-                && candidate.X + toolbarWidth <= workArea.Right
-                && candidate.Y + toolbarHeight <= workArea.Bottom)
-            {
-                return new WpfPoint(Left + candidate.X, Top + candidate.Y);
-            }
-        }
-
-        var fallbackX = Clamp(centeredX, workArea.Left, maxX);
-        var fallbackY = _selectionRect.Bottom + ToolbarGap <= workArea.Bottom - toolbarHeight
-            ? _selectionRect.Bottom + ToolbarGap
-            : _selectionRect.Y - toolbarHeight - ToolbarGap;
-
-        return new WpfPoint(
-            Left + fallbackX,
-            Top + Clamp(fallbackY, workArea.Top, maxY));
+        return new WpfPoint(Left + localPosition.X, Top + localPosition.Y);
     }
 
     private WpfRect GetCurrentScreenWorkAreaLocalBounds()
@@ -143,17 +112,10 @@ public partial class CaptureActionSelectionWindow
             selectedRegion.Y,
             Math.Max(1, selectedRegion.Width),
             Math.Max(1, selectedRegion.Height)));
-        var workArea = screen.WorkingArea;
-        var relativeX = selectedRegion.X - workArea.Left;
-        var relativeY = selectedRegion.Y - workArea.Top;
-        var ratio = selectedRegion.Height <= 0
-            ? 0d
-            : (double)selectedRegion.Width / selectedRegion.Height;
+        var infoText = CaptureSelectionInfoFormatter.Format(selectedRegion, screen);
 
-        SelectionInfoTextBlock.Text =
-            $"{GetScreenDisplayLabel(screen)} | 绝对 X:{selectedRegion.X} Y:{selectedRegion.Y} W:{selectedRegion.Width} H:{selectedRegion.Height}";
-        SelectionScreenInfoTextBlock.Text =
-            $"屏幕内 X:{relativeX} Y:{relativeY} | 比例 {ratio:0.0000}";
+        SelectionInfoTextBlock.Text = infoText.SelectionInfo;
+        SelectionScreenInfoTextBlock.Text = infoText.ScreenInfo;
 
         _isApplyingBoundsInputs = true;
         AbsoluteXTextBox.Text = selectedRegion.X.ToString(CultureInfo.InvariantCulture);
@@ -162,7 +124,7 @@ public partial class CaptureActionSelectionWindow
         HeightTextBox.Text = selectedRegion.Height.ToString(CultureInfo.InvariantCulture);
         if (!ReferenceEquals(Keyboard.FocusedElement, AspectRatioTextBox))
         {
-            AspectRatioTextBox.Text = ratio <= 0 ? "1.0000" : ratio.ToString("0.0000", CultureInfo.InvariantCulture);
+            AspectRatioTextBox.Text = infoText.AspectRatioInput;
         }
 
         _isApplyingBoundsInputs = false;
@@ -179,13 +141,5 @@ public partial class CaptureActionSelectionWindow
     {
         ToolbarHost.Measure(new WpfSize(double.PositiveInfinity, double.PositiveInfinity));
         return ToolbarHost.DesiredSize;
-    }
-
-    private static string GetScreenDisplayLabel(FormsScreen screen)
-    {
-        var index = Array.FindIndex(FormsScreen.AllScreens, candidate =>
-            string.Equals(candidate.DeviceName, screen.DeviceName, StringComparison.OrdinalIgnoreCase));
-        var screenNumber = index >= 0 ? index + 1 : 1;
-        return $"屏幕 {screenNumber} ({screen.DeviceName})";
     }
 }

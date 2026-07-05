@@ -1,19 +1,7 @@
-using System.Windows;
-
 namespace SnapCat.App.Services;
 
 internal static class PinnedArrayCommandParser
 {
-    public static int ResolveTileCountFromTag(object sender)
-    {
-        if (sender is FrameworkElement { Tag: string value })
-        {
-            return NormalizeTileCount(value);
-        }
-
-        return 3;
-    }
-
     public static int NormalizeTileCount(string text)
     {
         return int.TryParse(text, out var tileCount)
