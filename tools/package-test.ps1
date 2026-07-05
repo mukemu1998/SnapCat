@@ -14,7 +14,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.2.0"
+    $version = "0.2.1"
 }
 
 $safeLabel = ($Label -replace "[^0-9A-Za-z\-_]+", "-").Trim("-")
@@ -23,14 +23,24 @@ if ([string]::IsNullOrWhiteSpace($safeLabel))
     $safeLabel = "manual-test"
 }
 
-$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$testRoot = Join-Path $repoRoot "artifacts\test-builds\v$version"
-$buildRoot = Join-Path $testRoot "$timestamp-$safeLabel"
-$packageName = "SnapCat-v$version-test-$Runtime-portable"
+$buildRoot = Join-Path $repoRoot "artifacts\test-builds\current"
+$packageName = "SnapCat-test-$Runtime-portable"
 $publishDir = Join-Path $buildRoot $packageName
 $zipPath = Join-Path $buildRoot "$packageName.zip"
 $shaPath = "$zipPath.sha256"
 $versionFile = Join-Path $publishDir "VERSION.txt"
+
+if (Test-Path -LiteralPath $buildRoot)
+{
+    $resolvedRepoRoot = [System.IO.Path]::GetFullPath($repoRoot)
+    $resolvedBuildRoot = [System.IO.Path]::GetFullPath($buildRoot)
+    if (-not $resolvedBuildRoot.StartsWith($resolvedRepoRoot, [System.StringComparison]::OrdinalIgnoreCase))
+    {
+        throw "Refuse to clean test build directory outside repository: $resolvedBuildRoot"
+    }
+
+    Remove-Item -LiteralPath $buildRoot -Recurse -Force
+}
 
 New-Item -ItemType Directory -Force -Path $buildRoot | Out-Null
 

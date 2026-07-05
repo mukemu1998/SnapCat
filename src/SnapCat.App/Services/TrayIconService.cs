@@ -82,9 +82,10 @@ public sealed class TrayIconService : IDisposable
     private static string GetAppVersion()
     {
         var assembly = Assembly.GetExecutingAssembly();
-        return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
             ?? "0.2.0";
+        return version.Split('+', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? version;
     }
 
     public void RefreshThemeIcon()

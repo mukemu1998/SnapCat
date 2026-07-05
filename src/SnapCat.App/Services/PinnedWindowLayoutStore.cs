@@ -11,28 +11,29 @@ public sealed class PinnedWindowLayoutStore
     };
 
     private readonly string _filePath;
+    private readonly string _backupPath;
 
     public PinnedWindowLayoutStore(string appDataDirectory)
     {
         Directory.CreateDirectory(appDataDirectory);
         _filePath = Path.Combine(appDataDirectory, "pinned-windows.json");
+        _backupPath = Path.Combine(appDataDirectory, "pinned-windows.backup.json");
     }
 
     public List<PinnedWindowSnapshot> Load()
     {
-        try
-        {
-            if (!File.Exists(_filePath))
-            {
-                return [];
-            }
-
-            using var stream = File.OpenRead(_filePath);
-            return JsonSerializer.Deserialize<List<PinnedWindowSnapshot>>(stream, SerializerOptions) ?? [];
-        }
-        catch
+        if (!File.Exists(_filePath))
         {
             return [];
+        }
+
+        try
+        {
+            return LoadFromPath(_filePath);
+        }
+        catch when (File.Exists(_backupPath))
+        {
+            return LoadFromPath(_backupPath);
         }
     }
 
@@ -44,8 +45,36 @@ public sealed class PinnedWindowLayoutStore
             Directory.CreateDirectory(directory);
         }
 
-        using var stream = File.Create(_filePath);
-        JsonSerializer.Serialize(stream, snapshots.ToList(), SerializerOptions);
+        var tempPath = Path.Combine(directory!, $"pinned-windows.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var stream = File.Create(tempPath))
+            {
+                JsonSerializer.Serialize(stream, snapshots.ToList(), SerializerOptions);
+            }
+
+            _ = LoadFromPath(tempPath);
+
+            if (File.Exists(_filePath))
+            {
+                File.Copy(_filePath, _backupPath, overwrite: true);
+            }
+
+            File.Move(tempPath, _filePath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
+    private static List<PinnedWindowSnapshot> LoadFromPath(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return JsonSerializer.Deserialize<List<PinnedWindowSnapshot>>(stream, SerializerOptions) ?? [];
     }
 }
 

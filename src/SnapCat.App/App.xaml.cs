@@ -14,16 +14,16 @@ namespace SnapCat.App;
 
 public partial class App : WpfApplication
 {
-    private static readonly TimeSpan StartupSettingsLoadTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan StartupSettingsLoadTimeout = TimeSpan.FromSeconds(5);
     private readonly string _appDataDirectory;
+    private readonly UserDataLocationService _userDataLocationService;
     private bool _pinnedWindowsPreparedForExit;
     private bool _runtimeServicesInitialized;
 
     public App()
     {
-        _appDataDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SnapCat");
+        _userDataLocationService = new UserDataLocationService();
+        _appDataDirectory = _userDataLocationService.ResolveUserDataDirectory();
 
         SettingsStore = new JsonSettingsStore(_appDataDirectory);
         ThemeService = new ThemeService();
@@ -72,6 +72,10 @@ public partial class App : WpfApplication
 
     public ISettingsStore SettingsStore { get; }
 
+    public UserDataLocationService UserDataLocationService => _userDataLocationService;
+
+    public string UserDataDirectory => _appDataDirectory;
+
     public IHistoryStore HistoryStore { get; private set; } = null!;
 
     public PinnedWindowLayoutStore PinnedWindowLayoutStore { get; private set; } = null!;
@@ -104,31 +108,44 @@ public partial class App : WpfApplication
 
     public string StartupSettingsWarning { get; private set; } = string.Empty;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
         var startInTray = e.Args.Any(static arg => string.Equals(arg, "--tray", StringComparison.OrdinalIgnoreCase));
         var startupSplash = ShowStartupSplashIfNeeded(startInTray);
-        var startupSettings = LoadStartupSettingsSafely();
-        StartupSettingsSnapshot = startupSettings;
-        ThemeService.ApplyTheme(this, startupSettings.ThemeId);
-        InitializeRuntimeServices();
 
-        var mainWindow = new MainWindow();
-        MainWindow = mainWindow;
-        mainWindow.Show();
-        CloseStartupSplashWhenMainWindowIsReady(startupSplash);
-        Dispatcher.BeginInvoke(
-            () => PinnedWindowRegistryService.RestorePersistedWindows(startupSettings),
-            DispatcherPriority.ApplicationIdle);
-        Dispatcher.BeginInvoke(
-            () => _ = CleanupExpiredLocalDataAsync(startupSettings),
-            DispatcherPriority.ApplicationIdle);
-
-        if (startInTray)
+        try
         {
-            mainWindow.StartInTray();
+            var startupSettings = await LoadStartupSettingsSafelyAsync();
+            StartupSettingsSnapshot = startupSettings;
+            ThemeService.ApplyTheme(this, startupSettings.ThemeId);
+            InitializeRuntimeServices();
+
+            var mainWindow = new MainWindow();
+            MainWindow = mainWindow;
+            mainWindow.Show();
+            CloseStartupSplashWhenMainWindowIsReady(startupSplash);
+            _ = Dispatcher.BeginInvoke(
+                () => PinnedWindowRegistryService.RestorePersistedWindows(startupSettings),
+                DispatcherPriority.ApplicationIdle);
+            _ = Dispatcher.BeginInvoke(
+                () => _ = CleanupExpiredLocalDataAsync(startupSettings),
+                DispatcherPriority.ApplicationIdle);
+
+            if (startInTray)
+            {
+                mainWindow.StartInTray();
+            }
+        }
+        catch (Exception ex)
+        {
+            StartupSettingsWarning = $"启动失败：{ex.Message}";
+            InitializeRuntimeServices();
+            CloseStartupSplashWhenMainWindowIsReady(startupSplash);
+            var mainWindow = new MainWindow();
+            MainWindow = mainWindow;
+            mainWindow.Show();
         }
     }
 
@@ -202,19 +219,21 @@ public partial class App : WpfApplication
         }
     }
 
-    private AppSettings LoadStartupSettingsSafely()
+    private async Task<AppSettings> LoadStartupSettingsSafelyAsync()
     {
         try
         {
             var loadTask = SettingsStore.LoadAsync();
-            if (!loadTask.Wait(StartupSettingsLoadTimeout))
+            var timeoutTask = Task.Delay(StartupSettingsLoadTimeout);
+            var completedTask = await Task.WhenAny(loadTask, timeoutTask);
+            if (completedTask != loadTask)
             {
-                StartupSettingsWarning = "读取本地设置超时，已用默认配置启动。可进入主菜单后重新保存设置。";
+                StartupSettingsWarning = "读取本地设置超时，已用默认配置启动。请检查用户配置目录是否位于很慢或不可访问的位置。";
                 return new AppSettings();
             }
 
             StartupSettingsWarning = string.Empty;
-            return loadTask.GetAwaiter().GetResult();
+            return await loadTask;
         }
         catch (Exception ex)
         {

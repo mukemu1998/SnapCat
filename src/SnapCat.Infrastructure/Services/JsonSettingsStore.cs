@@ -18,11 +18,13 @@ public sealed class JsonSettingsStore : ISettingsStore
     };
 
     private readonly string _settingsPath;
+    private readonly string _backupPath;
 
     public JsonSettingsStore(string appDataDirectory)
     {
         Directory.CreateDirectory(appDataDirectory);
         _settingsPath = Path.Combine(appDataDirectory, "settings.json");
+        _backupPath = Path.Combine(appDataDirectory, "settings.backup.json");
     }
 
     public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
@@ -32,20 +34,58 @@ public sealed class JsonSettingsStore : ISettingsStore
             return new AppSettings();
         }
 
-        await using var stream = File.OpenRead(_settingsPath);
-        var persistedSettings = await JsonSerializer.DeserializeAsync<PersistedAppSettings>(stream, SerializerOptions, cancellationToken);
-        return persistedSettings?.ToAppSettings() ?? new AppSettings();
+        try
+        {
+            return await LoadFromPathAsync(_settingsPath, cancellationToken);
+        }
+        catch when (File.Exists(_backupPath))
+        {
+            return await LoadFromPathAsync(_backupPath, cancellationToken);
+        }
     }
 
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath)!);
-        await using var stream = File.Create(_settingsPath);
-        await JsonSerializer.SerializeAsync(
-            stream,
-            PersistedAppSettings.FromAppSettings(settings),
-            SerializerOptions,
-            cancellationToken);
+        var tempPath = Path.Combine(
+            Path.GetDirectoryName(_settingsPath)!,
+            $"settings.{Guid.NewGuid():N}.tmp");
+
+        try
+        {
+            await using (var stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(
+                    stream,
+                    PersistedAppSettings.FromAppSettings(settings),
+                    SerializerOptions,
+                    cancellationToken);
+            }
+
+            // Verify the just-written file before replacing the user's current settings.
+            _ = await LoadFromPathAsync(tempPath, cancellationToken);
+
+            if (File.Exists(_settingsPath))
+            {
+                File.Copy(_settingsPath, _backupPath, overwrite: true);
+            }
+
+            File.Move(tempPath, _settingsPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
+    private static async Task<AppSettings> LoadFromPathAsync(string path, CancellationToken cancellationToken)
+    {
+        await using var stream = File.OpenRead(path);
+        var persistedSettings = await JsonSerializer.DeserializeAsync<PersistedAppSettings>(stream, SerializerOptions, cancellationToken);
+        return persistedSettings?.ToAppSettings() ?? new AppSettings();
     }
 
     private static string Protect(string value)

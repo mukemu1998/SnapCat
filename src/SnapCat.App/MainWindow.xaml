@@ -67,12 +67,31 @@
         </Style>
 
         <Style x:Key="SidebarButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
-            <Setter Property="Height" Value="42" />
-            <Setter Property="Margin" Value="0,0,0,8" />
-            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,0,3" />
+            <Setter Property="Padding" Value="12,0" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+        </Style>
+
+        <Style x:Key="SidebarNavIconStyle" TargetType="Path">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="{DynamicResource Theme.Brush.Highlight}" />
+            <Setter Property="StrokeThickness" Value="1.25" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+        </Style>
+
+        <Style x:Key="SidebarNavTextStyle" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
         </Style>
 
@@ -98,6 +117,19 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceBackground}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+        </Style>
+
+        <Style x:Key="TitleBarIconStyle" TargetType="Path">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="StrokeThickness" Value="1.8" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
         </Style>
 
         <Style x:Key="InlineIconButtonStyle" TargetType="Button">
@@ -716,27 +748,43 @@
                            Height="18"
                            Source="{DynamicResource Theme.Image.AppLogo}"
                            Stretch="Uniform" />
-                    <TextBlock Margin="10,0,0,0"
-                               VerticalAlignment="Center"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                               Text="SnapCat" />
+                     <TextBlock Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                Text="SnapCat" />
                 </StackPanel>
 
                 <WrapPanel Grid.Column="1"
                            VerticalAlignment="Center">
                     <Button Style="{StaticResource TitleBarButtonStyle}"
                             Margin="0,0,8,0"
-                            Click="MinimizeButton_OnClick"
-                            Content="-" />
+                            Click="MinimizeButton_OnClick">
+                        <Grid Width="18"
+                              Height="18">
+                            <Path Style="{StaticResource TitleBarIconStyle}"
+                                  Data="M6 12 H18" />
+                        </Grid>
+                    </Button>
                     <Button x:Name="MaximizeRestoreButton"
                             Style="{StaticResource TitleBarButtonStyle}"
                             Margin="0,0,8,0"
-                            Click="MaximizeRestoreButton_OnClick"
-                            Content="□" />
+                            Click="MaximizeRestoreButton_OnClick">
+                        <Grid Width="18"
+                              Height="18">
+                            <Path x:Name="MaximizeRestoreIconPath"
+                                  Style="{StaticResource TitleBarIconStyle}"
+                                  Data="M7 7 H17 V17 H7 Z" />
+                        </Grid>
+                    </Button>
                     <Button Style="{StaticResource TitleBarButtonStyle}"
-                            Click="CloseWindowButton_OnClick"
-                            Content="×" />
+                            Click="CloseWindowButton_OnClick">
+                        <Grid Width="18"
+                              Height="18">
+                            <Path Style="{StaticResource TitleBarIconStyle}"
+                                  Data="M7 7 L17 17 M17 7 L7 17" />
+                        </Grid>
+                    </Button>
                 </WrapPanel>
             </Grid>
         </Border>
@@ -757,24 +805,18 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="0" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <StackPanel>
-                    <TextBlock FontSize="30"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                               Text="SnapCat" />
+                     <TextBlock FontSize="22"
+                                FontWeight="Bold"
+                               Foreground="{DynamicResource Theme.Brush.Highlight}"
+                               TextWrapping="Wrap"
+                               Text="SnapCat 设置目录" />
                     <TextBlock x:Name="VersionTextBlock"
                                Margin="0,6,0,0"
                                FontSize="12"
                                Foreground="{DynamicResource Theme.Brush.TextMuted}" />
-                    <TextBlock Margin="0,10,0,0"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                               Text="自由框选截图、OCR、翻译和贴图操作现在都在一个主窗口里整理查看。" />
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="1"
@@ -787,9 +829,34 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                    <Border Padding="12"
+                    <Border Padding="10"
+                            Background="{DynamicResource Theme.Brush.CardBackground}"
+                            BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="12">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                       Text="状态" />
+                            <Button x:Name="StatusNavButton"
+                                    Style="{StaticResource SidebarButtonStyle}"
+                                    Tag="Status"
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M5 12 H9 L11 7 L14 17 L16 12 H19 M5 19 H19" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="运行状态" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            Margin="0,10,0,0"
+                            Padding="10"
                             Background="{DynamicResource Theme.Brush.CardBackground}"
                             BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
                             BorderThickness="1"
@@ -801,29 +868,59 @@
                             <Button x:Name="OcrNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="OcrSettings"
-                                    Click="NavigationButton_OnClick">OCR 设置</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M6 4 H4 V6 M18 4 H20 V6 M20 18 V20 H18 M6 20 H4 V18 M7 9 H17 M7 12 H15 M7 15 H13" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="OCR 设置" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="TranslationNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="TranslationSettings"
-                                    Click="NavigationButton_OnClick">翻译设置</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M4 18 L8 6 L12 18 M6 13 H10 M14 7 H20 M17 7 V18 M15 12 H19" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="翻译设置" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="HistoryNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="History"
-                                    Click="NavigationButton_OnClick">历史记录</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M12 5 A7 7 0 1 1 5 12 M5 12 H3 M12 8 V12 L15 14" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="历史记录" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="ScreenshotManagementNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="ScreenshotManagement"
-                                    Click="NavigationButton_OnClick">截图管理</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M7 4 H4 V7 M17 4 H20 V7 M20 17 V20 H17 M7 20 H4 V17 M8 8 H16 V16 H8 Z" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="截图管理" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="PinnedImagesNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="PinnedImages"
-                                    Click="NavigationButton_OnClick">贴图管理</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M9 4 L15 10 M12 7 L17 12 L14 15 L16 20 L12 16 L8 20 L10 15 L7 12 Z" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="贴图管理" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1"
-                            Margin="0,14,0,0"
-                            Padding="12"
+                    <Border Grid.Row="2"
+                            Margin="0,10,0,0"
+                            Padding="10"
                             Background="{DynamicResource Theme.Brush.CardBackground}"
                             BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
                             BorderThickness="1"
@@ -835,13 +932,19 @@
                             <Button x:Name="ExecuteActionsNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="ExecuteActions"
-                                    Click="NavigationButton_OnClick">操作快捷键</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M5 8 H19 V17 H5 Z M8 11 H9 M12 11 H13 M16 11 H17 M8 14 H16" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="操作快捷键" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="2"
-                            Margin="0,14,0,0"
-                            Padding="12"
+                    <Border Grid.Row="3"
+                            Margin="0,10,0,0"
+                            Padding="10"
                             Background="{DynamicResource Theme.Brush.CardBackground}"
                             BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
                             BorderThickness="1"
@@ -853,35 +956,58 @@
                             <Button x:Name="CaptureSettingsNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="CaptureSettings"
-                                    Click="NavigationButton_OnClick">系统快捷键</Button>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M7 8 H5 A2 2 0 1 1 7 6 V18 A2 2 0 1 1 5 16 H19 A2 2 0 1 1 17 18 V6 A2 2 0 1 1 19 8 Z" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="系统快捷键" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="AppearanceSettingsNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="AppearanceSettings"
-                                    Click="NavigationButton_OnClick">外观主题</Button>
-                            <Button x:Name="TraySettingsNavButton"
-                                    Style="{StaticResource SidebarButtonStyle}"
-                                    Tag="TraySettings"
-                                    Click="NavigationButton_OnClick">托盘与启动</Button>
-                            <Button x:Name="StatusNavButton"
-                                    Style="{StaticResource SidebarButtonStyle}"
-                                    Tag="Status"
-                                    Click="NavigationButton_OnClick">运行状态</Button>
-                        </StackPanel>
-                    </Border>
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M7 17 L17 7 M15 5 L19 9 M6 18 L4 20 M8 16 L10 20" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="外观主题" />
+                                </StackPanel>
+                            </Button>
+                             <Button x:Name="TraySettingsNavButton"
+                                     Style="{StaticResource SidebarButtonStyle}"
+                                     Tag="TraySettings"
+                                     Click="NavigationButton_OnClick">
+                                 <StackPanel Orientation="Horizontal">
+                                     <Path Style="{StaticResource SidebarNavIconStyle}"
+                                           Data="M5 6 H19 V15 H5 Z M9 19 H15 M12 15 V19" />
+                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="托盘与启动" />
+                                 </StackPanel>
+                             </Button>
+                             <Button x:Name="UserConfigNavButton"
+                                     Style="{StaticResource SidebarButtonStyle}"
+                                     Tag="UserConfig"
+                                     Click="NavigationButton_OnClick">
+                                 <StackPanel Orientation="Horizontal">
+                                     <Path Style="{StaticResource SidebarNavIconStyle}"
+                                           Data="M4 7 H9 L11 9 H20 V18 H4 Z M8 13 H16 M8 16 H13" />
+                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="用户配置" />
+                                 </StackPanel>
+                             </Button>
+                             <Button x:Name="AboutNavButton"
+                                     Style="{StaticResource SidebarButtonStyle}"
+                                     Tag="About"
+                                     Click="NavigationButton_OnClick">
+                                 <StackPanel Orientation="Horizontal">
+                                     <Path Style="{StaticResource SidebarNavIconStyle}"
+                                           Data="M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 M12 11 V16 M12 8 H12.1" />
+                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="关于 SnapCat" />
+                                 </StackPanel>
+                             </Button>
+                         </StackPanel>
+                     </Border>
                     </Grid>
                 </ScrollViewer>
 
-                <Border Grid.Row="4"
-                        Margin="0,16,0,0"
-                        Padding="12"
-                        Background="{DynamicResource Theme.Brush.CardBackground}"
-                        BorderBrush="{DynamicResource Theme.Brush.CardBorder}"
-                        BorderThickness="1"
-                        CornerRadius="12">
-                    <TextBlock TextWrapping="Wrap"
-                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                               Text="左侧只负责切换分类，右侧直接显示当前内容，不再弹出新的设置窗口。" />
-                </Border>
             </Grid>
         </Border>
 
@@ -942,8 +1068,8 @@
                                   VerticalScrollBarVisibility="Auto"
                                   Visibility="Collapsed">
                         <StackPanel>
-                            <Border Background="#FF111827"
-                                    BorderBrush="#FF334155"
+                            <Border Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="14"
                                     Padding="18">
@@ -959,8 +1085,8 @@
 
                             <Border Margin="0,16,0,0"
                                     Padding="16"
-                                    Background="#FF172033"
-                                    BorderBrush="#FF3B82F6"
+                                    Background="{DynamicResource Theme.Brush.AccentSoft}"
+                                    BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
                                     BorderThickness="1"
                                     CornerRadius="14">
                                 <StackPanel>
@@ -974,21 +1100,6 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Margin="0,16,0,0"
-                                    Padding="16"
-                                    Background="#FF111827"
-                                    BorderBrush="#FF334155"
-                                    BorderThickness="1"
-                                    CornerRadius="14">
-                                <StackPanel>
-                                    <TextBlock FontWeight="SemiBold"
-                                               Text="使用建议" />
-                                    <TextBlock Margin="0,10,0,0"
-                                               Foreground="#FFCBD5E1"
-                                               TextWrapping="Wrap"
-                                               Text="功能项类主要放 OCR、翻译和历史记录；系统设置类主要放快捷键、外观、托盘和运行状态。你现在可以在同一个窗口里完成查看、修改、测试和保存。" />
-                                </StackPanel>
-                            </Border>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -1056,15 +1167,15 @@
                                     Grid.ColumnSpan="2"
                                     Margin="0,8,0,0"
                                     Padding="14"
-                                    Background="#FF161E2C"
-                                    BorderBrush="#FF334155"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="12">
                                 <StackPanel>
                                     <TextBlock FontWeight="SemiBold"
                                                Text="说明" />
                                     <TextBlock Margin="0,10,0,0"
-                                               Foreground="#FFCBD5E1"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                TextWrapping="Wrap"
                                                Text="默认推荐使用系统内置 OCR 先开箱即用；如果你后续想要更强本地识别，再切换到 Tesseract 相关方案。OCR 语言建议保留 chi_sim+eng。" />
                                 </StackPanel>
@@ -1074,8 +1185,8 @@
                                     Grid.ColumnSpan="2"
                                     Margin="0,18,0,0"
                                     Padding="14"
-                                    Background="#FF111827"
-                                    BorderBrush="#FF334155"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="12">
                                 <StackPanel>
@@ -1147,15 +1258,15 @@
                                     Grid.ColumnSpan="2"
                                     Margin="0,8,0,0"
                                     Padding="14"
-                                    Background="#FF161E2C"
-                                    BorderBrush="#FF334155"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="12">
                                 <StackPanel>
                                     <TextBlock FontWeight="SemiBold"
                                                Text="说明" />
                                     <TextBlock Margin="0,10,0,0"
-                                               Foreground="#FFCBD5E1"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                TextWrapping="Wrap"
                                                Text="默认使用本地轻量翻译；如果你希望强制走自己的 DeepSeek 或其他兼容接口，可以直接切换到 API 翻译。" />
                                 </StackPanel>
@@ -1165,8 +1276,8 @@
                                     Grid.ColumnSpan="2"
                                     Margin="0,18,0,0"
                                     Padding="14"
-                                    Background="#FF111827"
-                                    BorderBrush="#FF334155"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="12">
                                 <StackPanel>
@@ -1180,7 +1291,7 @@
                                             <TextBlock FontWeight="SemiBold"
                                                        Text="API 配置管理" />
                                             <TextBlock Margin="0,10,0,0"
-                                                       Foreground="#FFCBD5E1"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                        TextWrapping="Wrap"
                                                        Text="可以保存多套不同厂商或模型的翻译接口。点击添加后才会显示填写项，删除会直接清掉这套本地记录。" />
                                         </StackPanel>
@@ -1198,7 +1309,7 @@
 
                                     <StackPanel x:Name="EmptyApiProfileStatePanel"
                                                 Margin="0,14,0,0">
-                                        <TextBlock Foreground="#FFCBD5E1"
+                                        <TextBlock Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                    TextWrapping="Wrap"
                                                    Text="当前还没有 API 配置，点击“添加配置”后再填写名称、接口地址、API Key 和模型。" />
                                     </StackPanel>
@@ -1370,8 +1481,8 @@
                                     Grid.ColumnSpan="2"
                                     Margin="0,18,0,0"
                                     Padding="14"
-                                    Background="#FF111827"
-                                    BorderBrush="#FF334155"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="12">
                                 <StackPanel>
@@ -1385,11 +1496,15 @@
                                                 Style="{StaticResource SectionActionButtonStyle}"
                                                 Click="TestTranslationButton_OnClick">测试翻译</Button>
                                     </WrapPanel>
-                                    <TextBox x:Name="TranslationTestResultTextBox"
-                                             MinHeight="130"
-                                             IsReadOnly="True"
-                                             AcceptsReturn="True"
-                                             TextWrapping="Wrap"
+                                     <TextBox x:Name="TranslationTestResultTextBox"
+                                              MinHeight="130"
+                                              Margin="0,14,0,0"
+                                              Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                              BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                              Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                              IsReadOnly="True"
+                                              AcceptsReturn="True"
+                                              TextWrapping="Wrap"
                                              VerticalScrollBarVisibility="Auto" />
                                 </StackPanel>
                             </Border>
@@ -1994,6 +2109,242 @@
                                                Text="手动启动时主窗口会正常显示；只有开机自启时才会带托盘参数启动。托盘左键默认动作也可以在这里直接改。" />
                                 </StackPanel>
                             </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="UserConfigSection"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Visibility="Collapsed">
+                        <StackPanel Margin="0,0,8,0">
+                            <Border Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold"
+                                               Text="用户配置目录" />
+                                    <TextBlock Margin="0,8,0,10"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="快捷键、主题、API 配置、历史记录和贴图布局默认保存在当前 Windows 用户目录，不会写入源码。也可以选择其他目录保存，切换后重启 SnapCat 生效。" />
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="120" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Text="配置目录" />
+                                        <TextBlock x:Name="UserConfigDirectoryTextBlock"
+                                                   Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Grid.Row="1"
+                                                   Margin="0,10,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="位置状态" />
+                                        <TextBlock x:Name="UserConfigLocationStatusTextBlock"
+                                                   Grid.Row="1"
+                                                   Grid.Column="1"
+                                                   Margin="0,10,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                   TextWrapping="Wrap" />
+                                    </Grid>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="OpenUserConfigDirectoryButton_OnClick">打开配置目录</Button>
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="ChooseUserConfigDirectoryButton_OnClick">选择其他目录</Button>
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="ResetUserConfigDirectoryButton_OnClick">恢复默认目录</Button>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold"
+                                               Text="保存内容" />
+                                    <TextBlock Margin="0,10,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="当前目录会保存 settings.json、history.jsonl、pinned-windows.json 和日志目录。API 信息会被当前 Windows 用户保护，源码仓库不会包含这些个人配置。" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="AboutSection"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Visibility="Collapsed">
+                        <StackPanel Margin="0,0,8,0">
+                            <Border Padding="20"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <Image Width="96"
+                                           Height="96"
+                                           Source="{DynamicResource Theme.Image.AppLogo}"
+                                           Stretch="Uniform" />
+                                    <TextBlock Margin="0,16,0,0"
+                                               HorizontalAlignment="Center"
+                                               FontSize="30"
+                                               FontWeight="Bold"
+                                               Text="SnapCat" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               Text="自由框选截图、OCR、翻译与贴图工具" />
+                                    <WrapPanel Margin="0,16,0,0"
+                                               HorizontalAlignment="Center">
+                                        <Border Margin="0,0,8,8"
+                                                Padding="10,5"
+                                                Background="{DynamicResource Theme.Brush.AccentSoft}"
+                                                BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                            <TextBlock x:Name="AboutVersionTextBlock"
+                                                       Foreground="{DynamicResource Theme.Brush.Highlight}" />
+                                        </Border>
+                                        <Border Margin="0,0,8,8"
+                                                Padding="10,5"
+                                                Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                                                BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                            <TextBlock Text="维护者：HaG_Cat"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}" />
+                                        </Border>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,14,0,0"
+                                    Padding="18"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <StackPanel>
+                                    <TextBlock FontSize="20"
+                                               FontWeight="SemiBold"
+                                               Text="开源协议" />
+                                    <TextBlock Margin="0,10,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="SnapCat 当前按开源项目方式整理发布。具体协议以仓库中的 LICENSE 文件为准。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,14,0,0"
+                                    Padding="18"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <StackPanel>
+                                    <TextBlock FontSize="20"
+                                               FontWeight="SemiBold"
+                                               Text="问题反馈与联系" />
+                                    <WrapPanel Margin="0,14,0,0">
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                MinWidth="160"
+                                                Click="OpenProjectHomeButton_OnClick">
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Center">
+                                                <Viewbox Width="18"
+                                                         Height="18"
+                                                         Margin="0,0,8,0">
+                                                    <Canvas Width="16"
+                                                            Height="16">
+                                                        <Path Fill="{DynamicResource Theme.Brush.TextPrimary}"
+                                                              Data="M8,0C3.58,0 0,3.58 0,8C0,11.54 2.29,14.53 5.47,15.59C5.87,15.66 6.02,15.42 6.02,15.21C6.02,15.02 6.01,14.39 6.01,13.72C4,14.09 3.48,13.23 3.32,12.78C3.23,12.55 2.84,11.84 2.5,11.65C2.22,11.5 1.82,11.13 2.49,11.12C3.12,11.11 3.57,11.7 3.72,11.94C4.44,13.15 5.59,12.81 6.05,12.6C6.12,12.08 6.33,11.73 6.56,11.53C4.78,11.33 2.92,10.64 2.92,7.58C2.92,6.71 3.23,5.99 3.74,5.43C3.66,5.23 3.38,4.41 3.82,3.31C3.82,3.31 4.49,3.1 6.02,4.13C6.66,3.95 7.34,3.86 8.02,3.86C8.7,3.86 9.38,3.95 10.02,4.13C11.55,3.09 12.22,3.31 12.22,3.31C12.66,4.41 12.38,5.23 12.3,5.43C12.81,5.99 13.12,6.7 13.12,7.58C13.12,10.65 11.25,11.33 9.47,11.53C9.76,11.78 10.01,12.26 10.01,13.01C10.01,14.08 10,14.94 10,15.21C10,15.42 10.15,15.67 10.55,15.59C13.71,14.53 16,11.54 16,8C16,3.58 12.42,0 8,0Z" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                                <TextBlock VerticalAlignment="Center"
+                                                           Text="GitHub 仓库" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                MinWidth="160"
+                                                Click="OpenIssuesButton_OnClick">
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Center">
+                                                <Viewbox Width="18"
+                                                         Height="18"
+                                                         Margin="0,0,8,0">
+                                                    <Canvas Width="16"
+                                                            Height="16">
+                                                        <Path Fill="{DynamicResource Theme.Brush.TextPrimary}"
+                                                              Data="M8,0C3.58,0 0,3.58 0,8C0,11.54 2.29,14.53 5.47,15.59C5.87,15.66 6.02,15.42 6.02,15.21C6.02,15.02 6.01,14.39 6.01,13.72C4,14.09 3.48,13.23 3.32,12.78C3.23,12.55 2.84,11.84 2.5,11.65C2.22,11.5 1.82,11.13 2.49,11.12C3.12,11.11 3.57,11.7 3.72,11.94C4.44,13.15 5.59,12.81 6.05,12.6C6.12,12.08 6.33,11.73 6.56,11.53C4.78,11.33 2.92,10.64 2.92,7.58C2.92,6.71 3.23,5.99 3.74,5.43C3.66,5.23 3.38,4.41 3.82,3.31C3.82,3.31 4.49,3.1 6.02,4.13C6.66,3.95 7.34,3.86 8.02,3.86C8.7,3.86 9.38,3.95 10.02,4.13C11.55,3.09 12.22,3.31 12.22,3.31C12.66,4.41 12.38,5.23 12.3,5.43C12.81,5.99 13.12,6.7 13.12,7.58C13.12,10.65 11.25,11.33 9.47,11.53C9.76,11.78 10.01,12.26 10.01,13.01C10.01,14.08 10,14.94 10,15.21C10,15.42 10.15,15.67 10.55,15.59C13.71,14.53 16,11.54 16,8C16,3.58 12.42,0 8,0Z" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                                <TextBlock VerticalAlignment="Center"
+                                                           Text="GitHub Issue" />
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,14,0,0"
+                                    Padding="18"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <StackPanel>
+                                    <TextBlock FontSize="20"
+                                               FontWeight="SemiBold"
+                                               Text="检查更新" />
+                                    <TextBlock Margin="0,10,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="点击后会访问 GitHub Releases，检查当前版本是否落后。SnapCat 目前仍采用手动下载覆盖升级。" />
+                                    <WrapPanel Margin="0,14,0,0">
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                MinWidth="150"
+                                                Click="CheckUpdatesButton_OnClick">检查更新</Button>
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                MinWidth="150"
+                                                Click="OpenReleasesButton_OnClick">
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Center">
+                                                <Viewbox Width="18"
+                                                         Height="18"
+                                                         Margin="0,0,8,0">
+                                                    <Canvas Width="16"
+                                                            Height="16">
+                                                        <Path Fill="{DynamicResource Theme.Brush.TextPrimary}"
+                                                              Data="M8,0C3.58,0 0,3.58 0,8C0,11.54 2.29,14.53 5.47,15.59C5.87,15.66 6.02,15.42 6.02,15.21C6.02,15.02 6.01,14.39 6.01,13.72C4,14.09 3.48,13.23 3.32,12.78C3.23,12.55 2.84,11.84 2.5,11.65C2.22,11.5 1.82,11.13 2.49,11.12C3.12,11.11 3.57,11.7 3.72,11.94C4.44,13.15 5.59,12.81 6.05,12.6C6.12,12.08 6.33,11.73 6.56,11.53C4.78,11.33 2.92,10.64 2.92,7.58C2.92,6.71 3.23,5.99 3.74,5.43C3.66,5.23 3.38,4.41 3.82,3.31C3.82,3.31 4.49,3.1 6.02,4.13C6.66,3.95 7.34,3.86 8.02,3.86C8.7,3.86 9.38,3.95 10.02,4.13C11.55,3.09 12.22,3.31 12.22,3.31C12.66,4.41 12.38,5.23 12.3,5.43C12.81,5.99 13.12,6.7 13.12,7.58C13.12,10.65 11.25,11.33 9.47,11.53C9.76,11.78 10.01,12.26 10.01,13.01C10.01,14.08 10,14.94 10,15.21C10,15.42 10.15,15.67 10.55,15.59C13.71,14.53 16,11.54 16,8C16,3.58 12.42,0 8,0Z" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                                <TextBlock VerticalAlignment="Center"
+                                                           Text="打开下载页" />
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                    <TextBlock x:Name="AboutUpdateStatusTextBlock"
+                                               Margin="0,10,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="尚未检查更新。" />
+                                </StackPanel>
+                            </Border>
+
                         </StackPanel>
                     </ScrollViewer>
 
@@ -2320,9 +2671,16 @@
                         BorderBrush="#FF4B5563"
                         BorderThickness="1"
                         CornerRadius="12">
-                    <TextBlock x:Name="StatusTextBlock"
-                               Foreground="#FFE5E7EB"
-                               TextWrapping="Wrap" />
+                    <StackPanel>
+                        <TextBlock x:Name="StatusTextBlock"
+                                   Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock x:Name="OperationLogTextBlock"
+                                   Margin="0,6,0,0"
+                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                   TextWrapping="Wrap"
+                                   Text="最近操作日志：暂无。" />
+                    </StackPanel>
                 </Border>
             </Grid>
         </Border>
