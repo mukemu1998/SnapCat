@@ -13,7 +13,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mukemu1998/SnapCat/releases">下载发布版</a>
+  <a href="https://github.com/mukemu1998/SnapCat/releases">下载发布版</a> ·
+  <a href="./docs/architecture-guidelines.zh-CN.md">开发规范</a>
 </p>
 
 <p align="center">
@@ -96,10 +97,14 @@ SnapCat/
   tools/
 ```
 
+## 开发规范
+
+后续新增功能和重构统一遵循 [SnapCat 架构规范](docs/architecture-guidelines.zh-CN.md)，重点保持窗口层轻量、业务逻辑服务化、用户配置不写入源码、打包产物只保留在 `artifacts/`。
+
 ## 当前版本
 
-当前版本为 `0.2.3`，属于 v0.2 系列架构规范整理版，延续自由框选、智能预框选、颜色放大镜、翻译浮窗、贴图管理、主题切换、OCR、翻译、用户配置持久化和托盘常驻等核心流程，并进一步明确截图/框选、贴图、OCR/翻译、用户设置等模块边界。
+当前版本为 `0.2.3`，属于 v0.2 系列架构规范整理版，重点明确截图框选、贴图、OCR/翻译和用户设置等模块边界。
 
 ## 许可
 
-[MIT](LICENSE)
+本项目采用 [MIT License](LICENSE) 开源。
