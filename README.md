@@ -20,7 +20,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.2.2" src="https://img.shields.io/badge/Version-0.2.2-22c55e" />
+  <img alt="Version 0.2.3" src="https://img.shields.io/badge/Version-0.2.3-22c55e" />
 </p>
 
 ## 项目简介
@@ -98,7 +98,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.2.2`，属于 v0.2 系列结构整理版，延续自由框选、智能预框选、颜色放大镜、翻译浮窗、贴图管理、主题切换、OCR、翻译、用户配置持久化和托盘常驻等核心流程，并继续推进 API 配置与贴图逻辑的源码拆分。
+当前版本为 `0.2.3`，属于 v0.2 系列架构规范整理版，延续自由框选、智能预框选、颜色放大镜、翻译浮窗、贴图管理、主题切换、OCR、翻译、用户配置持久化和托盘常驻等核心流程，并进一步明确截图/框选、贴图、OCR/翻译、用户设置等模块边界。
 
 ## 许可
 

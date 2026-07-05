@@ -15,7 +15,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.2.2"
+    $version = "0.2.3"
 }
 
 $releaseRoot = Join-Path $repoRoot "artifacts\releases\v$version"
@@ -112,7 +112,7 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     ""
     "## 版本定位"
     ""
-    "v$version 是 SnapCat v0.2 系列的稳定整理版，重点保留 v0.2.0 之后的可见体验改进，并完成第一轮源码结构整理，适合作为后续深拆 API 配置与贴图逻辑前的回滚基线。"
+    "v$version 是 SnapCat v0.2 系列的架构规范整理版，重点明确截图/框选、贴图、OCR/翻译、设置与用户数据四条主线边界，适合作为后续加入全屏画布、标注工具和更复杂贴图编辑前的稳定基线。"
     ""
     "## 重点更新"
     ""
@@ -122,8 +122,12 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     "- 贴图管理增强：支持缩放、翻转、阵列、隐藏、分组、重启恢复、托盘显示/隐藏和主菜单缩略图管理。"
     "- 主菜单整理：目录、关于、运行状态、截图管理、贴图管理、用户配置和快捷键设置进一步统一为深色主题风格。"
     "- 启动体验优化：保留启动 logo 加载页、动态图标和托盘菜单风格统一，降低主菜单慢加载的突兀感。"
-    "- 源码结构整理：拆分主窗口、翻译浮窗、历史记录、快捷键、设置摘要、下拉框选择和系统路径打开等逻辑，降低后续改坏风险。"
-    "- MVVM 渐进过渡：新增基础 ViewModel、命令封装和 API 配置编辑模型，为后续继续拆分主窗口状态机打基础。"
+    "- 架构边界规范：确立截图/框选引擎、贴图引擎、OCR/翻译管线、设置与用户数据四条开发主线。"
+    "- 等待框选整理：将选框输入解析、几何缩放、toolbar 贴边、选框信息显示拆成独立服务，减少窗口代码承担的纯计算职责。"
+    "- 框选预识别整理：将候选区域裁剪、贴边判断、颜色放大镜格式化和小窗定位拆出，方便后续全屏画布复用。"
+    "- 贴图菜单整理：清理重复菜单事件和无用阵列解析方法，统一贴图分组入口。"
+    "- 快捷键架构整理：拆出热键解析器，并将全局热键注册改为请求列表，降低后续新增快捷键的改动面。"
+    "- 源码结构整理：继续拆分窗口层、服务层和格式化逻辑，降低后续改坏风险。"
     ""
     "## 使用建议"
     ""
@@ -141,7 +145,7 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     "- 本地轻量翻译适合短文本和基础翻译，长文本或更高质量翻译建议配置 DeepSeek 等兼容 OpenAI 的 API。"
     "- 智能预框选仍属于早期增强能力，不同软件窗口的命中效果可能不同，后续会继续优化。"
     "- OCR 效果会受到截图清晰度、字体、背景和系统 OCR 能力影响。"
-    "- 此版本适合作为继续深拆 API 配置编辑器和贴图窗口前的回滚基线。"
+    "- 此版本适合作为继续开发全屏画布、标注工具和更复杂贴图编辑前的回滚基线。"
     ""
     "## 校验"
     ""
