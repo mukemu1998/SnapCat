@@ -416,44 +416,70 @@
                                 </TextBox.Resources>
                             </TextBox>
 
-                            <StackPanel Grid.Row="1"
-                                        Margin="0,8,0,0"
-                                        HorizontalAlignment="Right"
-                                        Orientation="Horizontal">
-                                <Button x:Name="RecaptureButton"
-                                        Width="30"
-                                        Height="30"
-                                        Margin="0,0,8,0"
-                                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
-                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
-                                        Command="{Binding RecaptureCommand}"
-                                        Content="选"
-                                        FontSize="13"
-                                        FontWeight="SemiBold"
-                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                                        ToolTip="再次框选识别" />
-                                <Button x:Name="TranslateButton"
-                                        Width="30"
-                                        Height="30"
-                                        Margin="0,0,8,0"
-                                        Background="{DynamicResource Theme.Brush.Accent}"
-                                        BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
-                                        Command="{Binding TranslateCommand}"
-                                        Content="译"
-                                        FontSize="13"
-                                        FontWeight="SemiBold"
-                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                                        ToolTip="翻译当前原文" />
-                                <Button Width="30"
-                                        Height="30"
-                                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
-                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
-                                        Command="{Binding CopySourceCommand}"
-                                        Content="复"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                                        ToolTip="复制原文" />
-                            </StackPanel>
+                            <Grid Grid.Row="1"
+                                  Margin="0,8,0,0">
+                                <StackPanel HorizontalAlignment="Left"
+                                            Orientation="Horizontal">
+                                    <Button Width="30"
+                                            Height="30"
+                                            Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            Command="{Binding SpeakSourceCommand}"
+                                            Content="&#xE767;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="14"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="朗读原文" />
+                                </StackPanel>
+
+                                <StackPanel HorizontalAlignment="Right"
+                                            Orientation="Horizontal">
+                                    <Button x:Name="RecaptureButton"
+                                            Width="30"
+                                            Height="30"
+                                            Margin="0,0,8,0"
+                                            Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            Command="{Binding RecaptureCommand}"
+                                            Content="选"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="再次框选识别" />
+                                    <Button x:Name="TranslateButton"
+                                            Width="30"
+                                            Height="30"
+                                            Margin="0,0,8,0"
+                                            Background="{DynamicResource Theme.Brush.Accent}"
+                                            BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
+                                            Command="{Binding TranslateCommand}"
+                                            Content="译"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="翻译当前原文" />
+                                    <Button Width="30"
+                                            Height="30"
+                                            Margin="0,0,8,0"
+                                            Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            Command="{Binding CopySourceCommand}"
+                                            Content="复"
+                                            FontSize="14"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="复制原文" />
+                                    <Button Width="30"
+                                            Height="30"
+                                            Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            Command="{Binding ClearSourceCommand}"
+                                            Content="&#xE74D;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="14"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="清空原文" />
+                                </StackPanel>
+                            </Grid>
                         </Grid>
                     </Border>
                 </StackPanel>
@@ -494,20 +520,35 @@
                                 </TextBox.Resources>
                             </TextBox>
 
-                            <StackPanel Grid.Row="1"
-                                        Margin="0,8,0,0"
-                                        HorizontalAlignment="Right"
-                                        Orientation="Horizontal">
-                                <Button Width="30"
-                                        Height="30"
-                                        Background="{DynamicResource Theme.Brush.ButtonBackground}"
-                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
-                                        Command="{Binding CopyTranslatedCommand}"
-                                        Content="复"
-                                        FontSize="14"
-                                        Foreground="{DynamicResource Theme.Brush.TextPrimary}"
-                                        ToolTip="复制译文" />
-                            </StackPanel>
+                            <Grid Grid.Row="1"
+                                  Margin="0,8,0,0">
+                                <StackPanel HorizontalAlignment="Left"
+                                            Orientation="Horizontal">
+                                    <Button Width="30"
+                                            Height="30"
+                                            Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            Command="{Binding SpeakTranslatedCommand}"
+                                            Content="&#xE767;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="14"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="朗读译文" />
+                                </StackPanel>
+
+                                <StackPanel HorizontalAlignment="Right"
+                                            Orientation="Horizontal">
+                                    <Button Width="30"
+                                            Height="30"
+                                            Background="{DynamicResource Theme.Brush.ButtonBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            Command="{Binding CopyTranslatedCommand}"
+                                            Content="复"
+                                            FontSize="14"
+                                            Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                            ToolTip="复制译文" />
+                                </StackPanel>
+                            </Grid>
                         </Grid>
                     </Border>
                 </StackPanel>

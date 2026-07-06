@@ -1255,6 +1255,10 @@
                                 <ComboBoxItem Tag="en">英语</ComboBoxItem>
                                 <ComboBoxItem Tag="ja">日语</ComboBoxItem>
                                 <ComboBoxItem Tag="ko">韩语</ComboBoxItem>
+                                <ComboBoxItem Tag="vi">越南语</ComboBoxItem>
+                                <ComboBoxItem Tag="fr">法语</ComboBoxItem>
+                                <ComboBoxItem Tag="de">德语</ComboBoxItem>
+                                <ComboBoxItem Tag="ru">俄语</ComboBoxItem>
                             </ComboBox>
 
                             <Border Grid.Row="2"

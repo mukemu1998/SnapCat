@@ -1,6 +1,7 @@
 <Window x:Class="SnapCat.App.Windows.SelectionOverlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SnapCat.App.Controls"
         WindowStyle="None"
         ResizeMode="NoResize"
         AllowsTransparency="True"
@@ -13,34 +14,36 @@
           Background="Transparent"
           MouseLeftButtonDown="RootSurface_OnMouseLeftButtonDown"
           MouseLeftButtonUp="RootSurface_OnMouseLeftButtonUp"
+          PreviewMouseRightButtonDown="RootSurface_OnPreviewMouseRightButtonDown"
+          PreviewMouseRightButtonUp="RootSurface_OnPreviewMouseRightButtonUp"
           MouseRightButtonDown="RootSurface_OnMouseRightButtonDown"
+          MouseRightButtonUp="RootSurface_OnMouseRightButtonUp"
           MouseMove="RootSurface_OnMouseMove">
-        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
-            <Rectangle x:Name="SmartPreviewRectangle"
-                       Stroke="{DynamicResource Theme.Brush.HighlightAlt}"
-                       Fill="#18000000"
-                       StrokeThickness="2"
-                       StrokeDashArray="6 4"
-                       Visibility="Collapsed" />
-
-            <Rectangle x:Name="SelectionRectangle"
-                       Stroke="{DynamicResource Theme.Brush.AccentBorder}"
-                       Fill="{DynamicResource Theme.Brush.AccentSoft}"
-                       StrokeThickness="2"
-                       Visibility="Collapsed" />
+        <Grid IsHitTestVisible="False">
+            <controls:SelectionOverlayRenderLayer x:Name="OverlayLayer"
+                                                  SmartPreviewStroke="{DynamicResource Theme.Brush.HighlightAlt}"
+                                                  SmartPreviewFill="#10000000"
+                                                  SelectionStroke="{DynamicResource Theme.Brush.AccentBorder}"
+                                                  SelectionFill="{DynamicResource Theme.Brush.AccentSoft}" />
 
             <Border x:Name="ColorInspectorPanel"
                     Width="256"
                     Height="320"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    CacheMode="BitmapCache"
                     Background="{DynamicResource Theme.Brush.WindowBackground}"
                     BorderBrush="{DynamicResource Theme.Brush.WindowBorder}"
                     BorderThickness="1"
                     CornerRadius="14"
                     Visibility="Collapsed">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="ColorInspectorTransform" />
+                </Border.RenderTransform>
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="16"
-                                      ShadowDepth="4"
-                                      Opacity="0.24"
+                    <DropShadowEffect BlurRadius="8"
+                                      ShadowDepth="2"
+                                      Opacity="0.18"
                                       Color="{DynamicResource Theme.Color.Shadow}" />
                 </Border.Effect>
 
@@ -111,6 +114,6 @@
                     </StackPanel>
                 </Grid>
             </Border>
-        </Canvas>
+        </Grid>
     </Grid>
 </Window>

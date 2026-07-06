@@ -19,8 +19,20 @@ internal static class SelectionPreviewRegionService
         var screenBounds = FormsScreen.FromPoint(screenPoint).Bounds;
         var screenArea = Math.Max(1d, screenBounds.Width * screenBounds.Height);
         var usableCandidates = candidates
+            .Where(candidate => Contains(candidate, screenPoint))
             .Where(candidate => candidate.Width * candidate.Height <= screenArea * 0.75d)
-            .OrderBy(candidate => candidate.Width * candidate.Height)
+            .Where(candidate => candidate.Width >= 16 && candidate.Height >= 10)
+            .Select((candidate, index) => new
+            {
+                Rect = candidate,
+                Index = index,
+                Area = candidate.Width * candidate.Height,
+                LooksActionable = candidate.Width >= 36 && candidate.Height >= 18,
+            })
+            .OrderByDescending(candidate => candidate.LooksActionable)
+            .ThenBy(candidate => candidate.Area)
+            .ThenBy(candidate => candidate.Index)
+            .Select(candidate => candidate.Rect)
             .ToList();
 
         if (usableCandidates.Count == 0)
@@ -28,13 +40,35 @@ internal static class SelectionPreviewRegionService
             return null;
         }
 
-        var first = candidates[0];
-        if (first.Width >= 36 && first.Height >= 18)
+        return usableCandidates[0];
+    }
+
+    public static Int32Rect? NormalizeCandidateRect(
+        double left,
+        double top,
+        double width,
+        double height,
+        Rectangle virtualScreenBounds)
+    {
+        if (double.IsNaN(left) || double.IsNaN(top) || double.IsNaN(width) || double.IsNaN(height)
+            || width < 10 || height < 10)
         {
-            return first;
+            return null;
         }
 
-        return usableCandidates.FirstOrDefault(candidate => candidate.Width >= 36 && candidate.Height >= 18, first);
+        var rect = new Int32Rect(
+            (int)Math.Round(left),
+            (int)Math.Round(top),
+            (int)Math.Round(width),
+            (int)Math.Round(height));
+
+        if (rect.Width >= virtualScreenBounds.Width - 4
+            || rect.Height >= virtualScreenBounds.Height - 4)
+        {
+            return null;
+        }
+
+        return ClipToBounds(rect, virtualScreenBounds);
     }
 
     public static Int32Rect? NormalizeCandidateRect(

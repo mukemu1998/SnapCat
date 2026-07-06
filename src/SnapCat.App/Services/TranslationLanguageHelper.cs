@@ -9,6 +9,23 @@ public static class TranslationLanguageHelper
     public const string English = "en";
     public const string Japanese = "ja";
     public const string Korean = "ko";
+    public const string Vietnamese = "vi";
+    public const string French = "fr";
+    public const string German = "de";
+    public const string Russian = "ru";
+
+    public static IReadOnlyList<TranslationLanguageDefinition> SupportedLanguages { get; } =
+    [
+        new(AutoLanguage, "自动"),
+        new(ChineseSimplified, "简体中文"),
+        new(English, "英语"),
+        new(Japanese, "日语"),
+        new(Korean, "韩语"),
+        new(Vietnamese, "越南语"),
+        new(French, "法语"),
+        new(German, "德语"),
+        new(Russian, "俄语")
+    ];
 
     public static AppSettings BuildSettingsForTranslation(
         AppSettings baseSettings,
@@ -53,6 +70,44 @@ public static class TranslationLanguageHelper
         return text.Any(static character => character is >= '\u3400' and <= '\u9fff' or >= '\uf900' and <= '\ufaff');
     }
 
+    public static string GetLanguageLabel(string languageCode)
+    {
+        return SupportedLanguages.FirstOrDefault(language =>
+            string.Equals(language.Code, languageCode, StringComparison.OrdinalIgnoreCase))?.Label ?? "自动";
+    }
+
+    public static string ResolveSpeechLanguage(string selectedLanguageCode, string? text, string fallbackLanguageCode = English)
+    {
+        if (!string.IsNullOrWhiteSpace(selectedLanguageCode)
+            && !string.Equals(selectedLanguageCode, AutoLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            return selectedLanguageCode.Trim();
+        }
+
+        var content = text ?? string.Empty;
+        if (LooksLikeChinese(content))
+        {
+            return ChineseSimplified;
+        }
+
+        if (content.Any(static character => character is >= '\u3040' and <= '\u30ff'))
+        {
+            return Japanese;
+        }
+
+        if (content.Any(static character => character is >= '\uac00' and <= '\ud7af'))
+        {
+            return Korean;
+        }
+
+        if (content.Any(static character => character is >= '\u0400' and <= '\u04ff'))
+        {
+            return Russian;
+        }
+
+        return string.IsNullOrWhiteSpace(fallbackLanguageCode) ? English : fallbackLanguageCode;
+    }
+
     public static AppSettings CloneSettings(AppSettings settings) => new()
     {
         BaseUrl = settings.BaseUrl,
@@ -89,3 +144,5 @@ public static class TranslationLanguageHelper
         LaunchAtStartup = settings.LaunchAtStartup
     };
 }
+
+public sealed record TranslationLanguageDefinition(string Code, string Label);

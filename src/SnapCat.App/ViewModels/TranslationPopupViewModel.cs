@@ -9,14 +9,7 @@ namespace SnapCat.App.ViewModels;
 public sealed class TranslationPopupViewModel : ObservableObject
 {
     private readonly ITranslationService _translationService;
-    private readonly IReadOnlyList<TranslationLanguageOption> _languages =
-    [
-        new(TranslationLanguageHelper.AutoLanguage, "自动"),
-        new(TranslationLanguageHelper.ChineseSimplified, "简体中文"),
-        new(TranslationLanguageHelper.English, "英语"),
-        new(TranslationLanguageHelper.Japanese, "日语"),
-        new(TranslationLanguageHelper.Korean, "韩语")
-    ];
+    private readonly TranslationSpeechService _speechService;
 
     private string _title = "翻译结果";
     private string _status = string.Empty;
@@ -29,21 +22,28 @@ public sealed class TranslationPopupViewModel : ObservableObject
     private bool _canRecapture;
     private Func<Task>? _repeatCaptureAction;
 
-    public TranslationPopupViewModel(ITranslationService translationService, AppSettings settings)
+    public TranslationPopupViewModel(
+        ITranslationService translationService,
+        TranslationSpeechService speechService,
+        AppSettings settings)
     {
         _translationService = translationService;
+        _speechService = speechService;
         Settings = settings;
         TranslateCommand = new AsyncRelayCommand(TranslateAsync, CanTranslate);
         RecaptureCommand = new AsyncRelayCommand(RecaptureAsync, () => CanRecapture && !IsBusy);
         CopySourceCommand = new RelayCommand(CopySource, () => !string.IsNullOrEmpty(SourceText));
         CopyTranslatedCommand = new RelayCommand(CopyTranslated, () => !string.IsNullOrEmpty(TranslatedText));
+        SpeakSourceCommand = new RelayCommand(SpeakSource, () => !string.IsNullOrWhiteSpace(SourceText));
+        SpeakTranslatedCommand = new RelayCommand(SpeakTranslated, () => !string.IsNullOrWhiteSpace(TranslatedText));
+        ClearSourceCommand = new RelayCommand(ClearSource, () => !string.IsNullOrWhiteSpace(SourceText));
     }
 
     public AppSettings Settings { get; private set; }
 
     public string SelectedProviderLabel { get; set; } = "本地翻译";
 
-    public IReadOnlyList<TranslationLanguageOption> Languages => _languages;
+    public IReadOnlyList<TranslationLanguageDefinition> Languages => TranslationLanguageHelper.SupportedLanguages;
 
     public IReadOnlyList<ApiTranslationProfile> ApiProfiles => Settings.ApiProfiles;
 
@@ -71,6 +71,12 @@ public sealed class TranslationPopupViewModel : ObservableObject
 
     public RelayCommand CopyTranslatedCommand { get; }
 
+    public RelayCommand SpeakSourceCommand { get; }
+
+    public RelayCommand SpeakTranslatedCommand { get; }
+
+    public RelayCommand ClearSourceCommand { get; }
+
     public string Title
     {
         get => _title;
@@ -93,6 +99,8 @@ public sealed class TranslationPopupViewModel : ObservableObject
                 UpdateDirectionHint();
                 TranslateCommand.RaiseCanExecuteChanged();
                 CopySourceCommand.RaiseCanExecuteChanged();
+                SpeakSourceCommand.RaiseCanExecuteChanged();
+                ClearSourceCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -105,6 +113,7 @@ public sealed class TranslationPopupViewModel : ObservableObject
             if (SetProperty(ref _translatedText, value))
             {
                 CopyTranslatedCommand.RaiseCanExecuteChanged();
+                SpeakTranslatedCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -295,12 +304,40 @@ public sealed class TranslationPopupViewModel : ObservableObject
         Status = "译文已复制。";
     }
 
+    private void SpeakSource()
+    {
+        var language = TranslationLanguageHelper.ResolveSpeechLanguage(
+            SourceLanguageCode,
+            SourceText,
+            TranslationLanguageHelper.English);
+        Status = _speechService.Speak(SourceText, language);
+    }
+
+    private void SpeakTranslated()
+    {
+        var targetLanguage = string.Equals(TargetLanguageCode, TranslationLanguageHelper.AutoLanguage, StringComparison.OrdinalIgnoreCase)
+            ? GetAutoTargetLanguage(SourceText?.Trim() ?? string.Empty)
+            : TargetLanguageCode;
+        var language = TranslationLanguageHelper.ResolveSpeechLanguage(
+            targetLanguage,
+            TranslatedText,
+            targetLanguage);
+        Status = _speechService.Speak(TranslatedText, language);
+    }
+
+    private void ClearSource()
+    {
+        SourceText = string.Empty;
+        TranslatedText = string.Empty;
+        Status = "已清空原文。";
+    }
+
     private void UpdateDirectionHint()
     {
-        var sourceLabel = GetLanguageLabel(SourceLanguageCode);
+        var sourceLabel = TranslationLanguageHelper.GetLanguageLabel(SourceLanguageCode);
         var targetLabel = string.Equals(TargetLanguageCode, TranslationLanguageHelper.AutoLanguage, StringComparison.OrdinalIgnoreCase)
-            ? GetLanguageLabel(GetAutoTargetLanguage(SourceText?.Trim() ?? string.Empty))
-            : GetLanguageLabel(TargetLanguageCode);
+            ? TranslationLanguageHelper.GetLanguageLabel(GetAutoTargetLanguage(SourceText?.Trim() ?? string.Empty))
+            : TranslationLanguageHelper.GetLanguageLabel(TargetLanguageCode);
 
         DirectionHint = $"{sourceLabel} -> {targetLabel}";
     }
@@ -321,21 +358,7 @@ public sealed class TranslationPopupViewModel : ObservableObject
     private string GetSelectedTargetLanguageLabel()
     {
         return string.Equals(TargetLanguageCode, TranslationLanguageHelper.AutoLanguage, StringComparison.OrdinalIgnoreCase)
-            ? GetLanguageLabel(GetAutoTargetLanguage(SourceText?.Trim() ?? string.Empty))
-            : GetLanguageLabel(TargetLanguageCode);
-    }
-
-    private static string GetLanguageLabel(string languageCode)
-    {
-        return languageCode switch
-        {
-            TranslationLanguageHelper.ChineseSimplified => "简体中文",
-            TranslationLanguageHelper.English => "英语",
-            TranslationLanguageHelper.Japanese => "日语",
-            TranslationLanguageHelper.Korean => "韩语",
-            _ => "自动"
-        };
+            ? TranslationLanguageHelper.GetLanguageLabel(GetAutoTargetLanguage(SourceText?.Trim() ?? string.Empty))
+            : TranslationLanguageHelper.GetLanguageLabel(TargetLanguageCode);
     }
 }
-
-public sealed record TranslationLanguageOption(string Code, string Label);

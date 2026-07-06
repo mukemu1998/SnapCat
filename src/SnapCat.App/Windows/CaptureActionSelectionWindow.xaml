@@ -8,6 +8,8 @@
         AllowsTransparency="True"
         Background="Transparent"
         Topmost="True"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
         KeyDown="Window_OnKeyDown">
     <Window.Resources>
         <Style TargetType="{x:Type controls:Thumb}">
@@ -228,7 +230,8 @@
                 BorderThickness="1"
                 CornerRadius="14"
                 Padding="6"
-                SnapsToDevicePixels="True">
+                SnapsToDevicePixels="True"
+                UseLayoutRounding="True">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="18"
                                   ShadowDepth="6"

@@ -9,6 +9,7 @@ using DrawingPoint = System.Drawing.Point;
 using DrawingRectangle = System.Drawing.Rectangle;
 using DrawingSize = System.Drawing.Size;
 using Point = System.Windows.Point;
+using WpfMouse = System.Windows.Input.Mouse;
 
 namespace SnapCat.App.Windows;
 
@@ -26,14 +27,26 @@ public partial class SelectionOverlayWindow
             0,
             new DrawingSize(_virtualScreenBounds.Width, _virtualScreenBounds.Height),
             CopyPixelOperation.SourceCopy);
+        _screenBitmapSource = ConvertBitmapToBitmapSource(_screenBitmap);
     }
 
     private void UpdateColorInspector(Point localPoint)
     {
-        if (_screenBitmap is null)
+        PositionColorInspector(localPoint);
+        ColorInspectorPanel.Visibility = Visibility.Visible;
+
+        if (_screenBitmap is null || _screenBitmapSource is null)
         {
             return;
         }
+
+        var now = DateTime.UtcNow;
+        if (now - _lastColorInspectorContentUpdateUtc < ColorInspectorContentRefreshInterval)
+        {
+            return;
+        }
+
+        _lastColorInspectorContentUpdateUtc = now;
 
         var devicePoint = _toDevice.Transform(localPoint);
         var screenX = _virtualScreenBounds.Left + (int)Math.Round(devicePoint.X);
@@ -46,24 +59,20 @@ public partial class SelectionOverlayWindow
 
         UpdateMagnifierImage(bitmapX, bitmapY);
         UpdateColorText();
-        PositionColorInspector(localPoint);
-        ColorInspectorPanel.Visibility = Visibility.Visible;
     }
 
     private void UpdateMagnifierImage(int bitmapX, int bitmapY)
     {
-        if (_screenBitmap is null)
+        if (_screenBitmap is null || _screenBitmapSource is null)
         {
             return;
         }
 
         var sourceLeft = Math.Clamp(bitmapX - (MagnifierSourceSize / 2), 0, Math.Max(0, _screenBitmap.Width - MagnifierSourceSize));
         var sourceTop = Math.Clamp(bitmapY - (MagnifierSourceSize / 2), 0, Math.Max(0, _screenBitmap.Height - MagnifierSourceSize));
-        using var source = _screenBitmap.Clone(
-            new DrawingRectangle(sourceLeft, sourceTop, MagnifierSourceSize, MagnifierSourceSize),
-            _screenBitmap.PixelFormat);
-
-        MagnifierImage.Source = ConvertBitmapToBitmapSource(source);
+        MagnifierImage.Source = new CroppedBitmap(
+            _screenBitmapSource,
+            new Int32Rect(sourceLeft, sourceTop, MagnifierSourceSize, MagnifierSourceSize));
     }
 
     private void UpdateColorText()
@@ -87,8 +96,8 @@ public partial class SelectionOverlayWindow
             InspectorOffset,
             8);
 
-        Canvas.SetLeft(ColorInspectorPanel, panelPosition.X);
-        Canvas.SetTop(ColorInspectorPanel, panelPosition.Y);
+        ColorInspectorTransform.X = panelPosition.X;
+        ColorInspectorTransform.Y = panelPosition.Y;
     }
 
     private static BitmapSource ConvertBitmapToBitmapSource(DrawingBitmap bitmap)
@@ -112,7 +121,11 @@ public partial class SelectionOverlayWindow
 
     protected override void OnClosed(EventArgs e)
     {
+        CompositionTarget.Rendering -= CompositionTarget_OnRendering;
+        StopAutomationPreviewCacheBuild();
+        WpfMouse.OverrideCursor = null;
         _screenBitmap?.Dispose();
+        _screenBitmapSource = null;
         base.OnClosed(e);
     }
 }

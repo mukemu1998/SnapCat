@@ -14,9 +14,11 @@ namespace SnapCat.App;
 
 public partial class App : WpfApplication
 {
+    private const string SingleInstanceMutexName = @"Local\SnapCat-HaG-Cat-SingleInstance";
     private static readonly TimeSpan StartupSettingsLoadTimeout = TimeSpan.FromSeconds(5);
     private readonly string _appDataDirectory;
     private readonly UserDataLocationService _userDataLocationService;
+    private Mutex? _singleInstanceMutex;
     private bool _pinnedWindowsPreparedForExit;
     private bool _runtimeServicesInitialized;
 
@@ -53,6 +55,7 @@ public partial class App : WpfApplication
         TranslationService = new SmartTranslationService(
             openAiCompatibleTranslationService,
             lightweightWebTranslationService);
+        TranslationSpeechService = new TranslationSpeechService();
         ScreenCaptureService = new ScreenCaptureService();
         CapturedImageFileService = new CapturedImageFileService();
         GlobalHotkeyService = new GlobalHotkeyService();
@@ -86,6 +89,8 @@ public partial class App : WpfApplication
 
     public ITranslationService TranslationService { get; private set; } = null!;
 
+    public TranslationSpeechService TranslationSpeechService { get; private set; } = null!;
+
     public ScreenCaptureService ScreenCaptureService { get; private set; } = null!;
 
     public CapturedImageFileService CapturedImageFileService { get; private set; } = null!;
@@ -110,6 +115,15 @@ public partial class App : WpfApplication
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out var createdNew);
+        if (!createdNew)
+        {
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+            Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
 
         var startInTray = e.Args.Any(static arg => string.Equals(arg, "--tray", StringComparison.OrdinalIgnoreCase));
@@ -188,6 +202,8 @@ public partial class App : WpfApplication
             TrayIconService.Dispose();
         }
 
+        _singleInstanceMutex?.ReleaseMutex();
+        _singleInstanceMutex?.Dispose();
         base.OnExit(e);
     }
 

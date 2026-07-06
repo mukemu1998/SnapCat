@@ -20,7 +20,7 @@ internal static class SettingsSummaryFormatter
             $"模型：{FormatSummaryValue(selectedProfile?.Model ?? string.Empty)}\n" +
             $"上下文翻译：{(selectedProfile?.EnableContext == true ? "已开启" : "未开启")}\n" +
             $"翻译来源：{FormatTranslationProvider(settings.TranslationProviderPreference)}\n" +
-            $"目标语言：{FormatSummaryValue(settings.TargetLanguage)}\n" +
+            $"目标语言：{FormatTargetLanguage(settings.TargetLanguage)}\n" +
             $"API Key：{maskedKey}\n" +
             $"OCR：{FormatOcrSummary(settings)}\n" +
             $"翻译：{FormatTranslationSummary(settings)}\n" +
@@ -103,6 +103,13 @@ internal static class SettingsSummaryFormatter
             TranslationProviderPreference.Api => "API 翻译",
             _ => "本地轻量翻译"
         };
+    }
+
+    private static string FormatTargetLanguage(string value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "未填写"
+            : TranslationLanguageHelper.GetLanguageLabel(value);
     }
 
     private static string FormatRetentionDays(int days)

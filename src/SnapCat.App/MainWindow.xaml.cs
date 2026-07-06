@@ -60,6 +60,7 @@ public partial class MainWindow : Window
     private bool _isApplyingSettings;
     private bool _hasLoadedSettings;
     private bool _hasUnsavedSettings;
+    private bool _isCaptureWorkflowActive;
     private readonly List<string> _operationLogs = [];
     private bool _isApplyingApiProfileState;
 

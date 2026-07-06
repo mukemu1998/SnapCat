@@ -34,6 +34,8 @@ internal static class SelectionColorInspectorService
             top = localPoint.Y - panelHeight - offset;
         }
 
-        return new WpfPoint(Math.Max(margin, left), Math.Max(margin, top));
+        return new WpfPoint(
+            Math.Clamp(left, margin, Math.Max(margin, viewportWidth - panelWidth - margin)),
+            Math.Clamp(top, margin, Math.Max(margin, viewportHeight - panelHeight - margin)));
     }
 }

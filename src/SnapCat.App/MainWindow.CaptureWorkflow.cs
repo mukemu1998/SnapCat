@@ -12,6 +12,13 @@ public partial class MainWindow
         bool returnToMainWindow,
         bool hideMainWindowForCapture = true)
     {
+        if (_isCaptureWorkflowActive)
+        {
+            StatusTextBlock.Text = "自由框选已经在进行中。";
+            return;
+        }
+
+        _isCaptureWorkflowActive = true;
         CaptureButton.IsEnabled = false;
         StatusTextBlock.Text = "请在屏幕上进行自由框选。";
 
@@ -137,6 +144,7 @@ public partial class MainWindow
             }
 
             CaptureButton.IsEnabled = true;
+            _isCaptureWorkflowActive = false;
         }
     }
 

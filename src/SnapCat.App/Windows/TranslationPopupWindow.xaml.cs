@@ -45,9 +45,11 @@ public partial class TranslationPopupWindow : Window
     {
         InitializeComponent();
         _app = (App)WpfApplication.Current;
-        _settings = TranslationLanguageHelper.CloneSettings(settings);
-        _settings.NormalizeApiProfiles();
-        _viewModel = new TranslationPopupViewModel(_app.TranslationService, _settings);
+        _settings = TranslationPopupSessionSettingsService.CreateInitialSettings(settings);
+        _viewModel = new TranslationPopupViewModel(
+            _app.TranslationService,
+            _app.TranslationSpeechService,
+            _settings);
         DataContext = _viewModel;
         _captureRegion = captureRegion;
         _ownerWindow = ownerWindow;
@@ -68,8 +70,8 @@ public partial class TranslationPopupWindow : Window
         Func<Task>? repeatCaptureAction,
         bool preserveCurrentPosition)
     {
-        _settings = TranslationLanguageHelper.CloneSettings(settings);
-        _settings.NormalizeApiProfiles();
+        _settings = TranslationPopupSessionSettingsService.CreateReuseSettings(settings, _settings);
+
         _captureRegion = captureRegion;
         _repeatCaptureAction = repeatCaptureAction;
         _hasAnchoredPosition = preserveCurrentPosition;
@@ -90,6 +92,11 @@ public partial class TranslationPopupWindow : Window
                 PositionNearAnchor();
             }
         }
+    }
+
+    public AppSettings CreateCurrentSettingsSnapshot()
+    {
+        return TranslationPopupSessionSettingsService.CreateExecutionSnapshot(_settings);
     }
 
     public void SetBusyState(string status)

@@ -89,9 +89,9 @@ public partial class CaptureActionSelectionWindow : Window
             selectionTopLeft.Y - Top,
             selectionBottomRight.X - selectionTopLeft.X,
             selectionBottomRight.Y - selectionTopLeft.Y);
+        _selectionRect = SnapLocalRect(_selectionRect);
 
         SelectionOutline.CacheMode = new BitmapCache();
-        ToolbarHost.CacheMode = new BitmapCache();
         TopLeftThumb.CacheMode = new BitmapCache();
         TopThumb.CacheMode = new BitmapCache();
         TopRightThumb.CacheMode = new BitmapCache();
@@ -159,7 +159,7 @@ public partial class CaptureActionSelectionWindow : Window
         var localBottom = bottomRightDip.Y - Top;
 
         ConstrainSelectionToAllowedBounds(ref localLeft, ref localTop, ref localRight, ref localBottom);
-        _selectionRect = new WpfRect(localLeft, localTop, localRight - localLeft, localBottom - localTop);
+        _selectionRect = SnapLocalRect(new WpfRect(localLeft, localTop, localRight - localLeft, localBottom - localTop));
         UpdateSelectionChrome();
     }
 

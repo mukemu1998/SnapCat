@@ -146,7 +146,8 @@ public sealed class CaptureActionService
             ocrResult.Success ? ocrResult.Text : ocrResult.ErrorMessage,
             ocrResult.Success ? "正在翻译..." : $"OCR 识别失败：{ocrResult.ErrorMessage}");
 
-        var effectiveSettings = TranslationLanguageHelper.BuildSettingsForTranslation(settings, ocrResult.Text);
+        var popupSettings = popupWindow.CreateCurrentSettingsSnapshot();
+        var effectiveSettings = TranslationLanguageHelper.BuildSettingsForTranslation(popupSettings, ocrResult.Text);
         var translationResult = ocrResult.Success
             ? await _translationService.TranslateAsync(ocrResult.Text, effectiveSettings)
             : TranslationResult.FromError("OCR 未成功，已跳过翻译。");
