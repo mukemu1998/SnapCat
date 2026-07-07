@@ -100,7 +100,7 @@ SnapCat/
 
 ## 开发规范
 
-后续新增功能和重构统一遵循 [SnapCat 架构规范](docs/architecture-guidelines.zh-CN.md)，重点保持窗口层轻量、业务逻辑服务化、用户配置不写入源码、打包产物只保留在 `artifacts/`。
+后续新增功能和重构统一遵循 [SnapCat 架构规范](docs/architecture-guidelines.zh-CN.md)，重点保持窗口层轻量、业务逻辑服务化、用户配置不写入源码。
 
 ## 当前版本
 
