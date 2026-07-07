@@ -56,6 +56,7 @@ public partial class MainWindow
             TesseractLanguage = GetSelectedTesseractLanguage(),
             OcrEngine = GetSelectedOcrEngine(),
             HotkeyCaptureAndPin = HotkeyCaptureAndPinTextBox.Text.Trim(),
+            HotkeyCaptureAndOcr = HotkeyCaptureAndOcrTextBox.Text.Trim(),
             HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
             HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitTextBox.Text.Trim(),
             HotkeyCaptureAndSave = HotkeyCaptureAndSaveTextBox.Text.Trim(),
@@ -69,6 +70,7 @@ public partial class MainWindow
             HotkeyShowPinnedGroupThree = HotkeyShowPinnedGroupThreeTextBox.Text.Trim(),
             HotkeyShowMainWindow = HotkeyShowMainWindowTextBox.Text.Trim(),
             HotkeyExitApplication = HotkeyExitApplicationTextBox.Text.Trim(),
+            CaptureStartupMode = GetSelectedCaptureStartupMode(),
             TrayLeftClickAction = GetSelectedTrayLeftClickAction(),
             ThemeId = GetSelectedThemeId(),
             TempFileRetentionDays = SettingsValueParser.ParseRetentionDays(TempRetentionDaysTextBox.Text, defaults.TempFileRetentionDays),
@@ -93,6 +95,7 @@ public partial class MainWindow
         TesseractPathTextBox.Text = settings.TesseractExecutablePath;
         SetTesseractLanguageSelection(settings.TesseractLanguage);
         HotkeyCaptureAndPinTextBox.Text = settings.HotkeyCaptureAndPin;
+        HotkeyCaptureAndOcrTextBox.Text = settings.HotkeyCaptureAndOcr;
         HotkeyCaptureAndTranslateTextBox.Text = settings.HotkeyCaptureAndTranslate;
         HotkeyCaptureAndWaitTextBox.Text = settings.HotkeyCaptureAndWaitForAction;
         HotkeyCaptureAndSaveTextBox.Text = settings.HotkeyCaptureAndSave;
@@ -110,6 +113,7 @@ public partial class MainWindow
         HistoryRetentionDaysTextBox.Text = settings.HistoryRetentionDays.ToString();
         LaunchAtStartupCheckBox.IsChecked = settings.LaunchAtStartup;
         SetOcrEngineSelection(settings.OcrEngine);
+        SetCaptureStartupModeSelection(settings.CaptureStartupMode);
         SetTrayLeftClickSelection(settings.TrayLeftClickAction);
         SetThemeSelection(settings.ThemeId);
         SetTranslationProviderSelection(string.IsNullOrWhiteSpace(settings.TranslationProviderPreference)
@@ -190,7 +194,7 @@ public partial class MainWindow
 
     private void SetOcrEngineSelection(string value)
     {
-        if (!ComboBoxSelectionHelper.SelectByTag(OcrEngineComboBox, value, StringComparison.Ordinal))
+        if (!ComboBoxSelectionHelper.SelectByTag(OcrEngineComboBox, NormalizeOcrEngine(value), StringComparison.Ordinal))
         {
             OcrEngineComboBox.SelectedIndex = 0;
         }
@@ -198,14 +202,30 @@ public partial class MainWindow
 
     private string GetSelectedOcrEngine()
     {
-        return ComboBoxSelectionHelper.GetSelectedTag(OcrEngineComboBox, "windows-media-ocr");
+        return NormalizeOcrEngine(ComboBoxSelectionHelper.GetSelectedTag(OcrEngineComboBox, "windows-text-extractor"));
+    }
+
+    private static string NormalizeOcrEngine(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "windows-text-extractor";
+        }
+
+        return value switch
+        {
+            "windows-snipping-clipboard" => "windows-text-extractor",
+            "enhanced-tesseract" => "windows-text-extractor",
+            "tesseract-cli" => "windows-text-extractor",
+            _ => value
+        };
     }
 
     private void SetTrayLeftClickSelection(string value)
     {
         if (!ComboBoxSelectionHelper.SelectByTag(TrayLeftClickActionComboBox, value, StringComparison.Ordinal))
         {
-            TrayLeftClickActionComboBox.SelectedIndex = 2;
+            TrayLeftClickActionComboBox.SelectedIndex = 3;
         }
     }
 
@@ -214,6 +234,24 @@ public partial class MainWindow
         return ComboBoxSelectionHelper.GetSelectedTag(
             TrayLeftClickActionComboBox,
             nameof(CaptureWorkflowKind.CaptureAndWaitForAction));
+    }
+
+    private void SetCaptureStartupModeSelection(string value)
+    {
+        if (!ComboBoxSelectionHelper.SelectByTag(
+                CaptureStartupModeComboBox,
+                CaptureStartupMode.Normalize(value),
+                StringComparison.Ordinal))
+        {
+            CaptureStartupModeComboBox.SelectedIndex = 0;
+        }
+    }
+
+    private string GetSelectedCaptureStartupMode()
+    {
+        return CaptureStartupMode.Normalize(ComboBoxSelectionHelper.GetSelectedTag(
+            CaptureStartupModeComboBox,
+            CaptureStartupMode.Snapshot));
     }
 
     private void SetThemeSelection(string value)

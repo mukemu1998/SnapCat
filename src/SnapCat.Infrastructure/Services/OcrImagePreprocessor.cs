@@ -10,58 +10,119 @@ internal static class OcrImagePreprocessor
     public static IReadOnlyList<OcrImageVariant> CreateVariants(string imagePath, string workingDirectory)
     {
         using var original = new Bitmap(imagePath);
-        using var padded = AddPadding(original, CalculatePadding(original), Color.White);
+        var sourceWidth = original.Width;
+        var sourceHeight = original.Height;
+        var padding = CalculatePadding(original);
+        using var padded = AddPadding(original, padding, Color.White);
         using var scaled2x = ResizeBitmap(padded, 2.0d);
         using var scaled3x = ResizeBitmap(padded, 3.0d);
+        var adaptiveScale = CalculateAdaptiveScale(padded);
         using var grayscale2x = ConvertToNormalizedGrayscale(scaled2x);
         using var grayscale3x = ConvertToNormalizedGrayscale(scaled3x);
         using var contrast2x = ApplyAutoContrast(grayscale2x, clipPercentage: 1.8d);
         using var sharpened2x = ApplySharpen(contrast2x);
         using var contrast3x = ApplyAutoContrast(grayscale3x, clipPercentage: 1.4d);
+        using var sharpened3x = ApplySharpen(contrast3x);
+        using var invertedContrast2x = InvertGrayscale(contrast2x);
+        using var invertedContrast3x = InvertGrayscale(contrast3x);
 
         var variants = new List<OcrImageVariant>();
         var paddedOriginalPath = Path.Combine(workingDirectory, "padded-original.png");
         padded.Save(paddedOriginalPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("留白原图", paddedOriginalPath, [6, 11]));
+        variants.Add(CreateVariant("留白原图", paddedOriginalPath, [6, 11], 1.0d, padding, sourceWidth, sourceHeight));
 
         var grayscalePath = Path.Combine(workingDirectory, "grayscale-2x.png");
         grayscale2x.Save(grayscalePath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("灰度增强 2x", grayscalePath, [6, 11, 13]));
+        variants.Add(CreateVariant("灰度增强 2x", grayscalePath, [6, 11, 13], 2.0d, padding, sourceWidth, sourceHeight));
 
         var contrastPath = Path.Combine(workingDirectory, "contrast-2x.png");
         contrast2x.Save(contrastPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("强对比灰度 2x", contrastPath, [6, 11, 13]));
+        variants.Add(CreateVariant("强对比灰度 2x", contrastPath, [6, 11, 13], 2.0d, padding, sourceWidth, sourceHeight));
 
         var sharpenedPath = Path.Combine(workingDirectory, "sharpened-2x.png");
         sharpened2x.Save(sharpenedPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("锐化增强 2x", sharpenedPath, [6, 11, 13]));
+        variants.Add(CreateVariant("锐化增强 2x", sharpenedPath, [6, 11, 13], 2.0d, padding, sourceWidth, sourceHeight));
 
         var contrast3xPath = Path.Combine(workingDirectory, "contrast-3x.png");
         contrast3x.Save(contrast3xPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("强对比灰度 3x", contrast3xPath, [6, 11, 13]));
+        variants.Add(CreateVariant("强对比灰度 3x", contrast3xPath, [6, 11, 13], 3.0d, padding, sourceWidth, sourceHeight));
+
+        var sharpened3xPath = Path.Combine(workingDirectory, "sharpened-3x.png");
+        sharpened3x.Save(sharpened3xPath, ImageFormat.Png);
+        variants.Add(CreateVariant("锐化增强 3x", sharpened3xPath, [6, 11, 13], 3.0d, padding, sourceWidth, sourceHeight));
+
+        if (adaptiveScale > 3.0d)
+        {
+            using var adaptiveScaled = ResizeBitmap(padded, adaptiveScale);
+            using var adaptiveGrayscale = ConvertToNormalizedGrayscale(adaptiveScaled);
+            using var adaptiveContrast = ApplyAutoContrast(adaptiveGrayscale, clipPercentage: 1.2d);
+            using var adaptiveSharpened = ApplySharpen(adaptiveContrast);
+            var adaptivePath = Path.Combine(workingDirectory, "adaptive-small-text.png");
+            adaptiveSharpened.Save(adaptivePath, ImageFormat.Png);
+            variants.Add(CreateVariant($"小字增强 {adaptiveScale:0.#}x", adaptivePath, [6, 11, 13], adaptiveScale, padding, sourceWidth, sourceHeight));
+        }
+
+        var invertedContrast2xPath = Path.Combine(workingDirectory, "inverted-contrast-2x.png");
+        invertedContrast2x.Save(invertedContrast2xPath, ImageFormat.Png);
+        variants.Add(CreateVariant("反色增强 2x", invertedContrast2xPath, [6, 11, 13], 2.0d, padding, sourceWidth, sourceHeight));
+
+        var invertedContrast3xPath = Path.Combine(workingDirectory, "inverted-contrast-3x.png");
+        invertedContrast3x.Save(invertedContrast3xPath, ImageFormat.Png);
+        variants.Add(CreateVariant("反色增强 3x", invertedContrast3xPath, [6, 11, 13], 3.0d, padding, sourceWidth, sourceHeight));
 
         using var binary = ApplyOtsuThreshold(sharpened2x, invert: false);
         var binaryPath = Path.Combine(workingDirectory, "binary.png");
         binary.Save(binaryPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("黑字白底", binaryPath, [6, 11]));
+        variants.Add(CreateVariant("黑字白底", binaryPath, [6, 11], 2.0d, padding, sourceWidth, sourceHeight));
 
         using var thickenedBinary = DilateBinary(binary, radius: 1);
         var thickenedBinaryPath = Path.Combine(workingDirectory, "binary-thickened.png");
         thickenedBinary.Save(thickenedBinaryPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("细字加粗", thickenedBinaryPath, [6, 11]));
+        variants.Add(CreateVariant("细字加粗", thickenedBinaryPath, [6, 11], 2.0d, padding, sourceWidth, sourceHeight));
 
         using var invertedBinary = ApplyOtsuThreshold(sharpened2x, invert: true);
         var invertedBinaryPath = Path.Combine(workingDirectory, "binary-inverted.png");
         invertedBinary.Save(invertedBinaryPath, ImageFormat.Png);
-        variants.Add(new OcrImageVariant("白字黑底", invertedBinaryPath, [6, 11]));
+        variants.Add(CreateVariant("白字黑底", invertedBinaryPath, [6, 11], 2.0d, padding, sourceWidth, sourceHeight));
 
         return variants;
+    }
+
+    private static OcrImageVariant CreateVariant(
+        string label,
+        string imagePath,
+        IReadOnlyList<int> pageSegmentationModes,
+        double scale,
+        int padding,
+        int sourceWidth,
+        int sourceHeight)
+    {
+        return new OcrImageVariant(
+            label,
+            imagePath,
+            pageSegmentationModes,
+            scale,
+            padding,
+            sourceWidth,
+            sourceHeight);
     }
 
     private static int CalculatePadding(Bitmap source)
     {
         var baseline = Math.Min(source.Width, source.Height);
         return Math.Clamp(baseline / 18, 12, 48);
+    }
+
+    private static double CalculateAdaptiveScale(Bitmap source)
+    {
+        var baseline = Math.Min(source.Width, source.Height);
+        return baseline switch
+        {
+            <= 180 => 4.5d,
+            <= 320 => 4.0d,
+            <= 520 => 3.5d,
+            _ => 3.0d
+        };
     }
 
     private static Bitmap ResizeBitmap(Bitmap source, double scale)
@@ -305,6 +366,38 @@ internal static class OcrImagePreprocessor
         }
     }
 
+    private static Bitmap InvertGrayscale(Bitmap grayscale)
+    {
+        var result = new Bitmap(grayscale.Width, grayscale.Height, PixelFormat.Format32bppArgb);
+        using var graphics = Graphics.FromImage(result);
+        graphics.DrawImage(grayscale, 0, 0, grayscale.Width, grayscale.Height);
+
+        var rectangle = new Rectangle(0, 0, result.Width, result.Height);
+        var bitmapData = result.LockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+
+        try
+        {
+            var bytes = Math.Abs(bitmapData.Stride) * result.Height;
+            var buffer = new byte[bytes];
+            Marshal.Copy(bitmapData.Scan0, buffer, 0, bytes);
+
+            for (var index = 0; index < buffer.Length; index += 4)
+            {
+                var value = (byte)(255 - buffer[index]);
+                buffer[index] = value;
+                buffer[index + 1] = value;
+                buffer[index + 2] = value;
+            }
+
+            Marshal.Copy(buffer, 0, bitmapData.Scan0, bytes);
+            return result;
+        }
+        finally
+        {
+            result.UnlockBits(bitmapData);
+        }
+    }
+
     private static Bitmap DilateBinary(Bitmap binary, int radius)
     {
         var result = new Bitmap(binary.Width, binary.Height, PixelFormat.Format32bppArgb);
@@ -447,4 +540,8 @@ internal static class OcrImagePreprocessor
 internal sealed record OcrImageVariant(
     string Label,
     string ImagePath,
-    IReadOnlyList<int> PageSegmentationModes);
+    IReadOnlyList<int> PageSegmentationModes,
+    double Scale,
+    int Padding,
+    int SourceWidth,
+    int SourceHeight);

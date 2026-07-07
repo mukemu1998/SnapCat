@@ -1,9 +1,11 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using SnapCat.App.Services;
 using SnapCat.App.ViewModels;
@@ -25,6 +27,11 @@ public partial class TranslationPopupWindow : Window
     private const double PopupVerticalMargin = 24;
     private const double MinimumTranslatedTextBoxHeight = 100;
     private const double TranslatedTextBoxPaddingAllowance = 28;
+    private static readonly IntPtr HwndTopmost = new(-1);
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoActivate = 0x0010;
+    private const uint SwpShowWindow = 0x0040;
     private readonly App _app;
     private Int32Rect? _captureRegion;
     private readonly Window? _ownerWindow;
@@ -61,6 +68,7 @@ public partial class TranslationPopupWindow : Window
         ConfigureApiProfiles();
         SetTranslationProvider(_settings.TranslationProviderPreference);
         Loaded += TranslationPopupWindow_OnLoaded;
+        ApplyOcrTooltipText();
     }
 
     public void PrepareForReuse(
@@ -82,6 +90,7 @@ public partial class TranslationPopupWindow : Window
 
         ConfigureApiProfiles();
         SetTranslationProvider(_settings.TranslationProviderPreference);
+        ApplyOcrTooltipText();
 
         if (IsLoaded)
         {
@@ -99,9 +108,33 @@ public partial class TranslationPopupWindow : Window
         return TranslationPopupSessionSettingsService.CreateExecutionSnapshot(_settings);
     }
 
+    private void ApplyOcrTooltipText()
+    {
+        RecaptureButton.ToolTip = IsWindowsTextRecognitionEngine(_settings.OcrEngine)
+            ? "再次框选 OCR 识别并自动复制"
+            : "再次框选识别";
+    }
+
+    private static bool IsWindowsTextRecognitionEngine(string? value)
+    {
+        return string.Equals(value, "windows-text-extractor", StringComparison.Ordinal)
+            || string.Equals(value, "windows-snipping-clipboard", StringComparison.Ordinal);
+    }
+
     public void SetBusyState(string status)
     {
         _viewModel.SetBusyState(status);
+    }
+
+    public void ShowAboveSelectionOverlay()
+    {
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        ReassertTopmostWithoutActivation();
+        Dispatcher.BeginInvoke(ReassertTopmostWithoutActivation, DispatcherPriority.ContextIdle);
     }
 
     public void UpdateRecognizedSource(string sourceText, string status)
@@ -133,5 +166,35 @@ public partial class TranslationPopupWindow : Window
         PositionWindowIfNeeded();
         Activate();
     }
+
+    private void ReassertTopmostWithoutActivation()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero)
+        {
+            Topmost = false;
+            Topmost = true;
+            return;
+        }
+
+        SetWindowPos(
+            handle,
+            HwndTopmost,
+            0,
+            0,
+            0,
+            0,
+            SwpNoMove | SwpNoSize | SwpNoActivate | SwpShowWindow);
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int x,
+        int y,
+        int cx,
+        int cy,
+        uint uFlags);
 
 }

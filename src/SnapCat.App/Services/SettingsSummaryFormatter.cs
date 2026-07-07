@@ -26,9 +26,10 @@ internal static class SettingsSummaryFormatter
             $"翻译：{FormatTranslationSummary(settings)}\n" +
             $"开机自启：{(settings.LaunchAtStartup ? "已开启" : "未开启")}\n" +
             $"快捷键 1（固定到屏幕）：{FormatSummaryValue(settings.HotkeyCaptureAndPin)}\n" +
-            $"快捷键 2（自动翻译）：{FormatSummaryValue(settings.HotkeyCaptureAndTranslate)}\n" +
-            $"快捷键 3（等待操作）：{FormatSummaryValue(settings.HotkeyCaptureAndWaitForAction)}\n" +
-            $"快捷键 4（保存截图）：{FormatSummaryValue(settings.HotkeyCaptureAndSave)}\n" +
+            $"快捷键 2（OCR 识别）：{FormatSummaryValue(settings.HotkeyCaptureAndOcr)}\n" +
+            $"快捷键 3（自动翻译）：{FormatSummaryValue(settings.HotkeyCaptureAndTranslate)}\n" +
+            $"快捷键 4（等待操作）：{FormatSummaryValue(settings.HotkeyCaptureAndWaitForAction)}\n" +
+            $"快捷键 5（保存截图）：{FormatSummaryValue(settings.HotkeyCaptureAndSave)}\n" +
             $"贴图关闭键：{FormatSummaryValue(settings.PinnedCloseShortcut)}\n" +
             $"贴图隐藏键：{FormatSummaryValue(settings.PinnedHideShortcut)}\n" +
             $"打开主菜单：{FormatSummaryValue(settings.HotkeyShowMainWindow)}\n" +
@@ -36,6 +37,7 @@ internal static class SettingsSummaryFormatter
             $"临时文件保留：{FormatRetentionDays(settings.TempFileRetentionDays)}\n" +
             $"历史记录保留：{FormatRetentionDays(settings.HistoryRetentionDays)}\n" +
             $"托盘左键：{FormatTrayLeftClickAction(settings.TrayLeftClickAction)}\n" +
+            $"框选入口：{FormatCaptureStartupMode(settings.CaptureStartupMode)}\n" +
             $"用户配置目录：{userDataDirectory}";
     }
 
@@ -49,12 +51,20 @@ internal static class SettingsSummaryFormatter
         return CaptureWorkflowFormatter.ToDisplayName(value);
     }
 
+    public static string FormatCaptureStartupMode(string value)
+    {
+        return CaptureStartupMode.Normalize(value) == CaptureStartupMode.Live
+            ? "直接进入实时框选"
+            : "先截取当前屏幕临时画面";
+    }
+
     public static string FormatTrayLeftClickAction(string value)
     {
         return Enum.TryParse<CaptureWorkflowKind>(value, out var action)
             ? action switch
             {
                 CaptureWorkflowKind.CaptureAndPin => "自由框选并固定到屏幕",
+                CaptureWorkflowKind.CaptureAndOcr => "自由框选后 OCR 识别",
                 CaptureWorkflowKind.CaptureAndTranslate => "自由框选后自动翻译",
                 CaptureWorkflowKind.CaptureAndSave => "自由框选并保存到默认位置",
                 _ => "自由框选后等待操作选择"
@@ -66,9 +76,12 @@ internal static class SettingsSummaryFormatter
     {
         return value switch
         {
-            "windows-media-ocr" => "系统内置 OCR",
-            "enhanced-tesseract" => "增强本地 OCR",
-            "tesseract-cli" => "兼容模式 OCR",
+            "windows-text-extractor" => "Windows 高质量文本提取",
+            "windows-snipping-clipboard" => "Windows 高质量文本提取",
+            "enhanced-windows-ocr" => "本地轻量增强版",
+            "windows-media-ocr" => "本地轻量兼容版",
+            "enhanced-tesseract" => "Windows 高质量文本提取",
+            "tesseract-cli" => "Windows 高质量文本提取",
             _ => value
         };
     }
@@ -77,7 +90,11 @@ internal static class SettingsSummaryFormatter
     {
         return settings.OcrEngine switch
         {
-            "windows-media-ocr" => $"系统内置 OCR（免安装，lang={FormatSummaryValue(settings.TesseractLanguage)})",
+            "windows-text-extractor" => "Windows 高质量文本提取（推荐）",
+            "windows-snipping-clipboard" => "Windows 高质量文本提取（推荐）",
+            "enhanced-windows-ocr" => $"本地轻量增强版（lang={FormatSummaryValue(settings.TesseractLanguage)})",
+            "windows-media-ocr" => $"本地轻量兼容版（免安装，lang={FormatSummaryValue(settings.TesseractLanguage)})",
+            "enhanced-tesseract" or "tesseract-cli" => "Windows 高质量文本提取（推荐）",
             _ => $"{FormatOcrEngine(settings.OcrEngine)} ({FormatSummaryValue(settings.TesseractExecutablePath)}, lang={FormatSummaryValue(settings.TesseractLanguage)})"
         };
     }

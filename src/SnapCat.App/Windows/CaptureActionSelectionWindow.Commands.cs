@@ -135,20 +135,20 @@ public partial class CaptureActionSelectionWindow
         if (sender is not FrameworkElement element || element.Tag is not string tag)
         {
             SelectedAction = CaptureActionKind.Cancel;
-            DialogResult = false;
+            CompleteActionSelection(false);
             return;
         }
 
         SelectedAction = Enum.Parse<CaptureActionKind>(tag);
         if (SelectedAction == CaptureActionKind.Cancel)
         {
-            DialogResult = false;
+            CompleteActionSelection(false);
             return;
         }
 
         SelectedRegion = BuildSelectedRegion();
         s_lastSelectionRegion = SelectedRegion;
-        DialogResult = true;
+        CompleteActionSelection(true);
     }
 
     private void ApplyPreviousBoundsButton_OnClick(object sender, RoutedEventArgs e)
@@ -179,7 +179,7 @@ public partial class CaptureActionSelectionWindow
         if (e.Key == System.Windows.Input.Key.Escape)
         {
             SelectedAction = CaptureActionKind.Cancel;
-            DialogResult = false;
+            CompleteActionSelection(false);
             return;
         }
 
@@ -280,5 +280,17 @@ public partial class CaptureActionSelectionWindow
             AspectRatioTextBox.Text,
             fallbackRect.Width,
             fallbackRect.Height);
+    }
+
+    private void CompleteActionSelection(bool isConfirmed)
+    {
+        if (_actionCompletionSource is null)
+        {
+            DialogResult = isConfirmed;
+            return;
+        }
+
+        _actionCompletionSource.TrySetResult(isConfirmed);
+        Close();
     }
 }

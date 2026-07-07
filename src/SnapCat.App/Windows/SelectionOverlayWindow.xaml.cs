@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Forms;
@@ -31,11 +32,13 @@ public partial class SelectionOverlayWindow : Window
     private const int InspectorOffset = 14;
     private const double PreviewDragThreshold = 5;
     private const int ScreenEdgeSnapThreshold = 10;
-    private const int WindowEdgeSnapThreshold = 10;
+    private const int WindowEdgeSnapThreshold = 14;
     private static readonly TimeSpan ColorInspectorContentRefreshInterval = TimeSpan.FromMilliseconds(16);
     private static readonly TimeSpan SmartPreviewRefreshInterval = TimeSpan.FromMilliseconds(16);
 
     private readonly DrawingRectangle _virtualScreenBounds;
+    private readonly string? _snapshotPath;
+    private readonly bool _hasSnapshotSource;
     private Point? _startPoint;
     private Point? _previewClickStartPoint;
     private Rect _selectionRect = Rect.Empty;
@@ -53,25 +56,63 @@ public partial class SelectionOverlayWindow : Window
     private DateTime _lastSmartPreviewUpdateUtc = DateTime.MinValue;
     private bool _showHexColor;
     private bool _rightClickCancelPending;
+    private bool _isSelectionCompleted;
     private int _smartPreviewQueryVersion;
     private bool _smartPreviewQueryInFlight;
     private DrawingPoint? _pendingAutomationPreviewPoint;
     private readonly object _automationPreviewCacheLock = new();
     private IReadOnlyList<AutomationPreviewCandidate> _automationPreviewCache = Array.Empty<AutomationPreviewCandidate>();
+    private readonly Dictionary<IntPtr, IReadOnlyList<AutomationPreviewCandidate>> _automationPreviewWindowCache = new();
+    private readonly HashSet<IntPtr> _automationPreviewWindowCacheBuilding = new();
     private CancellationTokenSource? _automationPreviewCacheCts;
     private bool _automationPreviewCacheReady;
     private bool _automationPreviewCacheBuilding;
+    private bool _keepVisibleAfterSelection;
+    private TaskCompletionSource<bool>? _selectionCompletionSource;
 
     public SelectionOverlayWindow()
+        : this(null, null)
+    {
+    }
+
+    public SelectionOverlayWindow(Int32Rect? snapshotRegion, string? snapshotPath)
     {
         InitializeComponent();
 
-        _virtualScreenBounds = SystemInformation.VirtualScreen;
+        _snapshotPath = snapshotPath;
+        _hasSnapshotSource = !string.IsNullOrWhiteSpace(snapshotPath) && File.Exists(snapshotPath);
+        _virtualScreenBounds = snapshotRegion is { } region
+            ? new DrawingRectangle(region.X, region.Y, region.Width, region.Height)
+            : SystemInformation.VirtualScreen;
+        if (_hasSnapshotSource)
+        {
+            Opacity = 0;
+            Background = System.Windows.Media.Brushes.Transparent;
+            SetInitialWindowBoundsFromSystemDpi();
+            PrepareSnapshotImage();
+        }
+
+        SourceInitialized += SelectionOverlayWindow_OnSourceInitialized;
         Loaded += SelectionOverlayWindow_OnLoaded;
+        Closed += SelectionOverlayWindow_OnClosed;
         QueryCursor += SelectionOverlayWindow_OnQueryCursor;
     }
 
     public Int32Rect? SelectedRegion { get; private set; }
+
+    public Task<bool> ShowForSelectionAsync(bool keepVisibleAfterSelection)
+    {
+        _keepVisibleAfterSelection = keepVisibleAfterSelection;
+        _selectionCompletionSource = new TaskCompletionSource<bool>();
+        Show();
+        return _selectionCompletionSource.Task;
+    }
+
+    private void SelectionOverlayWindow_OnSourceInitialized(object? sender, EventArgs e)
+    {
+        InitializeTransforms();
+        ApplyWindowBounds();
+    }
 
     private void SelectionOverlayWindow_OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -81,23 +122,20 @@ public partial class SelectionOverlayWindow : Window
         ForceCrossCursor();
 
         InitializeTransforms();
-        CaptureVirtualScreenSnapshot();
-
-        var topLeftDip = _fromDevice.Transform(new Point(_virtualScreenBounds.Left, _virtualScreenBounds.Top));
-        var bottomRightDip = _fromDevice.Transform(new Point(_virtualScreenBounds.Right, _virtualScreenBounds.Bottom));
-
-        Left = topLeftDip.X;
-        Top = topLeftDip.Y;
-        Width = bottomRightDip.X - topLeftDip.X;
-        Height = bottomRightDip.Y - topLeftDip.Y;
-        UpdateColorInspector(GetCursorLocalPoint());
+        CaptureOverlaySnapshot();
+        ApplyWindowBounds();
+        var initialCursorPoint = GetCursorLocalPoint();
+        UpdateColorInspector(initialCursorPoint);
+        UpdateSmartPreviewThrottled(initialCursorPoint);
+        StartAutomationPreviewWindowCacheBuild(_currentScreenPoint);
         StartAutomationPreviewCacheBuild();
         CompositionTarget.Rendering += CompositionTarget_OnRendering;
+        Opacity = 1;
     }
 
     private void CompositionTarget_OnRendering(object? sender, EventArgs e)
     {
-        if (!IsVisible)
+        if (!IsVisible || _isSelectionCompleted)
         {
             return;
         }
@@ -168,7 +206,7 @@ public partial class SelectionOverlayWindow : Window
         {
             RootSurface.ReleaseMouseCapture();
             SelectedRegion = _pendingPreviewRegion.Value;
-            DialogResult = true;
+            CompleteSelection(true);
             return;
         }
 
@@ -193,7 +231,7 @@ public partial class SelectionOverlayWindow : Window
 
         if (width < 8 || height < 8)
         {
-            DialogResult = false;
+            CompleteSelection(false);
             return;
         }
 
@@ -206,7 +244,7 @@ public partial class SelectionOverlayWindow : Window
             (int)Math.Round(bottomRightPx.X - topLeftPx.X),
             (int)Math.Round(bottomRightPx.Y - topLeftPx.Y));
 
-        DialogResult = true;
+        CompleteSelection(true);
     }
 
     private void RootSurface_OnMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -256,7 +294,7 @@ public partial class SelectionOverlayWindow : Window
             RootSurface.ReleaseMouseCapture();
         }
 
-        DialogResult = false;
+        CompleteSelection(false);
     }
 
     private void UpdateSelection(Point start, Point current)
@@ -269,7 +307,7 @@ public partial class SelectionOverlayWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            DialogResult = false;
+            CompleteSelection(false);
             return;
         }
 
@@ -297,6 +335,66 @@ public partial class SelectionOverlayWindow : Window
         }
     }
 
+    private void CompleteSelection(bool isConfirmed)
+    {
+        _isSelectionCompleted = true;
+        ColorInspectorPanel.Visibility = Visibility.Collapsed;
+        CompositionTarget.Rendering -= CompositionTarget_OnRendering;
+
+        if (_selectionCompletionSource is null)
+        {
+            DialogResult = isConfirmed;
+            return;
+        }
+
+        if (!isConfirmed || !_keepVisibleAfterSelection)
+        {
+            _selectionCompletionSource.TrySetResult(isConfirmed);
+            Close();
+            return;
+        }
+
+        RootSurface.ReleaseMouseCapture();
+        RootSurface.IsHitTestVisible = false;
+        OverlayLayer.ClearSelection();
+        OverlayLayer.ClearSmartPreview();
+        Cursor = WpfCursors.Arrow;
+        WpfMouse.OverrideCursor = null;
+        _selectionCompletionSource.TrySetResult(true);
+    }
+
+    private void SelectionOverlayWindow_OnClosed(object? sender, EventArgs e)
+    {
+        _isSelectionCompleted = true;
+        CompositionTarget.Rendering -= CompositionTarget_OnRendering;
+        ColorInspectorPanel.Visibility = Visibility.Collapsed;
+        WpfMouse.OverrideCursor = null;
+        _selectionCompletionSource?.TrySetResult(false);
+    }
+
+    private void ApplyWindowBounds()
+    {
+        var topLeftDip = _fromDevice.Transform(new Point(_virtualScreenBounds.Left, _virtualScreenBounds.Top));
+        var bottomRightDip = _fromDevice.Transform(new Point(_virtualScreenBounds.Right, _virtualScreenBounds.Bottom));
+
+        Left = topLeftDip.X;
+        Top = topLeftDip.Y;
+        Width = bottomRightDip.X - topLeftDip.X;
+        Height = bottomRightDip.Y - topLeftDip.Y;
+    }
+
+    private void SetInitialWindowBoundsFromSystemDpi()
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var scaleX = dpi.DpiScaleX <= 0 ? 1 : dpi.DpiScaleX;
+        var scaleY = dpi.DpiScaleY <= 0 ? 1 : dpi.DpiScaleY;
+
+        Left = _virtualScreenBounds.Left / scaleX;
+        Top = _virtualScreenBounds.Top / scaleY;
+        Width = _virtualScreenBounds.Width / scaleX;
+        Height = _virtualScreenBounds.Height / scaleY;
+    }
+
     private static void ForceCrossCursor()
     {
         var cursor = NativeMethods.LoadCursor(IntPtr.Zero, NativeMethods.IdcCross);
@@ -317,6 +415,7 @@ public partial class SelectionOverlayWindow : Window
     {
         public const int GwlExStyle = -20;
         public const int WsExTransparent = 0x00000020;
+        public const uint CwpSkipInvisible = 0x0001;
         public const uint GaRoot = 2;
         public static readonly IntPtr IdcCross = new(32515);
 
@@ -324,6 +423,12 @@ public partial class SelectionOverlayWindow : Window
 
         [DllImport("user32.dll")]
         public static extern IntPtr WindowFromPoint(DrawingPoint point);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr ChildWindowFromPointEx(IntPtr hwndParent, DrawingPoint point, uint flags);
+
+        [DllImport("user32.dll")]
+        public static extern bool ScreenToClient(IntPtr hwnd, ref DrawingPoint point);
 
         [DllImport("user32.dll")]
         public static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);

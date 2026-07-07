@@ -12,7 +12,6 @@ namespace SnapCat.App.Windows;
 
 public partial class TrayMenuWindow : Window
 {
-    private readonly Action<CaptureWorkflowKind> _startCaptureAction;
     private readonly Action _showMainWindowAction;
     private readonly Action _openHistoryAction;
     private readonly Action _openSettingsAction;
@@ -27,7 +26,6 @@ public partial class TrayMenuWindow : Window
 
     public TrayMenuWindow(
         AppSettings settings,
-        Action<CaptureWorkflowKind> startCaptureAction,
         Action showMainWindowAction,
         Action openHistoryAction,
         Action openSettingsAction,
@@ -39,7 +37,6 @@ public partial class TrayMenuWindow : Window
         Action exitAction)
     {
         InitializeComponent();
-        _startCaptureAction = startCaptureAction;
         _showMainWindowAction = showMainWindowAction;
         _openHistoryAction = openHistoryAction;
         _openSettingsAction = openSettingsAction;
@@ -105,10 +102,6 @@ public partial class TrayMenuWindow : Window
 
     private void UpdateShortcutHints(AppSettings settings)
     {
-        CapturePinHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndPin);
-        CaptureTranslateHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndTranslate);
-        CaptureWaitHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndWaitForAction);
-        CaptureSaveHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyCaptureAndSave);
         ShowMainWindowHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowMainWindow);
         ShowAllPinnedHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyShowAllPinned);
         HideAllPinnedHotkeyTextBlock.Text = FormatShortcut(settings.HotkeyHideAllPinned);
@@ -147,26 +140,6 @@ public partial class TrayMenuWindow : Window
 
             Close();
         }), System.Windows.Threading.DispatcherPriority.Background);
-    }
-
-    private void CaptureAndPinButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteAndClose(() => _startCaptureAction(CaptureWorkflowKind.CaptureAndPin));
-    }
-
-    private void CaptureAndTranslateButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteAndClose(() => _startCaptureAction(CaptureWorkflowKind.CaptureAndTranslate));
-    }
-
-    private void CaptureAndWaitButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteAndClose(() => _startCaptureAction(CaptureWorkflowKind.CaptureAndWaitForAction));
-    }
-
-    private void CaptureAndSaveButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        ExecuteAndClose(() => _startCaptureAction(CaptureWorkflowKind.CaptureAndSave));
     }
 
     private void ShowMainWindowButton_OnClick(object sender, RoutedEventArgs e)

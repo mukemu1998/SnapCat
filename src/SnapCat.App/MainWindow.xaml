@@ -1128,26 +1128,29 @@
                                        Margin="0,0,12,12"
                                        VerticalAlignment="Center"
                                        Text="OCR 引擎" />
-                            <ComboBox x:Name="OcrEngineComboBox"
-                                      Grid.Row="0"
-                                      Grid.Column="1"
-                                      Margin="0,0,0,12"
-                                      SelectedValuePath="Tag">
-                                <ComboBoxItem Tag="windows-media-ocr">系统内置 OCR（免安装，默认开箱即用）</ComboBoxItem>
-                                <ComboBoxItem Tag="enhanced-tesseract">增强本地 OCR（Tesseract 多轮识别）</ComboBoxItem>
-                                <ComboBoxItem Tag="tesseract-cli">兼容模式 OCR（单轮 Tesseract）</ComboBoxItem>
-                            </ComboBox>
+                            <StackPanel Grid.Row="0"
+                                        Grid.Column="1"
+                                        Margin="0,0,0,12">
+                                <ComboBox x:Name="OcrEngineComboBox"
+                                          SelectedValuePath="Tag">
+                                    <ComboBoxItem Tag="windows-text-extractor">Windows 高质量文本提取（推荐）</ComboBoxItem>
+                                    <ComboBoxItem Tag="enhanced-windows-ocr">本地轻量增强版</ComboBoxItem>
+                                    <ComboBoxItem Tag="windows-media-ocr">本地轻量兼容版</ComboBoxItem>
+                                </ComboBox>
+                            </StackPanel>
 
                             <TextBlock x:Name="TesseractPathLabelTextBlock"
                                        Grid.Row="1"
                                        Grid.Column="0"
                                        Margin="0,0,12,12"
                                        VerticalAlignment="Center"
+                                       Visibility="Collapsed"
                                        Text="Tesseract 路径" />
                             <TextBox x:Name="TesseractPathTextBox"
                                      Grid.Row="1"
                                      Grid.Column="1"
-                                     Margin="0,0,0,12" />
+                                     Margin="0,0,0,12"
+                                     Visibility="Collapsed" />
 
                             <TextBlock Grid.Row="2"
                                        Grid.Column="0"
@@ -1164,6 +1167,10 @@
                                 <ComboBoxItem Tag="eng">英文</ComboBoxItem>
                                 <ComboBoxItem Tag="jpn">日文</ComboBoxItem>
                                 <ComboBoxItem Tag="kor">韩文</ComboBoxItem>
+                                <ComboBoxItem Tag="vie">越南语</ComboBoxItem>
+                                <ComboBoxItem Tag="fra">法语</ComboBoxItem>
+                                <ComboBoxItem Tag="deu">德语</ComboBoxItem>
+                                <ComboBoxItem Tag="rus">俄语</ComboBoxItem>
                             </ComboBox>
 
                             <Border Grid.Row="3"
@@ -1180,7 +1187,7 @@
                                     <TextBlock Margin="0,10,0,0"
                                                Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                TextWrapping="Wrap"
-                                               Text="默认推荐使用系统内置 OCR 先开箱即用；如果你后续想要更强本地识别，再切换到 Tesseract 相关方案。OCR 语言建议保留 chi_sim+eng。" />
+                                               Text="默认推荐使用 Windows 高质量文本提取：更接近系统文本提取器的识别效果，适合复杂字体、艺术字和动态画面定屏后识别。本地轻量增强版免额外安装，作为不依赖系统文本提取热键的备用方案。" />
                                 </StackPanel>
                             </Border>
 
@@ -1325,6 +1332,9 @@
                                           Margin="0,14,0,0"
                                           Visibility="Collapsed">
                                         <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
@@ -1705,8 +1715,13 @@
                                                Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                TextWrapping="Wrap"
                                                Text="每个命令都可以直接执行，也可以在右侧单独录制快捷键。后续新增的单个框选组合操作会继续放在这里，默认未设置快捷键的输入框会保持为空。" />
-                                    <Grid>
+                                    <ScrollViewer Style="{StaticResource HistoryScrollViewerStyle}"
+                                                  MaxHeight="360"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto">
+                                    <Grid Margin="0,0,8,0">
                                         <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
@@ -1757,15 +1772,15 @@
                                                    Grid.Column="0"
                                                    Margin="0,0,12,12"
                                                    VerticalAlignment="Center"
-                                                   Text="自由框选后自动翻译" />
+                                                   Text="自由框选后 OCR 识别" />
                                         <Button Grid.Row="1"
                                                 Grid.Column="1"
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
                                                 Margin="0,0,12,12"
-                                                Click="RunTranslateActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndTranslateTextBox"
+                                                Click="RunOcrActionButton_OnClick">执行</Button>
+                                        <TextBox x:Name="HotkeyCaptureAndOcrTextBox"
                                                  Grid.Row="1"
                                                  Grid.Column="2"
                                                  Margin="0,0,12,12"
@@ -1777,28 +1792,28 @@
                                                 Width="78"
                                                 Height="32"
                                                 Margin="0,0,12,12"
-                                                Click="RecordTranslateHotkeyButton_OnClick">录制</Button>
+                                                Click="RecordOcrHotkeyButton_OnClick">录制</Button>
                                         <Button Grid.Row="1"
                                                 Grid.Column="4"
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
                                                 Margin="0,0,0,12"
-                                                Click="ClearTranslateHotkeyButton_OnClick">清空</Button>
+                                                Click="ClearOcrHotkeyButton_OnClick">清空</Button>
 
                                         <TextBlock Grid.Row="2"
                                                    Grid.Column="0"
                                                    Margin="0,0,12,12"
                                                    VerticalAlignment="Center"
-                                                   Text="自由框选后等待操作选择" />
+                                                   Text="自由框选后自动翻译" />
                                         <Button Grid.Row="2"
                                                 Grid.Column="1"
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
                                                 Margin="0,0,12,12"
-                                                Click="RunWaitActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndWaitTextBox"
+                                                Click="RunTranslateActionButton_OnClick">执行</Button>
+                                        <TextBox x:Name="HotkeyCaptureAndTranslateTextBox"
                                                  Grid.Row="2"
                                                  Grid.Column="2"
                                                  Margin="0,0,12,12"
@@ -1810,30 +1825,31 @@
                                                 Width="78"
                                                 Height="32"
                                                 Margin="0,0,12,12"
-                                                Click="RecordWaitHotkeyButton_OnClick">录制</Button>
+                                                Click="RecordTranslateHotkeyButton_OnClick">录制</Button>
                                         <Button Grid.Row="2"
                                                 Grid.Column="4"
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
                                                 Margin="0,0,0,12"
-                                                Click="ClearWaitHotkeyButton_OnClick">清空</Button>
+                                                Click="ClearTranslateHotkeyButton_OnClick">清空</Button>
 
                                         <TextBlock Grid.Row="3"
                                                    Grid.Column="0"
+                                                   Margin="0,0,12,12"
                                                    VerticalAlignment="Center"
-                                                   Text="自由框选并保存到默认位置" />
+                                                   Text="自由框选后等待操作选择" />
                                         <Button Grid.Row="3"
                                                 Grid.Column="1"
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
-                                                Margin="0,0,12,0"
-                                                Click="RunSaveActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndSaveTextBox"
+                                                Margin="0,0,12,12"
+                                                Click="RunWaitActionButton_OnClick">执行</Button>
+                                        <TextBox x:Name="HotkeyCaptureAndWaitTextBox"
                                                  Grid.Row="3"
                                                  Grid.Column="2"
-                                                 Margin="0,0,12,0"
+                                                 Margin="0,0,12,12"
                                                  IsReadOnly="True"
                                                  VerticalContentAlignment="Center" />
                                         <Button Grid.Row="3"
@@ -1841,15 +1857,48 @@
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
+                                                Margin="0,0,12,12"
+                                                Click="RecordWaitHotkeyButton_OnClick">录制</Button>
+                                        <Button Grid.Row="3"
+                                                Grid.Column="4"
+                                                Style="{StaticResource CompactRoundedButtonStyle}"
+                                                Width="78"
+                                                Height="32"
+                                                Margin="0,0,0,12"
+                                                Click="ClearWaitHotkeyButton_OnClick">清空</Button>
+
+                                        <TextBlock Grid.Row="4"
+                                                   Grid.Column="0"
+                                                   VerticalAlignment="Center"
+                                                   Text="自由框选并保存到默认位置" />
+                                        <Button Grid.Row="4"
+                                                Grid.Column="1"
+                                                Style="{StaticResource CompactRoundedButtonStyle}"
+                                                Width="78"
+                                                Height="32"
+                                                Margin="0,0,12,0"
+                                                Click="RunSaveActionButton_OnClick">执行</Button>
+                                        <TextBox x:Name="HotkeyCaptureAndSaveTextBox"
+                                                 Grid.Row="4"
+                                                 Grid.Column="2"
+                                                 Margin="0,0,12,0"
+                                                 IsReadOnly="True"
+                                                 VerticalContentAlignment="Center" />
+                                        <Button Grid.Row="4"
+                                                Grid.Column="3"
+                                                Style="{StaticResource CompactRoundedButtonStyle}"
+                                                Width="78"
+                                                Height="32"
                                                 Margin="0,0,12,0"
                                                 Click="RecordSaveHotkeyButton_OnClick">录制</Button>
-                                        <Button Grid.Row="3"
+                                        <Button Grid.Row="4"
                                                 Grid.Column="4"
                                                 Style="{StaticResource CompactRoundedButtonStyle}"
                                                 Width="78"
                                                 Height="32"
                                                 Click="ClearSaveHotkeyButton_OnClick">清空</Button>
                                     </Grid>
+                                    </ScrollViewer>
                                 </StackPanel>
                             </Border>
 
@@ -2095,6 +2144,30 @@
                                       Content="开机自启（登录当前 Windows 账户后自动启动 SnapCat）" />
 
                             <Border Padding="14"
+                                    Margin="0,0,0,12"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold"
+                                               Text="组合指令入口方式" />
+                                    <ComboBox x:Name="CaptureStartupModeComboBox"
+                                              Width="420"
+                                              Margin="0,12,0,0"
+                                              HorizontalAlignment="Left"
+                                              SelectedValuePath="Tag">
+                                        <ComboBoxItem Tag="snapshot">键入后立即截取并显示当前屏幕临时画面</ComboBoxItem>
+                                        <ComboBoxItem Tag="live">键入后直接进入实时自由框选</ComboBoxItem>
+                                    </ComboBox>
+                                    <TextBlock Margin="0,12,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="第一项会先冻结鼠标所在屏幕，后续框选、OCR、翻译、保存和贴图都基于这张临时全屏截图执行；第二项保持旧版实时框选流程。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Padding="14"
                                     Background="{DynamicResource Theme.Brush.SurfaceBackground}"
                                     BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
@@ -2108,6 +2181,7 @@
                                               HorizontalAlignment="Left"
                                               SelectedValuePath="Tag">
                                         <ComboBoxItem Tag="CaptureAndPin">自由框选并固定到屏幕</ComboBoxItem>
+                                        <ComboBoxItem Tag="CaptureAndOcr">自由框选后 OCR 识别</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndTranslate">自由框选后自动翻译</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndWaitForAction">自由框选后等待操作选择</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndSave">自由框选并保存到默认位置</ComboBoxItem>
@@ -2239,6 +2313,47 @@
                                                        Foreground="{DynamicResource Theme.Brush.TextSecondary}" />
                                         </Border>
                                     </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,14,0,0"
+                                    Padding="18"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.AccentBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="16">
+                                <StackPanel>
+                                    <TextBlock FontSize="20"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                               Text="{Binding AboutReleaseNoteTitle}" />
+                                    <TextBlock Margin="0,10,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding AboutReleaseNoteSummary}" />
+                                    <ItemsControl Margin="0,10,0,0"
+                                                  ItemsSource="{Binding AboutReleaseNoteHighlights}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Width="6"
+                                                            Height="6"
+                                                            Margin="2,7,10,0"
+                                                            VerticalAlignment="Top"
+                                                            Background="{DynamicResource Theme.Brush.Highlight}"
+                                                            CornerRadius="3" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                                               TextWrapping="Wrap"
+                                                               Text="{Binding}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </Border>
 

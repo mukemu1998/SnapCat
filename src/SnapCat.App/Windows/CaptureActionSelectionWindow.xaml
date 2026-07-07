@@ -251,17 +251,21 @@
                     </StackPanel>
                 </Button>
 
-                <Button Style="{StaticResource ToolbarButtonStyle}"
+                <Button x:Name="OcrOnlyButton"
+                        Style="{StaticResource ToolbarButtonStyle}"
                         Tag="OcrOnly"
                         ToolTip="OCR 文本识别"
                         Click="ActionButton_OnClick">
                     <StackPanel>
                         <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE8A5;" />
-                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="OCR" />
+                        <TextBlock x:Name="OcrOnlyLabelTextBlock"
+                                   Style="{StaticResource ToolbarLabelStyle}"
+                                   Text="OCR" />
                     </StackPanel>
                 </Button>
 
-                <Button Style="{StaticResource ToolbarButtonStyle}"
+                <Button x:Name="OcrTranslateButton"
+                        Style="{StaticResource ToolbarButtonStyle}"
                         Tag="OcrAndTranslate"
                         ToolTip="OCR 文本识别并翻译"
                         Click="ActionButton_OnClick">

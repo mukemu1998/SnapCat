@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -15,9 +16,21 @@ namespace SnapCat.App.Windows;
 
 public partial class SelectionOverlayWindow
 {
-    private void CaptureVirtualScreenSnapshot()
+    private void CaptureOverlaySnapshot()
     {
+        if (_screenBitmap is not null && _screenBitmapSource is not null)
+        {
+            return;
+        }
+
         _screenBitmap?.Dispose();
+
+        if (_hasSnapshotSource)
+        {
+            PrepareSnapshotImage();
+            return;
+        }
+
         _screenBitmap = new DrawingBitmap(_virtualScreenBounds.Width, _virtualScreenBounds.Height);
         using var graphics = DrawingGraphics.FromImage(_screenBitmap);
         graphics.CopyFromScreen(
@@ -28,6 +41,21 @@ public partial class SelectionOverlayWindow
             new DrawingSize(_virtualScreenBounds.Width, _virtualScreenBounds.Height),
             CopyPixelOperation.SourceCopy);
         _screenBitmapSource = ConvertBitmapToBitmapSource(_screenBitmap);
+    }
+
+    private void PrepareSnapshotImage()
+    {
+        if (!_hasSnapshotSource || string.IsNullOrWhiteSpace(_snapshotPath))
+        {
+            return;
+        }
+
+        _screenBitmap?.Dispose();
+        using var snapshotBitmap = new DrawingBitmap(_snapshotPath);
+        _screenBitmap = new DrawingBitmap(snapshotBitmap);
+        _screenBitmapSource = ConvertBitmapToBitmapSource(_screenBitmap);
+        SnapshotImage.Source = _screenBitmapSource;
+        SnapshotImage.Visibility = Visibility.Visible;
     }
 
     private void UpdateColorInspector(Point localPoint)

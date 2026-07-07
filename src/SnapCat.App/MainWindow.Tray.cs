@@ -12,7 +12,7 @@ public partial class MainWindow
         _app.TrayIconService.Initialize(
             () => _settings,
             GetTrayLeftClickAction,
-            workflow => _ = StartCaptureWorkflowAsync(workflow, returnToMainWindow: false),
+            workflow => Dispatcher.BeginInvoke(() => _ = StartCaptureWorkflowAsync(workflow, returnToMainWindow: false)),
             OpenSettingsFromTray,
             OpenHistoryFromTray,
             ShowMainWindow,

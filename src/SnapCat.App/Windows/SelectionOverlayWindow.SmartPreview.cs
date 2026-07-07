@@ -13,6 +13,7 @@ public partial class SelectionOverlayWindow
     private const int AutomationPreviewNodeLimit = 720;
     private const int AutomationPreviewCacheNodeLimitPerWindow = 900;
     private const int AutomationPreviewCacheTotalLimit = 6000;
+    private static readonly TimeSpan AutomationPreviewQueryBudget = TimeSpan.FromMilliseconds(80);
 
     private readonly record struct AutomationPreviewCandidate(
         Int32Rect Rect,
@@ -24,7 +25,7 @@ public partial class SelectionOverlayWindow
     {
         var now = DateTime.UtcNow;
         var movedDistance = Distance(_lastSmartPreviewPoint, localPoint);
-        var movedFarEnough = movedDistance >= 3;
+        var movedFarEnough = movedDistance >= 2;
         if (!movedFarEnough && now - _lastSmartPreviewUpdateUtc < SmartPreviewRefreshInterval)
         {
             return;
@@ -32,7 +33,7 @@ public partial class SelectionOverlayWindow
 
         _lastSmartPreviewPoint = localPoint;
         _lastSmartPreviewUpdateUtc = now;
-        UpdateSmartPreview(localPoint, allowAutomationPreview: movedDistance < 28);
+        UpdateSmartPreview(localPoint, allowAutomationPreview: true);
     }
 
     private void UpdateSmartPreview(Point localPoint, bool allowAutomationPreview)
@@ -46,8 +47,12 @@ public partial class SelectionOverlayWindow
 
         if (region is null)
         {
-            _smartPreviewRegion = null;
-            OverlayLayer.ClearSmartPreview();
+            if (!_smartPreviewQueryInFlight)
+            {
+                _smartPreviewRegion = null;
+                OverlayLayer.ClearSmartPreview();
+            }
+
             return;
         }
 
@@ -69,11 +74,11 @@ public partial class SelectionOverlayWindow
             region.X + region.Width - _virtualScreenBounds.Left,
             region.Y + region.Height - _virtualScreenBounds.Top));
 
-        OverlayLayer.SmartPreviewRect = new Rect(
+        OverlayLayer.ShowSmartPreview(new Rect(
             topLeft.X,
             topLeft.Y,
             Math.Max(0, bottomRight.X - topLeft.X),
-            Math.Max(0, bottomRight.Y - topLeft.Y));
+            Math.Max(0, bottomRight.Y - topLeft.Y)));
     }
 
     private Int32Rect? TryGetImmediateSmartPreviewRegion(DrawingPoint screenPoint)
@@ -91,7 +96,13 @@ public partial class SelectionOverlayWindow
         }
 
         var cachedRegion = TryGetCachedAutomationRegion(screenPoint);
-        return cachedRegion ?? TryGetWindowRegion(screenPoint, requireNearEdge: false);
+        if (cachedRegion is not null)
+        {
+            return cachedRegion;
+        }
+
+        return TryGetNativeChildWindowRegion(screenPoint)
+            ?? TryGetWindowRegion(screenPoint, requireNearEdge: false);
     }
 
     private void StartAutomationPreviewCacheBuild()
@@ -122,6 +133,8 @@ public partial class SelectionOverlayWindow
             _automationPreviewCacheCts?.Dispose();
             _automationPreviewCacheCts = null;
             _automationPreviewCache = Array.Empty<AutomationPreviewCandidate>();
+            _automationPreviewWindowCache.Clear();
+            _automationPreviewWindowCacheBuilding.Clear();
             _automationPreviewCacheReady = false;
             _automationPreviewCacheBuilding = false;
         }
@@ -313,38 +326,49 @@ public partial class SelectionOverlayWindow
 
     private Int32Rect? TryGetCachedAutomationRegion(DrawingPoint screenPoint)
     {
-        if (!_automationPreviewCacheReady)
-        {
-            return null;
-        }
-
         var hwnd = FindTopLevelWindowUnderPoint(screenPoint);
         if (hwnd == IntPtr.Zero)
         {
             return null;
         }
 
-        IReadOnlyList<AutomationPreviewCandidate> snapshot;
+        var candidates = new List<Int32Rect>();
         lock (_automationPreviewCacheLock)
         {
-            snapshot = _automationPreviewCache;
-        }
+            if (_automationPreviewWindowCache.TryGetValue(hwnd, out var windowSnapshot))
+            {
+                candidates.AddRange(windowSnapshot
+                    .Where(candidate => SelectionPreviewRegionService.Contains(candidate.Rect, screenPoint))
+                    .OrderBy(candidate => candidate.ElementOrder)
+                    .Select(candidate => candidate.Rect));
+            }
 
-        var candidates = snapshot
-            .Where(candidate => candidate.WindowHandle == hwnd)
-            .Where(candidate => SelectionPreviewRegionService.Contains(candidate.Rect, screenPoint))
-            .OrderBy(candidate => candidate.WindowOrder)
-            .ThenBy(candidate => candidate.ElementOrder)
-            .Select(candidate => candidate.Rect)
-            .ToList();
+            if (_automationPreviewCacheReady)
+            {
+                candidates.AddRange(_automationPreviewCache
+                    .Where(candidate => candidate.WindowHandle == hwnd)
+                    .Where(candidate => SelectionPreviewRegionService.Contains(candidate.Rect, screenPoint))
+                    .OrderBy(candidate => candidate.WindowOrder)
+                    .ThenBy(candidate => candidate.ElementOrder)
+                    .Select(candidate => candidate.Rect));
+            }
+        }
 
         return SelectionPreviewRegionService.ChooseAutomationCandidate(candidates, screenPoint);
     }
 
     private void ApplyAutomationSmartPreviewResult(Int32Rect? region, int version)
     {
-        if (version != _smartPreviewQueryVersion || region is null)
+        if (!ShouldApplyAutomationSmartPreviewResult(region, version))
         {
+            return;
+        }
+
+        if (region is null)
+        {
+            // A slower UIA lookup can return null even when the immediate/cache path
+            // already found a good candidate. Do not let that stale empty result erase
+            // a visible preview and create a blink.
             return;
         }
 
@@ -358,6 +382,8 @@ public partial class SelectionOverlayWindow
 
     private void QueueAutomationPreview(DrawingPoint screenPoint)
     {
+        StartAutomationPreviewWindowCacheBuild(screenPoint);
+
         var version = Interlocked.Increment(ref _smartPreviewQueryVersion);
         _pendingAutomationPreviewPoint = screenPoint;
         if (_smartPreviewQueryInFlight)
@@ -376,8 +402,9 @@ public partial class SelectionOverlayWindow
 
         while (true)
         {
-            var region = await Task.Run(() => TryGetAutomationElementRegion(currentPoint));
-            await Dispatcher.InvokeAsync(() => ApplyAutomationSmartPreviewResult(region, currentVersion));
+            var queryTask = Task.Run(() => TryGetAutomationElementRegion(currentPoint));
+            ObserveAutomationPreviewResult(queryTask, currentVersion);
+            await Task.WhenAny(queryTask, Task.Delay(AutomationPreviewQueryBudget));
 
             DrawingPoint? nextPoint = null;
             await Dispatcher.InvokeAsync(() =>
@@ -404,10 +431,171 @@ public partial class SelectionOverlayWindow
         }
     }
 
+    private void ObserveAutomationPreviewResult(Task<Int32Rect?> queryTask, int version)
+    {
+        _ = queryTask.ContinueWith(async task =>
+        {
+            if (task.Status != TaskStatus.RanToCompletion)
+            {
+                return;
+            }
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (ShouldApplyAutomationSmartPreviewResult(task.Result, version))
+                {
+                    ApplyAutomationSmartPreviewResult(task.Result, version);
+                }
+            });
+        }, TaskScheduler.Default);
+    }
+
+    private bool ShouldApplyAutomationSmartPreviewResult(Int32Rect? region, int version)
+    {
+        if (version == _smartPreviewQueryVersion)
+        {
+            return true;
+        }
+
+        // UIA can lag slightly behind the render loop. If the result still
+        // covers the current cursor, keep it instead of waiting for the slower
+        // full-window cache to catch up.
+        if (region is null || !SelectionPreviewRegionService.Contains(region.Value, _currentScreenPoint))
+        {
+            return false;
+        }
+
+        return _smartPreviewRegion is null
+            || !SelectionPreviewRegionService.Contains(_smartPreviewRegion.Value, _currentScreenPoint)
+            || GetArea(region.Value) <= GetArea(_smartPreviewRegion.Value);
+    }
+
+    private static long GetArea(Int32Rect rect)
+    {
+        return Math.Max(0, rect.Width) * (long)Math.Max(0, rect.Height);
+    }
+
+    private void StartAutomationPreviewWindowCacheBuild(DrawingPoint screenPoint)
+    {
+        var hwnd = FindTopLevelWindowUnderPoint(screenPoint);
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        CancellationToken token;
+        lock (_automationPreviewCacheLock)
+        {
+            if (_automationPreviewWindowCache.ContainsKey(hwnd)
+                || _automationPreviewWindowCacheBuilding.Contains(hwnd))
+            {
+                return;
+            }
+
+            _automationPreviewWindowCacheBuilding.Add(hwnd);
+            token = _automationPreviewCacheCts?.Token ?? CancellationToken.None;
+        }
+
+        _ = BuildAutomationPreviewWindowCacheAsync(hwnd, token);
+    }
+
+    private async Task BuildAutomationPreviewWindowCacheAsync(IntPtr hwnd, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<AutomationPreviewCandidate> candidates;
+        try
+        {
+            candidates = await Task.Run(
+                () => BuildAutomationPreviewCacheForWindow(hwnd, cancellationToken),
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch
+        {
+            candidates = Array.Empty<AutomationPreviewCandidate>();
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            lock (_automationPreviewCacheLock)
+            {
+                _automationPreviewWindowCache[hwnd] = candidates;
+                _automationPreviewWindowCacheBuilding.Remove(hwnd);
+            }
+
+            if (candidates.Any(candidate => SelectionPreviewRegionService.Contains(candidate.Rect, _currentScreenPoint)))
+            {
+                var region = SelectionPreviewRegionService.ChooseAutomationCandidate(
+                    candidates.Select(candidate => candidate.Rect).ToList(),
+                    _currentScreenPoint);
+                if (region is not null)
+                {
+                    ApplySmartPreviewRegion(region.Value);
+                }
+            }
+        });
+    }
+
+    private IReadOnlyList<AutomationPreviewCandidate> BuildAutomationPreviewCacheForWindow(
+        IntPtr hwnd,
+        CancellationToken cancellationToken)
+    {
+        if (!NativeMethods.IsWindowVisible(hwnd)
+            || !NativeMethods.GetWindowRect(hwnd, out var windowRect)
+            || windowRect.Right - windowRect.Left < 12
+            || windowRect.Bottom - windowRect.Top < 12)
+        {
+            return Array.Empty<AutomationPreviewCandidate>();
+        }
+
+        var candidates = new List<AutomationPreviewCandidate>(512);
+        var seenRects = new HashSet<string>(StringComparer.Ordinal);
+
+        try
+        {
+            var root = AutomationElement.FromHandle(hwnd);
+            if (root is null)
+            {
+                return candidates;
+            }
+
+            var visited = 0;
+            var elementOrder = 0;
+            CollectAutomationCacheCandidates(
+                root,
+                hwnd,
+                0,
+                candidates,
+                seenRects,
+                ref visited,
+                ref elementOrder,
+                cancellationToken);
+        }
+        catch
+        {
+            return candidates;
+        }
+
+        return candidates;
+    }
+
     private Int32Rect? TryGetAutomationElementRegion(DrawingPoint screenPoint)
     {
         try
         {
+            var pointElementRegion = TryGetAutomationPointChainRegion(screenPoint);
+            if (pointElementRegion is not null)
+            {
+                return pointElementRegion;
+            }
+
             var hwnd = FindTopLevelWindowUnderPoint(screenPoint);
             if (hwnd == IntPtr.Zero)
             {
@@ -420,10 +608,148 @@ public partial class SelectionOverlayWindow
                 return null;
             }
 
-            var candidates = new List<Int32Rect>();
-            var visited = 0;
-            CollectAutomationCandidates(root, screenPoint, candidates, ref visited);
+            var candidates = CollectAutomationCandidatesForPoint(root, screenPoint, AutomationPreviewNodeLimit);
             return SelectionPreviewRegionService.ChooseAutomationCandidate(candidates, screenPoint);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private Int32Rect? TryGetAutomationPointChainRegion(DrawingPoint screenPoint)
+    {
+        try
+        {
+            var element = AutomationElement.FromPoint(new Point(screenPoint.X, screenPoint.Y));
+            if (element is null)
+            {
+                return null;
+            }
+
+            var candidates = new List<Int32Rect>();
+            for (var depth = 0; element is not null && depth < 12; depth++)
+            {
+                var normalized = TryNormalizeAutomationElementRect(element, screenPoint);
+                if (normalized is not null && !candidates.Contains(normalized.Value))
+                {
+                    candidates.Add(normalized.Value);
+                }
+
+                try
+                {
+                    element = TreeWalker.ControlViewWalker.GetParent(element);
+                }
+                catch
+                {
+                    break;
+                }
+            }
+
+            return SelectionPreviewRegionService.ChooseAutomationCandidate(candidates, screenPoint);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private IReadOnlyList<Int32Rect> CollectAutomationCandidatesForPoint(
+        AutomationElement root,
+        DrawingPoint screenPoint,
+        int nodeLimit)
+    {
+        var candidates = new List<Int32Rect>();
+        var currentLayer = new List<AutomationElement> { root };
+        var visited = 0;
+
+        while (currentLayer.Count > 0 && visited < nodeLimit)
+        {
+            AutomationElement? bestChild = null;
+
+            foreach (var element in currentLayer)
+            {
+                if (visited++ >= nodeLimit)
+                {
+                    break;
+                }
+
+                var normalized = TryNormalizeAutomationElementRect(element, screenPoint);
+                if (normalized is not null && !candidates.Contains(normalized.Value))
+                {
+                    candidates.Add(normalized.Value);
+                }
+
+                if (bestChild is null)
+                {
+                    bestChild = FindFirstChildContainingPoint(element, screenPoint, ref visited, nodeLimit);
+                }
+            }
+
+            if (bestChild is null)
+            {
+                break;
+            }
+
+            currentLayer = [bestChild];
+        }
+
+        return candidates;
+    }
+
+    private AutomationElement? FindFirstChildContainingPoint(
+        AutomationElement element,
+        DrawingPoint screenPoint,
+        ref int visited,
+        int nodeLimit)
+    {
+        AutomationElement? child;
+        try
+        {
+            child = TreeWalker.ControlViewWalker.GetFirstChild(element);
+        }
+        catch
+        {
+            return null;
+        }
+
+        while (child is not null && visited < nodeLimit)
+        {
+            visited++;
+
+            try
+            {
+                var normalized = TryNormalizeAutomationElementRect(child, screenPoint);
+                if (normalized is not null)
+                {
+                    return child;
+                }
+
+                child = TreeWalker.ControlViewWalker.GetNextSibling(child);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private Int32Rect? TryNormalizeAutomationElementRect(
+        AutomationElement element,
+        DrawingPoint screenPoint)
+    {
+        try
+        {
+            var rect = element.Current.BoundingRectangle;
+            return SelectionPreviewRegionService.NormalizeCandidateRect(
+                rect.Left,
+                rect.Top,
+                rect.Width,
+                rect.Height,
+                screenPoint,
+                _virtualScreenBounds);
         }
         catch
         {
@@ -539,6 +865,60 @@ public partial class SelectionOverlayWindow
         return !requireNearEdge || SelectionPreviewRegionService.IsNearRectEdge(normalized.Value, screenPoint, WindowEdgeSnapThreshold)
             ? normalized
             : null;
+    }
+
+    private Int32Rect? TryGetNativeChildWindowRegion(DrawingPoint screenPoint)
+    {
+        var hwnd = FindTopLevelWindowUnderPoint(screenPoint);
+        if (hwnd == IntPtr.Zero)
+        {
+            return null;
+        }
+
+        var best = hwnd;
+        var current = hwnd;
+        for (var depth = 0; depth < 8; depth++)
+        {
+            var clientPoint = screenPoint;
+            if (!NativeMethods.ScreenToClient(current, ref clientPoint))
+            {
+                break;
+            }
+
+            var child = NativeMethods.ChildWindowFromPointEx(
+                current,
+                clientPoint,
+                NativeMethods.CwpSkipInvisible);
+            if (child == IntPtr.Zero || child == current)
+            {
+                break;
+            }
+
+            if (!NativeMethods.GetWindowRect(child, out var childRect)
+                || screenPoint.X < childRect.Left
+                || screenPoint.X >= childRect.Right
+                || screenPoint.Y < childRect.Top
+                || screenPoint.Y >= childRect.Bottom)
+            {
+                break;
+            }
+
+            best = child;
+            current = child;
+        }
+
+        if (!NativeMethods.GetWindowRect(best, out var rect))
+        {
+            return null;
+        }
+
+        return SelectionPreviewRegionService.NormalizeCandidateRect(
+            rect.Left,
+            rect.Top,
+            rect.Right - rect.Left,
+            rect.Bottom - rect.Top,
+            screenPoint,
+            _virtualScreenBounds);
     }
 
     private IntPtr FindTopLevelWindowUnderPoint(DrawingPoint screenPoint)

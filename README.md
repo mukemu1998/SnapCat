@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.3.0-preview" src="https://img.shields.io/badge/Version-0.3.0--preview-22c55e" />
+  <img alt="Version 0.3.1-preview" src="https://img.shields.io/badge/Version-0.3.1--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -104,7 +104,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.3.0-preview`，属于 v0.3 预览阶段版，重点提升框选预识别、翻译浮窗、多语言朗读、等待操作菜单和贴图交互的稳定性。
+当前版本为 `0.3.1-preview`，属于 v0.3 预览阶段修正版，重点优化 Windows 高质量文本提取链路、OCR 组合指令、临时定屏框选、翻译浮窗联动和未开放 OCR 入口清理。
 
 ## 许可
 

@@ -2,6 +2,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Forms;
 using Bitmap = System.Drawing.Bitmap;
 using Graphics = System.Drawing.Graphics;
 using DrawingRectangle = System.Drawing.Rectangle;
@@ -20,6 +21,29 @@ namespace SnapCat.App.Services;
 
 public sealed class ScreenCaptureService
 {
+    public Int32Rect GetVirtualScreenRegion()
+    {
+        var bounds = SystemInformation.VirtualScreen;
+        return new Int32Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
+    }
+
+    public string CaptureVirtualScreenToTempFile()
+    {
+        return CaptureToTempFile(GetVirtualScreenRegion());
+    }
+
+    public Int32Rect GetCurrentScreenRegion()
+    {
+        var cursor = Cursor.Position;
+        var bounds = Screen.FromPoint(cursor).Bounds;
+        return new Int32Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
+    }
+
+    public string CaptureCurrentScreenToTempFile()
+    {
+        return CaptureToTempFile(GetCurrentScreenRegion());
+    }
+
     public string CaptureToTempFile(Int32Rect region)
     {
         if (region.Width <= 0 || region.Height <= 0)
@@ -35,6 +59,35 @@ public sealed class ScreenCaptureService
         {
             return CaptureWithDesktopDuplication(region);
         }
+    }
+
+    public string CropSnapshotToTempFile(string snapshotPath, Int32Rect snapshotRegion, Int32Rect cropRegion)
+    {
+        if (!File.Exists(snapshotPath))
+        {
+            throw new FileNotFoundException("全屏临时截图不存在。", snapshotPath);
+        }
+
+        var relativeLeft = cropRegion.X - snapshotRegion.X;
+        var relativeTop = cropRegion.Y - snapshotRegion.Y;
+        var relativeRight = relativeLeft + cropRegion.Width;
+        var relativeBottom = relativeTop + cropRegion.Height;
+
+        using var source = new Bitmap(snapshotPath);
+        var left = Math.Clamp(relativeLeft, 0, source.Width);
+        var top = Math.Clamp(relativeTop, 0, source.Height);
+        var right = Math.Clamp(relativeRight, 0, source.Width);
+        var bottom = Math.Clamp(relativeBottom, 0, source.Height);
+        var width = Math.Max(1, right - left);
+        var height = Math.Max(1, bottom - top);
+
+        using var cropped = source.Clone(
+            new DrawingRectangle(left, top, width, height),
+            PixelFormat.Format32bppArgb);
+
+        var outputPath = CreateOutputPath();
+        cropped.Save(outputPath, ImageFormat.Png);
+        return outputPath;
     }
 
     private static string CaptureWithGdi(Int32Rect region)

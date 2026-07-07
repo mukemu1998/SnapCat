@@ -68,7 +68,8 @@ public partial class App : WpfApplication
             TranslationService,
             QrCodeService,
             HistoryStore,
-            CapturedImageFileService);
+            CapturedImageFileService,
+            ScreenCaptureService);
 
         _runtimeServicesInitialized = true;
     }

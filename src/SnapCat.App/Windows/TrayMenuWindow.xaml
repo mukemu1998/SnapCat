@@ -73,66 +73,6 @@
 
         <StackPanel>
             <Button Style="{StaticResource MenuButtonStyle}"
-                    Click="CaptureAndPinButton_OnClick">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="截图并固定到屏幕" />
-                    <TextBlock x:Name="CapturePinHotkeyTextBlock"
-                               Grid.Column="1"
-                               Style="{StaticResource MenuShortcutTextStyle}" />
-                </Grid>
-            </Button>
-
-            <Button Style="{StaticResource MenuButtonStyle}"
-                    Click="CaptureAndTranslateButton_OnClick">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="截图并自动翻译" />
-                    <TextBlock x:Name="CaptureTranslateHotkeyTextBlock"
-                               Grid.Column="1"
-                               Style="{StaticResource MenuShortcutTextStyle}" />
-                </Grid>
-            </Button>
-
-            <Button Style="{StaticResource MenuButtonStyle}"
-                    Click="CaptureAndWaitButton_OnClick">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="截图后等待选择" />
-                    <TextBlock x:Name="CaptureWaitHotkeyTextBlock"
-                               Grid.Column="1"
-                               Style="{StaticResource MenuShortcutTextStyle}" />
-                </Grid>
-            </Button>
-
-            <Button Style="{StaticResource MenuButtonStyle}"
-                    Click="CaptureAndSaveButton_OnClick">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="截图并保存到默认位置" />
-                    <TextBlock x:Name="CaptureSaveHotkeyTextBlock"
-                               Grid.Column="1"
-                               Style="{StaticResource MenuShortcutTextStyle}" />
-                </Grid>
-            </Button>
-
-            <Border Height="1"
-                    Margin="0,3,0,4"
-                    Background="{DynamicResource Theme.Brush.Divider}" />
-
-            <Button Style="{StaticResource MenuButtonStyle}"
                     Click="ShowMainWindowButton_OnClick">
                 <Grid>
                     <Grid.ColumnDefinitions>

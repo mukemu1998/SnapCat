@@ -32,6 +32,7 @@ public partial class MainWindow
         return
         [
             new("固定到屏幕", _settings.HotkeyCaptureAndPin, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin, returnToMainWindow: false)),
+            new("OCR 识别", _settings.HotkeyCaptureAndOcr, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndOcr, returnToMainWindow: false)),
             new("自动翻译", _settings.HotkeyCaptureAndTranslate, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false)),
             new("等待操作", _settings.HotkeyCaptureAndWaitForAction, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false)),
             new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false)),
@@ -54,6 +55,11 @@ public partial class MainWindow
     private void RecordTranslateHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
         BeginHotkeyRecording(HotkeyCaptureAndTranslateTextBox, "自动翻译");
+    }
+
+    private void RecordOcrHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyCaptureAndOcrTextBox, "OCR 识别");
     }
 
     private void RecordWaitHotkeyButton_OnClick(object sender, RoutedEventArgs e)
@@ -124,6 +130,11 @@ public partial class MainWindow
     private void ClearTranslateHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
         ClearHotkeyTextBox(HotkeyCaptureAndTranslateTextBox);
+    }
+
+    private void ClearOcrHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyCaptureAndOcrTextBox);
     }
 
     private void ClearWaitHotkeyButton_OnClick(object sender, RoutedEventArgs e)
@@ -197,6 +208,7 @@ public partial class MainWindow
     {
         var defaults = new AppSettings();
         HotkeyCaptureAndPinTextBox.Text = defaults.HotkeyCaptureAndPin;
+        HotkeyCaptureAndOcrTextBox.Text = defaults.HotkeyCaptureAndOcr;
         HotkeyCaptureAndTranslateTextBox.Text = defaults.HotkeyCaptureAndTranslate;
         HotkeyCaptureAndWaitTextBox.Text = defaults.HotkeyCaptureAndWaitForAction;
         HotkeyCaptureAndSaveTextBox.Text = defaults.HotkeyCaptureAndSave;
@@ -279,6 +291,7 @@ public partial class MainWindow
         return new Dictionary<string, string>
         {
             ["固定到屏幕"] = HotkeyCaptureAndPinTextBox.Text.Trim(),
+            ["OCR 识别"] = HotkeyCaptureAndOcrTextBox.Text.Trim(),
             ["自动翻译"] = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
             ["等待操作"] = HotkeyCaptureAndWaitTextBox.Text.Trim(),
             ["保存截图"] = HotkeyCaptureAndSaveTextBox.Text.Trim(),

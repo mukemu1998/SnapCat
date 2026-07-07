@@ -309,8 +309,12 @@
                     <MenuItem Header="还原 100% 尺寸" Click="ResetZoomMenuItem_OnClick" />
                 </MenuItem>
                 <MenuItem Header="识别">
-                    <MenuItem Header="OCR 文本识别" Click="OcrMenuItem_OnClick" />
-                    <MenuItem Header="OCR 文本识别并翻译" Click="OcrTranslateMenuItem_OnClick" />
+                    <MenuItem x:Name="OcrMenuItem"
+                              Header="OCR 文本识别"
+                              Click="OcrMenuItem_OnClick" />
+                    <MenuItem x:Name="OcrTranslateMenuItem"
+                              Header="OCR 文本识别并翻译"
+                              Click="OcrTranslateMenuItem_OnClick" />
                     <MenuItem Header="二维码识别" Click="QrCodeMenuItem_OnClick" />
                 </MenuItem>
                 <MenuItem Header="保存">

@@ -10,10 +10,9 @@ public partial class MainWindow
 {
     private void CleanupTempNowButton_OnClick(object sender, RoutedEventArgs e)
     {
-        var settings = BuildCurrentSettings();
-        var deletedTempCount = _app.CapturedImageFileService.CleanupTempFilesOlderThan(settings.TempFileRetentionDays);
+        var deletedTempCount = _app.CapturedImageFileService.CleanupAllTempFiles();
 
-        StatusTextBlock.Text = $"已清理 {deletedTempCount} 个过期临时文件。";
+        StatusTextBlock.Text = $"已清理 {deletedTempCount} 个临时文件。正在使用中的文件会自动跳过。";
     }
 
     private void OpenDefaultCaptureDirectoryButton_OnClick(object sender, RoutedEventArgs e)

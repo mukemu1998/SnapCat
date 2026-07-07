@@ -31,30 +31,31 @@ public partial class TranslationPopupWindow
 
         var centeredX = Clamp(anchorRectDip.Left + (anchorRectDip.Width - popupWidth) / 2, workAreaDip.Left, maxX);
         var centeredY = Clamp(anchorRectDip.Top + (anchorRectDip.Height - popupHeight) / 2, workAreaDip.Top, maxY);
+        var rightAlignedX = Clamp(anchorRectDip.Right - popupWidth, workAreaDip.Left, maxX);
+        var bottomAlignedY = Clamp(anchorRectDip.Bottom - popupHeight, workAreaDip.Top, maxY);
 
         var candidates = new[]
         {
-            new WpfPoint(centeredX, anchorRectDip.Bottom + PopupGap),
-            new WpfPoint(centeredX, anchorRectDip.Top - popupHeight - PopupGap),
-            new WpfPoint(anchorRectDip.Right + PopupGap, centeredY),
-            new WpfPoint(anchorRectDip.Left - popupWidth - PopupGap, centeredY)
+            new PopupPositionCandidate(new WpfPoint(anchorRectDip.Right + PopupGap, centeredY), 0),
+            new PopupPositionCandidate(new WpfPoint(anchorRectDip.Left - popupWidth - PopupGap, centeredY), 1),
+            new PopupPositionCandidate(new WpfPoint(anchorRectDip.Right + PopupGap, bottomAlignedY), 2),
+            new PopupPositionCandidate(new WpfPoint(anchorRectDip.Left - popupWidth - PopupGap, bottomAlignedY), 3),
+            new PopupPositionCandidate(new WpfPoint(centeredX, anchorRectDip.Bottom + PopupGap), 20),
+            new PopupPositionCandidate(new WpfPoint(centeredX, anchorRectDip.Top - popupHeight - PopupGap), 21),
+            new PopupPositionCandidate(new WpfPoint(rightAlignedX, anchorRectDip.Bottom + PopupGap), 22),
+            new PopupPositionCandidate(new WpfPoint(rightAlignedX, anchorRectDip.Top - popupHeight - PopupGap), 23)
         };
 
-        foreach (var candidate in candidates)
-        {
-            if (candidate.X >= workAreaDip.Left
-                && candidate.Y >= workAreaDip.Top
-                && candidate.X + popupWidth <= workAreaDip.Right
-                && candidate.Y + popupHeight <= workAreaDip.Bottom)
-            {
-                Left = candidate.X;
-                Top = candidate.Y;
-                return;
-            }
-        }
+        var bestCandidate = candidates
+            .Select(candidate => ScorePopupPosition(candidate, popupWidth, popupHeight, anchorRectDip, workAreaDip))
+            .OrderBy(static score => score.OverlapArea)
+            .ThenBy(static score => score.OffscreenArea)
+            .ThenBy(static score => score.Priority)
+            .ThenBy(static score => score.DistanceFromAnchor)
+            .First();
 
-        Left = Clamp(centeredX, workAreaDip.Left, maxX);
-        Top = Clamp(anchorRectDip.Bottom + PopupGap, workAreaDip.Top, maxY);
+        Left = Clamp(bestCandidate.Point.X, workAreaDip.Left, maxX);
+        Top = Clamp(bestCandidate.Point.Y, workAreaDip.Top, maxY);
     }
 
     private WpfRect TryGetAnchorRectDip()
@@ -180,4 +181,73 @@ public partial class TranslationPopupWindow
 
         return Math.Max(min, Math.Min(max, value));
     }
+
+    private static PopupPositionScore ScorePopupPosition(
+        PopupPositionCandidate candidate,
+        double popupWidth,
+        double popupHeight,
+        WpfRect anchorRect,
+        WpfRect workArea)
+    {
+        var finalPoint = new WpfPoint(
+            Clamp(candidate.Point.X, workArea.Left, Math.Max(workArea.Left, workArea.Right - popupWidth)),
+            Clamp(candidate.Point.Y, workArea.Top, Math.Max(workArea.Top, workArea.Bottom - popupHeight)));
+        var popupRect = new WpfRect(finalPoint.X, finalPoint.Y, popupWidth, popupHeight);
+        var overlapArea = CalculateIntersectionArea(popupRect, anchorRect);
+        var offscreenArea = popupWidth * popupHeight - CalculateIntersectionArea(popupRect, workArea);
+        var distanceFromAnchor = CalculateEdgeDistance(popupRect, anchorRect);
+
+        return new PopupPositionScore(
+            finalPoint,
+            candidate.Priority,
+            overlapArea,
+            offscreenArea,
+            distanceFromAnchor);
+    }
+
+    private static double CalculateIntersectionArea(WpfRect first, WpfRect second)
+    {
+        var left = Math.Max(first.Left, second.Left);
+        var top = Math.Max(first.Top, second.Top);
+        var right = Math.Min(first.Right, second.Right);
+        var bottom = Math.Min(first.Bottom, second.Bottom);
+
+        return right <= left || bottom <= top
+            ? 0
+            : (right - left) * (bottom - top);
+    }
+
+    private static double CalculateEdgeDistance(WpfRect popupRect, WpfRect anchorRect)
+    {
+        if (popupRect.Bottom <= anchorRect.Top)
+        {
+            return anchorRect.Top - popupRect.Bottom;
+        }
+
+        if (popupRect.Top >= anchorRect.Bottom)
+        {
+            return popupRect.Top - anchorRect.Bottom;
+        }
+
+        if (popupRect.Right <= anchorRect.Left)
+        {
+            return anchorRect.Left - popupRect.Right;
+        }
+
+        if (popupRect.Left >= anchorRect.Right)
+        {
+            return popupRect.Left - anchorRect.Right;
+        }
+
+        return 0;
+    }
+
+    private sealed record PopupPositionCandidate(WpfPoint Point, int Priority);
+
+    private sealed record PopupPositionScore(
+        WpfPoint Point,
+        int Priority,
+        double OverlapArea,
+        double OffscreenArea,
+        double DistanceFromAnchor);
 }

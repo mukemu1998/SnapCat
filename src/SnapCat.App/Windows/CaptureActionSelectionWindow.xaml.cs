@@ -47,25 +47,51 @@ public partial class CaptureActionSelectionWindow : Window
     private Matrix _toDevice = Matrix.Identity;
     private bool _isApplyingBoundsInputs;
     private bool _isSelectionDragging;
+    private readonly bool _usesWindowsTextExtractor;
     private double _moveDragAccumulatedX;
     private double _moveDragAccumulatedY;
     private MoveAxisLock _moveAxisLock;
     private DragInteractionKind _dragInteractionKind;
     private DateTime _lastAdjustmentPanelRefreshUtc = DateTime.MinValue;
+    private bool _keepVisibleForOcrActions;
+    private TaskCompletionSource<bool>? _actionCompletionSource;
 
-    public CaptureActionSelectionWindow(Int32Rect captureRegion)
+    public CaptureActionSelectionWindow(Int32Rect captureRegion, bool usesWindowsTextExtractor = false)
     {
         InitializeComponent();
+        _usesWindowsTextExtractor = usesWindowsTextExtractor;
         _virtualScreenBounds = SystemInformation.VirtualScreen;
         _initialCaptureRegion = captureRegion;
         SelectedAction = CaptureActionKind.Cancel;
         SelectedRegion = captureRegion;
         Loaded += CaptureActionSelectionWindow_OnLoaded;
+        Closed += (_, _) => _actionCompletionSource?.TrySetResult(false);
+        ApplyOcrActionLabels();
     }
 
     public CaptureActionKind SelectedAction { get; private set; }
 
     public Int32Rect SelectedRegion { get; private set; }
+
+    public Task<bool> ShowForActionSelectionAsync(bool keepVisibleForOcrActions)
+    {
+        _keepVisibleForOcrActions = keepVisibleForOcrActions;
+        _actionCompletionSource = new TaskCompletionSource<bool>();
+        Show();
+        return _actionCompletionSource.Task;
+    }
+
+    private void ApplyOcrActionLabels()
+    {
+        if (!_usesWindowsTextExtractor)
+        {
+            return;
+        }
+
+        OcrOnlyButton.ToolTip = "OCR 识别并自动复制";
+        OcrOnlyLabelTextBlock.Text = "OCR复制";
+        OcrTranslateButton.ToolTip = "OCR 识别并自动复制后翻译";
+    }
 
     private void CaptureActionSelectionWindow_OnLoaded(object sender, RoutedEventArgs e)
     {

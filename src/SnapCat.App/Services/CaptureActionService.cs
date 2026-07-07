@@ -16,20 +16,24 @@ public sealed class CaptureActionService
     private readonly IQrCodeService _qrCodeService;
     private readonly IHistoryStore _historyStore;
     private readonly CapturedImageFileService _fileService;
+    private readonly ScreenCaptureService _screenCaptureService;
     private TranslationPopupWindow? _translationPopupWindow;
+    private readonly List<OcrSelectionOverlayWindow> _ocrOverlayWindows = [];
 
     public CaptureActionService(
         IOcrService ocrService,
         ITranslationService translationService,
         IQrCodeService qrCodeService,
         IHistoryStore historyStore,
-        CapturedImageFileService fileService)
+        CapturedImageFileService fileService,
+        ScreenCaptureService screenCaptureService)
     {
         _ocrService = ocrService;
         _translationService = translationService;
         _qrCodeService = qrCodeService;
         _historyStore = historyStore;
         _fileService = fileService;
+        _screenCaptureService = screenCaptureService;
     }
 
     public async Task<string> ExecuteAsync(
@@ -38,13 +42,17 @@ public sealed class CaptureActionService
         AppSettings settings,
         Window? owner = null,
         Int32Rect? captureRegion = null,
-        Func<Task>? repeatCaptureAction = null)
+        Func<Task>? repeatCaptureAction = null,
+        string? screenSnapshotPath = null,
+        Int32Rect? screenSnapshotRegion = null,
+        bool reuseExistingSelectionChrome = false,
+        Window? retainedSelectionChromeWindow = null)
     {
         return action switch
         {
             CaptureActionKind.PinToScreen => ExecutePinToScreen(imagePath, settings, captureRegion),
-            CaptureActionKind.OcrOnly => await ExecuteOcrOnlyAsync(imagePath, settings, owner),
-            CaptureActionKind.OcrAndTranslate => await ExecuteOcrAndTranslateAsync(imagePath, settings, owner, captureRegion, repeatCaptureAction),
+            CaptureActionKind.OcrOnly => await ExecuteOcrOnlyAsync(imagePath, settings, owner, captureRegion, screenSnapshotPath, screenSnapshotRegion, reuseExistingSelectionChrome, retainedSelectionChromeWindow),
+            CaptureActionKind.OcrAndTranslate => await ExecuteOcrAndTranslateAsync(imagePath, settings, owner, captureRegion, repeatCaptureAction, screenSnapshotPath, screenSnapshotRegion, reuseExistingSelectionChrome, retainedSelectionChromeWindow),
             CaptureActionKind.QrCode => await ExecuteQrCodeAsync(imagePath, owner),
             CaptureActionKind.CopyImage => ExecuteCopyImage(imagePath),
             CaptureActionKind.Save => ExecuteSave(imagePath, owner),
@@ -71,8 +79,7 @@ public sealed class CaptureActionService
             return;
         }
 
-        _translationPopupWindow.Show();
-        _translationPopupWindow.Activate();
+        _translationPopupWindow.ShowAboveSelectionOverlay();
     }
 
     private string ExecutePinToScreen(string imagePath, AppSettings settings, Int32Rect? captureRegion)
@@ -92,8 +99,42 @@ public sealed class CaptureActionService
         return "截图已固定到屏幕。";
     }
 
-    private async Task<string> ExecuteOcrOnlyAsync(string imagePath, AppSettings settings, Window? owner)
+    private async Task<string> ExecuteOcrOnlyAsync(
+        string imagePath,
+        AppSettings settings,
+        Window? owner,
+        Int32Rect? captureRegion,
+        string? screenSnapshotPath,
+        Int32Rect? screenSnapshotRegion,
+        bool reuseExistingSelectionChrome,
+        Window? retainedSelectionChromeWindow)
     {
+        var overlayWindow = CreateOcrOverlay(
+            captureRegion,
+            settings,
+            onFirstRecognition: async result =>
+            {
+                await _historyStore.AppendAsync(new CaptureTranslationRecord
+                {
+                    WorkflowType = "ocr",
+                    ImagePath = imagePath,
+                    SourceText = result.Text,
+                    OcrError = result.ErrorMessage,
+                    OcrDebugInfo = result.DebugSummary
+                });
+            },
+            screenSnapshotPath: screenSnapshotPath,
+            screenSnapshotRegion: screenSnapshotRegion,
+            showSelectionChrome: !reuseExistingSelectionChrome,
+            retainedSelectionChromeWindow: retainedSelectionChromeWindow);
+        if (overlayWindow is not null)
+        {
+            overlayWindow.Show();
+            return "OCR 识别层已打开。";
+        }
+
+        CloseRetainedSelectionChrome(retainedSelectionChromeWindow);
+
         var ocrResult = await _ocrService.RecognizeAsync(imagePath, settings);
         await _historyStore.AppendAsync(new CaptureTranslationRecord
         {
@@ -127,30 +168,158 @@ public sealed class CaptureActionService
         AppSettings settings,
         Window? owner,
         Int32Rect? captureRegion,
-        Func<Task>? repeatCaptureAction)
+        Func<Task>? repeatCaptureAction,
+        string? screenSnapshotPath,
+        Int32Rect? screenSnapshotRegion,
+        bool reuseExistingSelectionChrome,
+        Window? retainedSelectionChromeWindow)
     {
         var isReusingPopup = _translationPopupWindow is not null;
         var popupWindow = GetOrCreateTranslationPopupWindow(owner);
+        Func<Task>? effectiveRepeatCaptureAction = async () =>
+        {
+            var activeOverlay = GetActiveOcrOverlay();
+            if (activeOverlay is not null)
+            {
+                activeOverlay.BringToFrontForAdjustment();
+                popupWindow.ShowAboveSelectionOverlay();
+                return;
+            }
+
+            if (repeatCaptureAction is not null)
+            {
+                await repeatCaptureAction();
+            }
+        };
         popupWindow.PrepareForReuse(
             "OCR 识别并翻译",
             TranslationLanguageHelper.CloneSettings(settings),
             captureRegion,
-            repeatCaptureAction,
+            effectiveRepeatCaptureAction,
             preserveCurrentPosition: isReusingPopup);
         popupWindow.SetBusyState("正在识别文本...");
-        popupWindow.Show();
-        popupWindow.Activate();
+
+        var overlayWindow = CreateOcrOverlay(
+            captureRegion,
+            settings,
+            onRecognitionCompleted: async (result, cancellationToken) =>
+            {
+                await UpdateTranslationPopupFromOcrAsync(
+                    result,
+                    imagePath,
+                    popupWindow,
+                    cancellationToken);
+            },
+            screenSnapshotPath: screenSnapshotPath,
+            screenSnapshotRegion: screenSnapshotRegion,
+            showSelectionChrome: !reuseExistingSelectionChrome,
+            retainedSelectionChromeWindow: retainedSelectionChromeWindow);
+        if (overlayWindow is not null)
+        {
+            overlayWindow.Show();
+        }
+        else
+        {
+            CloseRetainedSelectionChrome(retainedSelectionChromeWindow);
+        }
+
+        popupWindow.ShowAboveSelectionOverlay();
+
+        if (overlayWindow is not null)
+        {
+            return "OCR 识别并翻译层已打开。";
+        }
 
         var ocrResult = await _ocrService.RecognizeAsync(imagePath, settings);
+        return await UpdateTranslationPopupFromOcrAsync(
+            ocrResult,
+            imagePath,
+            popupWindow,
+            CancellationToken.None);
+    }
+
+    private OcrSelectionOverlayWindow? CreateOcrOverlay(
+        Int32Rect? captureRegion,
+        AppSettings settings,
+        Func<OcrResult, Task>? onFirstRecognition = null,
+        Func<OcrResult, CancellationToken, Task>? onRecognitionCompleted = null,
+        string? screenSnapshotPath = null,
+        Int32Rect? screenSnapshotRegion = null,
+        bool showSelectionChrome = true,
+        Window? retainedSelectionChromeWindow = null)
+    {
+        if (captureRegion is not { Width: > 0, Height: > 0 } region)
+        {
+            return null;
+        }
+
+        var virtualScreenRegion = screenSnapshotRegion ?? _screenCaptureService.GetVirtualScreenRegion();
+        var effectiveSnapshotPath = !string.IsNullOrWhiteSpace(screenSnapshotPath)
+            ? screenSnapshotPath
+            : _screenCaptureService.CaptureVirtualScreenToTempFile();
+        var firstRecognitionRecorded = false;
+        var overlayWindow = new OcrSelectionOverlayWindow(
+            region,
+            virtualScreenRegion,
+            effectiveSnapshotPath,
+            async (selectedRegion, cancellationToken) =>
+            {
+                var cropPath = _screenCaptureService.CropSnapshotToTempFile(
+                    effectiveSnapshotPath,
+                    virtualScreenRegion,
+                    selectedRegion);
+                var result = await _ocrService.RecognizeAsync(cropPath, settings, cancellationToken);
+
+                if (!firstRecognitionRecorded && onFirstRecognition is not null)
+                {
+                    firstRecognitionRecorded = true;
+                    await onFirstRecognition(result);
+                }
+
+                return result;
+            },
+            showSelectionChrome,
+            onRecognitionCompleted);
+        overlayWindow.Closed += (_, _) =>
+        {
+            _ocrOverlayWindows.Remove(overlayWindow);
+            CloseRetainedSelectionChrome(retainedSelectionChromeWindow);
+        };
+        _ocrOverlayWindows.Add(overlayWindow);
+        return overlayWindow;
+    }
+
+    private OcrSelectionOverlayWindow? GetActiveOcrOverlay()
+    {
+        return _ocrOverlayWindows.LastOrDefault(window => window.IsVisible);
+    }
+
+    private async Task<string> UpdateTranslationPopupFromOcrAsync(
+        OcrResult ocrResult,
+        string imagePath,
+        TranslationPopupWindow popupWindow,
+        CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return "OCR 识别已取消。";
+        }
+
         popupWindow.UpdateRecognizedSource(
             ocrResult.Success ? ocrResult.Text : ocrResult.ErrorMessage,
             ocrResult.Success ? "正在翻译..." : $"OCR 识别失败：{ocrResult.ErrorMessage}");
+        popupWindow.ShowAboveSelectionOverlay();
 
         var popupSettings = popupWindow.CreateCurrentSettingsSnapshot();
         var effectiveSettings = TranslationLanguageHelper.BuildSettingsForTranslation(popupSettings, ocrResult.Text);
         var translationResult = ocrResult.Success
-            ? await _translationService.TranslateAsync(ocrResult.Text, effectiveSettings)
+            ? await _translationService.TranslateAsync(ocrResult.Text, effectiveSettings, cancellationToken)
             : TranslationResult.FromError("OCR 未成功，已跳过翻译。");
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return "OCR 识别已取消。";
+        }
 
         await _historyStore.AppendAsync(new CaptureTranslationRecord
         {
@@ -173,7 +342,28 @@ public sealed class CaptureActionService
             popupWindow.UpdateFailure(status, translationResult.ErrorMessage);
         }
 
+        popupWindow.ShowAboveSelectionOverlay();
         return status;
+    }
+
+    private static void CloseRetainedSelectionChrome(Window? retainedSelectionChromeWindow)
+    {
+        if (retainedSelectionChromeWindow is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (retainedSelectionChromeWindow.IsVisible)
+            {
+                retainedSelectionChromeWindow.Close();
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // The retained action window may already be closing from the user path.
+        }
     }
 
     private TranslationPopupWindow GetOrCreateTranslationPopupWindow(Window? owner)

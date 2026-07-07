@@ -221,7 +221,7 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string TranslationProviderPreference { get; set; } = SnapCat.Core.Models.TranslationProviderPreference.Local;
 
-        public string OcrEngine { get; set; } = "windows-media-ocr";
+        public string OcrEngine { get; set; } = "windows-text-extractor";
 
         public string TesseractExecutablePath { get; set; } = string.Empty;
 
@@ -230,6 +230,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         public double Temperature { get; set; } = 0.2d;
 
         public string HotkeyCaptureAndPin { get; set; } = "Ctrl+Shift+1";
+
+        public string HotkeyCaptureAndOcr { get; set; } = string.Empty;
 
         public string HotkeyCaptureAndTranslate { get; set; } = "Ctrl+Shift+2";
 
@@ -259,6 +261,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string TrayLeftClickAction { get; set; } = nameof(CaptureWorkflowKind.CaptureAndWaitForAction);
 
+        public string CaptureStartupMode { get; set; } = SnapCat.Core.Models.CaptureStartupMode.Snapshot;
+
         public string ThemeId { get; set; } = "ocean-blue";
 
         public int TempFileRetentionDays { get; set; } = 5;
@@ -285,6 +289,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 TesseractLanguage = TesseractLanguage,
                 Temperature = Temperature,
                 HotkeyCaptureAndPin = HotkeyCaptureAndPin,
+                HotkeyCaptureAndOcr = HotkeyCaptureAndOcr,
                 HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = HotkeyCaptureAndSave,
@@ -299,6 +304,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyShowMainWindow = HotkeyShowMainWindow,
                 HotkeyExitApplication = HotkeyExitApplication,
                 TrayLeftClickAction = TrayLeftClickAction,
+                CaptureStartupMode = SnapCat.Core.Models.CaptureStartupMode.Normalize(CaptureStartupMode),
                 ThemeId = ThemeId,
                 TempFileRetentionDays = TempFileRetentionDays,
                 HistoryRetentionDays = HistoryRetentionDays,
@@ -327,6 +333,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 TesseractLanguage = settings.TesseractLanguage,
                 Temperature = settings.Temperature,
                 HotkeyCaptureAndPin = settings.HotkeyCaptureAndPin,
+                HotkeyCaptureAndOcr = settings.HotkeyCaptureAndOcr,
                 HotkeyCaptureAndTranslate = settings.HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = settings.HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
@@ -341,6 +348,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyShowMainWindow = settings.HotkeyShowMainWindow,
                 HotkeyExitApplication = settings.HotkeyExitApplication,
                 TrayLeftClickAction = settings.TrayLeftClickAction,
+                CaptureStartupMode = SnapCat.Core.Models.CaptureStartupMode.Normalize(settings.CaptureStartupMode),
                 ThemeId = settings.ThemeId,
                 TempFileRetentionDays = settings.TempFileRetentionDays,
                 HistoryRetentionDays = settings.HistoryRetentionDays,
@@ -365,6 +373,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 TesseractLanguage = clone.TesseractLanguage,
                 Temperature = clone.Temperature,
                 HotkeyCaptureAndPin = clone.HotkeyCaptureAndPin,
+                HotkeyCaptureAndOcr = clone.HotkeyCaptureAndOcr,
                 HotkeyCaptureAndTranslate = clone.HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = clone.HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = clone.HotkeyCaptureAndSave,
@@ -379,6 +388,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyShowMainWindow = clone.HotkeyShowMainWindow,
                 HotkeyExitApplication = clone.HotkeyExitApplication,
                 TrayLeftClickAction = clone.TrayLeftClickAction,
+                CaptureStartupMode = SnapCat.Core.Models.CaptureStartupMode.Normalize(clone.CaptureStartupMode),
                 ThemeId = clone.ThemeId,
                 TempFileRetentionDays = clone.TempFileRetentionDays,
                 HistoryRetentionDays = clone.HistoryRetentionDays,

@@ -43,6 +43,8 @@ __pycache__/
 # Model and runtime caches
 .cache/
 models/
+!src/SnapCat.Core/Models/
+!src/SnapCat.Core/Models/**
 runtime/
 
 # Local app data snapshots

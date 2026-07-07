@@ -84,7 +84,7 @@ public sealed class TrayIconService : IDisposable
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.3.0-preview";
+            ?? "0.3.1-preview";
         return version.Split('+', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? version;
     }
 
@@ -143,7 +143,6 @@ public sealed class TrayIconService : IDisposable
 
         var menuWindow = new TrayMenuWindow(
             _settingsGetter(),
-            _startCaptureAction,
             _showMainWindowAction,
             _openHistoryAction,
             _openSettingsAction,

@@ -10,6 +10,14 @@ public sealed class CapturedImageFileService
         return Path.Combine(Path.GetTempPath(), "SnapCat");
     }
 
+    public string GetPinnedCacheDirectoryPath()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnapCat",
+            "pinned-cache");
+    }
+
     public string GetDefaultDirectoryPath()
     {
         return Path.Combine(
@@ -22,6 +30,15 @@ public sealed class CapturedImageFileService
         var directory = GetDefaultDirectoryPath();
         Directory.CreateDirectory(directory);
         var targetPath = Path.Combine(directory, $"SnapCat-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+        File.Copy(sourceImagePath, targetPath, overwrite: true);
+        return targetPath;
+    }
+
+    public string SaveToPinnedCacheDirectory(string sourceImagePath)
+    {
+        var directory = GetPinnedCacheDirectoryPath();
+        Directory.CreateDirectory(directory);
+        var targetPath = Path.Combine(directory, $"pinned-{DateTime.Now:yyyyMMdd-HHmmssfff}.png");
         File.Copy(sourceImagePath, targetPath, overwrite: true);
         return targetPath;
     }
@@ -61,13 +78,29 @@ public sealed class CapturedImageFileService
         }
 
         var cutoff = DateTime.Now.AddDays(-retentionDays);
+        return CleanupTempFiles(file => File.GetLastWriteTime(file) < cutoff);
+    }
+
+    public int CleanupAllTempFiles()
+    {
+        return CleanupTempFiles(static _ => true);
+    }
+
+    private int CleanupTempFiles(Func<string, bool> shouldDelete)
+    {
+        var directory = GetTempDirectoryPath();
+        if (!Directory.Exists(directory))
+        {
+            return 0;
+        }
+
         var deletedCount = 0;
 
         foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
         {
             try
             {
-                if (File.GetLastWriteTime(file) < cutoff)
+                if (shouldDelete(file))
                 {
                     File.Delete(file);
                     deletedCount++;
@@ -79,6 +112,27 @@ public sealed class CapturedImageFileService
             }
         }
 
+        DeleteEmptyTempDirectories(directory);
         return deletedCount;
+    }
+
+    private static void DeleteEmptyTempDirectories(string directory)
+    {
+        foreach (var childDirectory in Directory
+            .EnumerateDirectories(directory, "*", SearchOption.AllDirectories)
+            .OrderByDescending(static path => path.Length))
+        {
+            try
+            {
+                if (!Directory.EnumerateFileSystemEntries(childDirectory).Any())
+                {
+                    Directory.Delete(childDirectory);
+                }
+            }
+            catch
+            {
+                // 临时目录可能正在被其它流程使用，跳过即可。
+            }
+        }
     }
 }

@@ -91,6 +91,7 @@ public partial class MainWindow : Window
         TranslationProviderComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         OcrEngineComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TesseractLanguageComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
+        CaptureStartupModeComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TrayLeftClickActionComboBox.SelectionChanged += SettingsSelection_OnSelectionChanged;
         TempRetentionDaysTextBox.TextChanged += SettingsInput_OnTextChanged;
         HistoryRetentionDaysTextBox.TextChanged += SettingsInput_OnTextChanged;
@@ -123,9 +124,16 @@ public partial class MainWindow : Window
     private void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
     {
         CenterOnPrimaryScreen();
-        _viewModel.SetVersion(GetAppVersion());
+        var appVersion = GetAppVersion();
+        _viewModel.SetVersion(appVersion);
+        var aboutReleaseNotes = AboutReleaseNotesService.GetForVersion(appVersion);
+        _viewModel.SetAboutReleaseNotes(
+            aboutReleaseNotes.Title,
+            aboutReleaseNotes.Summary,
+            aboutReleaseNotes.Highlights);
 
         _settings = TranslationLanguageHelper.CloneSettings(_app.StartupSettingsSnapshot);
+        _settings.OcrEngine = NormalizeOcrEngine(_settings.OcrEngine);
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
 
         ApplySettingsToControls(_settings);
@@ -186,6 +194,11 @@ public partial class MainWindow : Window
     private async void RunTranslateActionButton_OnClick(object sender, RoutedEventArgs e)
     {
         await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: true, hideMainWindowForCapture: false);
+    }
+
+    private async void RunOcrActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndOcr, returnToMainWindow: true, hideMainWindowForCapture: false);
     }
 
     private async void RunWaitActionButton_OnClick(object sender, RoutedEventArgs e)

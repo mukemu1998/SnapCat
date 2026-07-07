@@ -28,6 +28,8 @@ public partial class MainWindow
             && ShowInTaskbar;
         var shouldRestoreMainWindow = returnToMainWindow && hideMainWindowForCapture;
 
+        SelectionOverlayWindow? overlay = null;
+
         try
         {
             if (hideMainWindowForCapture && !wasMinimizedToTaskbar)
@@ -36,8 +38,18 @@ public partial class MainWindow
                 await Task.Delay(180);
             }
 
-            var overlay = new SelectionOverlayWindow();
-            var selectionConfirmed = overlay.ShowDialog() == true && overlay.SelectedRegion is not null;
+            var shouldUseImmediateSnapshot = CaptureStartupMode.Normalize(_settings.CaptureStartupMode) == CaptureStartupMode.Snapshot;
+            var screenSnapshotRegion = shouldUseImmediateSnapshot
+                ? _app.ScreenCaptureService.GetCurrentScreenRegion()
+                : (Int32Rect?)null;
+            var screenSnapshotPath = shouldUseImmediateSnapshot
+                ? _app.ScreenCaptureService.CaptureCurrentScreenToTempFile()
+                : null;
+
+            overlay = new SelectionOverlayWindow(screenSnapshotRegion, screenSnapshotPath);
+            var selectionConfirmed = shouldUseImmediateSnapshot
+                ? await overlay.ShowForSelectionAsync(keepVisibleAfterSelection: true) && overlay.SelectedRegion is not null
+                : overlay.ShowDialog() == true && overlay.SelectedRegion is not null;
 
             if (!selectionConfirmed)
             {
@@ -59,6 +71,9 @@ public partial class MainWindow
                 case CaptureWorkflowKind.CaptureAndPin:
                     action = CaptureActionKind.PinToScreen;
                     break;
+                case CaptureWorkflowKind.CaptureAndOcr:
+                    action = CaptureActionKind.OcrOnly;
+                    break;
                 case CaptureWorkflowKind.CaptureAndTranslate:
                     action = CaptureActionKind.OcrAndTranslate;
                     break;
@@ -67,7 +82,7 @@ public partial class MainWindow
                     break;
                 default:
                 {
-                    var selection = await SelectActionAsync(captureRegion);
+                    var selection = await SelectActionAsync(captureRegion, shouldUseImmediateSnapshot);
                     action = selection.Action;
                     workingCaptureRegion = selection.CaptureRegion;
                     break;
@@ -85,8 +100,48 @@ public partial class MainWindow
                 return;
             }
 
+            if (IsWindowsTextRecognitionEngine(_settings.OcrEngine)
+                && (action == CaptureActionKind.OcrOnly || action == CaptureActionKind.OcrAndTranslate))
+            {
+                var keepSnapshotOverlayForWindowsText = shouldUseImmediateSnapshot && overlay is not null && overlay.IsVisible;
+                if (!keepSnapshotOverlayForWindowsText && overlay is not null && overlay.IsVisible)
+                {
+                    overlay.Close();
+                    overlay = null;
+                    await Task.Delay(160);
+                }
+
+                await StartWindowsTextRecognitionBridgeAsync(
+                    action == CaptureActionKind.OcrAndTranslate,
+                    workingCaptureRegion);
+                var windowsTextStatusPrefix = keepSnapshotOverlayForWindowsText
+                    ? "已基于临时定屏触发 Win+Shift+T"
+                    : "已触发 Win+Shift+T";
+                StatusTextBlock.Text = action == CaptureActionKind.OcrAndTranslate
+                    ? $"{windowsTextStatusPrefix}，并尝试用当前选框自动提取后翻译。"
+                    : $"{windowsTextStatusPrefix}，并尝试用当前选框自动提取。";
+
+                if (keepSnapshotOverlayForWindowsText && overlay is not null && overlay.IsVisible)
+                {
+                    overlay.Close();
+                    overlay = null;
+                }
+
+                if (shouldRestoreMainWindow)
+                {
+                    ShowMainWindow();
+                }
+
+                return;
+            }
+
             await Task.Delay(120);
-            var workingImagePath = _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
+            var workingImagePath = !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
+                ? _app.ScreenCaptureService.CropSnapshotToTempFile(
+                    screenSnapshotPath,
+                    screenSnapshotRegion.Value,
+                    workingCaptureRegion)
+                : _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
             if (action == CaptureActionKind.Save)
             {
                 var savedPath = await SaveCaptureToDefaultDirectoryAsync(workingImagePath);
@@ -101,12 +156,9 @@ public partial class MainWindow
                 return;
             }
 
-            if (action is CaptureActionKind.PinToScreen
-                or CaptureActionKind.OcrOnly
-                or CaptureActionKind.OcrAndTranslate
-                or CaptureActionKind.QrCode)
+            if (action == CaptureActionKind.PinToScreen)
             {
-                workingImagePath = _app.CapturedImageFileService.SaveToDefaultDirectory(workingImagePath);
+                workingImagePath = _app.CapturedImageFileService.SaveToPinnedCacheDirectory(workingImagePath);
             }
 
             var status = await _app.CaptureActionService.ExecuteAsync(
@@ -117,7 +169,10 @@ public partial class MainWindow
                 workingCaptureRegion,
                 action == CaptureActionKind.OcrAndTranslate
                     ? () => StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false)
-                    : null);
+                    : null,
+                screenSnapshotPath,
+                screenSnapshotRegion,
+                reuseExistingSelectionChrome: false);
 
             StatusTextBlock.Text = status;
             await LoadHistoryAsync();
@@ -138,6 +193,11 @@ public partial class MainWindow
         }
         finally
         {
+            if (overlay is not null && overlay.IsVisible)
+            {
+                overlay.Close();
+            }
+
             if (wasMinimizedToTaskbar && !returnToMainWindow && !_isExitRequested)
             {
                 KeepMainWindowMinimizedInTaskbar();
@@ -160,20 +220,32 @@ public partial class MainWindow
         return savedPath;
     }
 
-    private async Task<CaptureActionSelectionResult> SelectActionAsync(Int32Rect captureRegion)
+    private async Task<CaptureActionSelectionResult> SelectActionAsync(Int32Rect captureRegion, bool keepVisibleForOcrActions)
     {
-        var actionWindow = new CaptureActionSelectionWindow(captureRegion);
+        var actionWindow = new CaptureActionSelectionWindow(
+            captureRegion,
+            IsWindowsTextRecognitionEngine(_settings.OcrEngine));
 
-        return await Task.FromResult(actionWindow.ShowDialog() == true
+        var confirmed = keepVisibleForOcrActions
+            ? await actionWindow.ShowForActionSelectionAsync(keepVisibleForOcrActions: true)
+            : actionWindow.ShowDialog() == true;
+
+        return confirmed
             ? new CaptureActionSelectionResult(
                 actionWindow.SelectedAction,
                 actionWindow.SelectedRegion)
             : new CaptureActionSelectionResult(
                 CaptureActionKind.Cancel,
-                captureRegion));
+                captureRegion);
     }
 
     private sealed record CaptureActionSelectionResult(
         CaptureActionKind Action,
         Int32Rect CaptureRegion);
+
+    private static bool IsWindowsTextRecognitionEngine(string? value)
+    {
+        return string.Equals(value, "windows-text-extractor", StringComparison.Ordinal)
+            || string.Equals(value, "windows-snipping-clipboard", StringComparison.Ordinal);
+    }
 }

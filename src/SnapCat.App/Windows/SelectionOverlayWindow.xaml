@@ -20,6 +20,12 @@
           MouseRightButtonUp="RootSurface_OnMouseRightButtonUp"
           MouseMove="RootSurface_OnMouseMove">
         <Grid IsHitTestVisible="False">
+            <Image x:Name="SnapshotImage"
+                   Stretch="Fill"
+                   Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   SnapsToDevicePixels="True" />
+
             <controls:SelectionOverlayRenderLayer x:Name="OverlayLayer"
                                                   SmartPreviewStroke="{DynamicResource Theme.Brush.HighlightAlt}"
                                                   SmartPreviewFill="#10000000"

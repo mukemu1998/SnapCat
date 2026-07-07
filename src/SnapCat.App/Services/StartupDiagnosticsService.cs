@@ -18,11 +18,16 @@ public sealed class StartupDiagnosticsService
 
     private static void ValidateTesseract(AppSettings settings, ICollection<string> warnings)
     {
-        if (string.Equals(settings.OcrEngine, "windows-media-ocr", StringComparison.Ordinal))
+        if (string.Equals(settings.OcrEngine, "enhanced-windows-ocr", StringComparison.Ordinal)
+            || string.Equals(settings.OcrEngine, "windows-text-extractor", StringComparison.Ordinal)
+            || string.Equals(settings.OcrEngine, "windows-snipping-clipboard", StringComparison.Ordinal)
+            || string.Equals(settings.OcrEngine, "windows-media-ocr", StringComparison.Ordinal))
         {
-            if (string.IsNullOrWhiteSpace(settings.TesseractLanguage))
+            if (!string.Equals(settings.OcrEngine, "windows-text-extractor", StringComparison.Ordinal)
+                && !string.Equals(settings.OcrEngine, "windows-snipping-clipboard", StringComparison.Ordinal)
+                && string.IsNullOrWhiteSpace(settings.TesseractLanguage))
             {
-                warnings.Add("未填写 OCR 语言，建议至少保留 chi_sim+eng 以便系统内置 OCR 更好地判断语言。");
+                warnings.Add("未填写 OCR 语言，建议至少保留 chi_sim+eng 以便本地轻量 OCR 更好地判断语言。");
             }
 
             return;
@@ -34,7 +39,7 @@ public sealed class StartupDiagnosticsService
 
         if (!CanResolveExecutable(executablePath))
         {
-            warnings.Add("未找到 Tesseract，可继续使用系统内置 OCR；如需更强本地识别，再补充 Tesseract 路径。");
+            warnings.Add("未找到 Tesseract，可继续使用 Windows 高质量文本提取或本地轻量增强版；如需外部本地识别，再补充 Tesseract 路径。");
         }
 
         if (string.IsNullOrWhiteSpace(settings.TesseractLanguage))
@@ -95,8 +100,10 @@ public sealed class StartupDiagnosticsService
         var hotkeys = new Dictionary<string, string>
         {
             ["固定到屏幕"] = settings.HotkeyCaptureAndPin,
+            ["OCR 识别"] = settings.HotkeyCaptureAndOcr,
             ["自动翻译"] = settings.HotkeyCaptureAndTranslate,
-            ["等待操作"] = settings.HotkeyCaptureAndWaitForAction
+            ["等待操作"] = settings.HotkeyCaptureAndWaitForAction,
+            ["保存截图"] = settings.HotkeyCaptureAndSave
         };
 
         var duplicates = hotkeys
@@ -114,7 +121,6 @@ public sealed class StartupDiagnosticsService
         {
             if (string.IsNullOrWhiteSpace(pair.Value))
             {
-                warnings.Add($"未填写“{pair.Key}”的快捷键。");
                 continue;
             }
 

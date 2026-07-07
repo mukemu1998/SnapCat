@@ -34,6 +34,7 @@
 
         <Style x:Key="PopupScrollBarStyle" TargetType="ScrollBar">
             <Setter Property="Width" Value="2" />
+            <Setter Property="MinWidth" Value="2" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -179,7 +180,14 @@
                                         BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                         BorderThickness="1"
                                         CornerRadius="12">
-                                    <ScrollViewer MaxHeight="240">
+                                    <ScrollViewer MaxHeight="240"
+                                                  Padding="0"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <ScrollViewer.Resources>
+                                            <Style TargetType="ScrollBar"
+                                                   BasedOn="{StaticResource PopupScrollBarStyle}" />
+                                        </ScrollViewer.Resources>
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                                     </ScrollViewer>
                                 </Border>

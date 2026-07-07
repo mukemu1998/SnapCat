@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -83,12 +84,85 @@ public static class ThemedLogoService
 
     private static Bitmap LoadLogoBitmap()
     {
-        var resource = WpfApplication.GetResourceStream(LogoUri)
-            ?? throw new FileNotFoundException("未找到 SnapCat logo 资源。", LogoUri.ToString());
+        try
+        {
+            var resource = WpfApplication.GetResourceStream(LogoUri);
+            if (resource is not null)
+            {
+                using var stream = resource.Stream;
+                using var source = new Bitmap(stream);
+                return new Bitmap(source);
+            }
+        }
+        catch
+        {
+            // 启动早期 pack 资源可能还没就绪，继续走发布包旁路资源。
+        }
 
-        using var stream = resource.Stream;
-        using var source = new Bitmap(stream);
-        return new Bitmap(source);
+        foreach (var path in EnumerateLogoFileCandidates())
+        {
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                using var source = new Bitmap(path);
+                return new Bitmap(source);
+            }
+            catch
+            {
+                // 单个候选损坏不影响启动，继续尝试下一个候选。
+            }
+        }
+
+        return CreateFallbackLogoBitmap();
+    }
+
+    private static IEnumerable<string> EnumerateLogoFileCandidates()
+    {
+        yield return Path.Combine(AppContext.BaseDirectory, "Assets", "SnapCat.png");
+        yield return Path.Combine(AppContext.BaseDirectory, "SnapCat.png");
+    }
+
+    private static Bitmap CreateFallbackLogoBitmap()
+    {
+        var bitmap = new Bitmap(512, 512, PixelFormat.Format32bppArgb);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        graphics.Clear(DrawingColor.Transparent);
+
+        using var pen = new Pen(DrawingColor.White, 36)
+        {
+            StartCap = LineCap.Round,
+            EndCap = LineCap.Round,
+            LineJoin = LineJoin.Round
+        };
+
+        using var fill = new SolidBrush(DrawingColor.FromArgb(255, 255, 255, 255));
+        using var facePath = CreateRoundedRectanglePath(new Rectangle(86, 116, 340, 280), 64);
+        graphics.DrawPath(pen, facePath);
+        graphics.DrawLine(pen, 158, 128, 206, 72);
+        graphics.DrawLine(pen, 354, 128, 306, 72);
+        graphics.FillEllipse(fill, 178, 238, 38, 38);
+        graphics.FillEllipse(fill, 296, 238, 38, 38);
+        graphics.FillEllipse(fill, 242, 288, 28, 22);
+        graphics.DrawArc(pen, 210, 292, 48, 42, 20, 120);
+        graphics.DrawArc(pen, 254, 292, 48, 42, 40, 120);
+        return bitmap;
+    }
+
+    private static GraphicsPath CreateRoundedRectanglePath(Rectangle bounds, int radius)
+    {
+        var diameter = radius * 2;
+        var path = new GraphicsPath();
+        path.AddArc(bounds.Left, bounds.Top, diameter, diameter, 180, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Top, diameter, diameter, 270, 90);
+        path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(bounds.Left, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     private static DrawingColor ToDrawingColor(MediaColor color)

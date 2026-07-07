@@ -18,6 +18,7 @@ internal static class SettingsComparer
             && string.Equals(left.TesseractExecutablePath, right.TesseractExecutablePath, StringComparison.Ordinal)
             && string.Equals(left.TesseractLanguage, right.TesseractLanguage, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndPin, right.HotkeyCaptureAndPin, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyCaptureAndOcr, right.HotkeyCaptureAndOcr, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndTranslate, right.HotkeyCaptureAndTranslate, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndWaitForAction, right.HotkeyCaptureAndWaitForAction, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave, StringComparison.OrdinalIgnoreCase)
@@ -32,6 +33,7 @@ internal static class SettingsComparer
             && string.Equals(left.HotkeyShowMainWindow, right.HotkeyShowMainWindow, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyExitApplication, right.HotkeyExitApplication, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.TrayLeftClickAction, right.TrayLeftClickAction, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(CaptureStartupMode.Normalize(left.CaptureStartupMode), CaptureStartupMode.Normalize(right.CaptureStartupMode), StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.ThemeId, right.ThemeId, StringComparison.OrdinalIgnoreCase)
             && left.TempFileRetentionDays == right.TempFileRetentionDays
             && left.HistoryRetentionDays == right.HistoryRetentionDays

@@ -25,6 +25,26 @@ public partial class PinnedImageWindow
         GroupOneMenuItem.IsChecked = string.Equals(GroupName, PinnedWindowRegistryService.GroupOneName, StringComparison.Ordinal);
         GroupTwoMenuItem.IsChecked = string.Equals(GroupName, PinnedWindowRegistryService.GroupTwoName, StringComparison.Ordinal);
         GroupThreeMenuItem.IsChecked = string.Equals(GroupName, PinnedWindowRegistryService.GroupThreeName, StringComparison.Ordinal);
+        ApplyOcrMenuLabels();
+    }
+
+    private void ApplyOcrMenuLabels()
+    {
+        if (IsWindowsTextRecognitionEngine(_settings.OcrEngine))
+        {
+            OcrMenuItem.Header = "OCR 识别并自动复制";
+            OcrTranslateMenuItem.Header = "OCR 识别并自动复制后翻译";
+            return;
+        }
+
+        OcrMenuItem.Header = "OCR 文本识别";
+        OcrTranslateMenuItem.Header = "OCR 文本识别并翻译";
+    }
+
+    private static bool IsWindowsTextRecognitionEngine(string? value)
+    {
+        return string.Equals(value, "windows-text-extractor", StringComparison.Ordinal)
+            || string.Equals(value, "windows-snipping-clipboard", StringComparison.Ordinal);
     }
 
     private void RootBorder_OnMouseEnter(object sender, System.Windows.Input.MouseEventArgs e)

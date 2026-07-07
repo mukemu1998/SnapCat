@@ -12,7 +12,7 @@ internal static class OcrRecognitionHeuristics
             .Where(static line => !string.IsNullOrWhiteSpace(line))
             .Select(static line => line.Trim());
 
-        return string.Join(Environment.NewLine, lines);
+        return NormalizeInlineSpacing(string.Join(Environment.NewLine, lines));
     }
 
     public static string CreatePreview(string text)
@@ -131,5 +131,47 @@ internal static class OcrRecognitionHeuristics
             or '&' or '%' or '+' or '=' or '_' or '*'
             or '，' or '。' or '！' or '？' or '：' or '；' or '（' or '）'
             or '【' or '】' or '「' or '」' or '、' or '《' or '》' or '“' or '”';
+    }
+
+    private static string NormalizeInlineSpacing(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        var normalized = new List<string>();
+        foreach (var line in text.ReplaceLineEndings("\n").Split('\n'))
+        {
+            normalized.Add(CollapseCjkSpacing(line.Trim()));
+        }
+
+        return string.Join(Environment.NewLine, normalized.Where(static line => line.Length > 0));
+    }
+
+    private static string CollapseCjkSpacing(string line)
+    {
+        if (line.Length < 3)
+        {
+            return line;
+        }
+
+        var builder = new System.Text.StringBuilder(line.Length);
+        for (var index = 0; index < line.Length; index++)
+        {
+            var character = line[index];
+            if (char.IsWhiteSpace(character)
+                && index > 0
+                && index < line.Length - 1
+                && IsCjk(line[index - 1])
+                && IsCjk(line[index + 1]))
+            {
+                continue;
+            }
+
+            builder.Append(character);
+        }
+
+        return builder.ToString();
     }
 }

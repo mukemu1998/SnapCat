@@ -24,9 +24,9 @@ public sealed class SmartOcrService : IOcrService
         AppSettings settings,
         CancellationToken cancellationToken = default)
     {
-        if (string.Equals(settings.OcrEngine, "windows-media-ocr", StringComparison.Ordinal))
+        if (IsWindowsOcr(settings.OcrEngine))
         {
-            return await _windowsMediaOcrService.RecognizeAsync(imagePath, settings, cancellationToken);
+            return await RecognizeWithWindowsStackAsync(imagePath, settings, cancellationToken);
         }
 
         var primaryResult = string.Equals(settings.OcrEngine, "tesseract-cli", StringComparison.Ordinal)
@@ -44,12 +44,27 @@ public sealed class SmartOcrService : IOcrService
             return OcrResult.FromText(
                 fallbackResult.Text,
                 fallbackResult.EngineName,
-                $"{primaryResult.DebugSummary}{Environment.NewLine}{Environment.NewLine}已自动回退到系统内置 OCR。{Environment.NewLine}{fallbackResult.DebugSummary}".Trim());
+                $"{primaryResult.DebugSummary}{Environment.NewLine}{Environment.NewLine}已自动回退到本地轻量增强版。{Environment.NewLine}{fallbackResult.DebugSummary}".Trim(),
+                fallbackResult.Regions);
         }
 
         return OcrResult.FromError(
-            $"{primaryResult.ErrorMessage}；系统内置 OCR 也未成功：{fallbackResult.ErrorMessage}",
+            $"{primaryResult.ErrorMessage}；本地轻量增强版也未成功：{fallbackResult.ErrorMessage}",
             "smart-local-ocr",
             $"{primaryResult.DebugSummary}{Environment.NewLine}{Environment.NewLine}{fallbackResult.DebugSummary}".Trim());
+    }
+
+    private async Task<OcrResult> RecognizeWithWindowsStackAsync(
+        string imagePath,
+        AppSettings settings,
+        CancellationToken cancellationToken)
+    {
+        return await _windowsMediaOcrService.RecognizeAsync(imagePath, settings, cancellationToken);
+    }
+
+    private static bool IsWindowsOcr(string value)
+    {
+        return string.Equals(value, "enhanced-windows-ocr", StringComparison.Ordinal)
+            || string.Equals(value, "windows-media-ocr", StringComparison.Ordinal);
     }
 }
