@@ -128,6 +128,7 @@ public static class TranslationLanguageHelper
         HotkeyCaptureAndTranslate = settings.HotkeyCaptureAndTranslate,
         HotkeyCaptureAndWaitForAction = settings.HotkeyCaptureAndWaitForAction,
         HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
+        HotkeyCaptureAndCopy = settings.HotkeyCaptureAndCopy,
         PinnedCloseShortcut = settings.PinnedCloseShortcut,
         PinnedHideShortcut = settings.PinnedHideShortcut,
         HotkeyShowAllPinned = settings.HotkeyShowAllPinned,

@@ -10,10 +10,15 @@ namespace SnapCat.Infrastructure.Services;
 public sealed class ZxingQrCodeService : IQrCodeService
 {
     public Task<QrCodeResult> DecodeAsync(string imagePath, CancellationToken cancellationToken = default)
+        => Task.Run(() => Decode(imagePath, cancellationToken), cancellationToken);
+
+    private static QrCodeResult Decode(string imagePath, CancellationToken cancellationToken)
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             using var bitmap = (Bitmap)Image.FromFile(imagePath);
+            cancellationToken.ThrowIfCancellationRequested();
 
             var source = new BitmapLuminanceSource(bitmap);
             var reader = new BarcodeReaderGeneric
@@ -27,16 +32,21 @@ public sealed class ZxingQrCodeService : IQrCodeService
             };
 
             var result = reader.Decode(source);
+            cancellationToken.ThrowIfCancellationRequested();
             if (result is null || string.IsNullOrWhiteSpace(result.Text))
             {
-                return Task.FromResult(QrCodeResult.FromError("未识别到二维码内容。"));
+                return QrCodeResult.FromError("未识别到二维码内容。");
             }
 
-            return Task.FromResult(QrCodeResult.FromText(result.Text));
+            return QrCodeResult.FromText(result.Text);
+        }
+        catch (OperationCanceledException)
+        {
+            return QrCodeResult.FromError("二维码识别已取消。");
         }
         catch (Exception ex)
         {
-            return Task.FromResult(QrCodeResult.FromError($"二维码识别失败：{ex.Message}"));
+            return QrCodeResult.FromError($"二维码识别失败：{ex.Message}");
         }
     }
 }

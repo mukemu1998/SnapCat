@@ -55,6 +55,8 @@ public sealed class AppSettings
 
     public string HotkeyCaptureAndSave { get; set; } = "Ctrl+Shift+4";
 
+    public string HotkeyCaptureAndCopy { get; set; } = string.Empty;
+
     public string PinnedCloseShortcut { get; set; } = "Esc";
 
     public string PinnedHideShortcut { get; set; } = "鼠标中键";

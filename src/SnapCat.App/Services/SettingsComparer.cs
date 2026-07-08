@@ -22,6 +22,7 @@ internal static class SettingsComparer
             && string.Equals(left.HotkeyCaptureAndTranslate, right.HotkeyCaptureAndTranslate, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndWaitForAction, right.HotkeyCaptureAndWaitForAction, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.HotkeyCaptureAndCopy, right.HotkeyCaptureAndCopy, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.PinnedCloseShortcut, right.PinnedCloseShortcut, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.PinnedHideShortcut, right.PinnedHideShortcut, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.HotkeyShowAllPinned, right.HotkeyShowAllPinned, StringComparison.OrdinalIgnoreCase)

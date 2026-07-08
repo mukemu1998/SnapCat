@@ -19,6 +19,7 @@ public sealed class CaptureActionService
     private readonly ScreenCaptureService _screenCaptureService;
     private TranslationPopupWindow? _translationPopupWindow;
     private readonly List<OcrSelectionOverlayWindow> _ocrOverlayWindows = [];
+    private static readonly TimeSpan QrCodeDecodeTimeout = TimeSpan.FromSeconds(8);
 
     public CaptureActionService(
         IOcrService ocrService,
@@ -53,7 +54,7 @@ public sealed class CaptureActionService
             CaptureActionKind.PinToScreen => ExecutePinToScreen(imagePath, settings, captureRegion),
             CaptureActionKind.OcrOnly => await ExecuteOcrOnlyAsync(imagePath, settings, owner, captureRegion, screenSnapshotPath, screenSnapshotRegion, reuseExistingSelectionChrome, retainedSelectionChromeWindow),
             CaptureActionKind.OcrAndTranslate => await ExecuteOcrAndTranslateAsync(imagePath, settings, owner, captureRegion, repeatCaptureAction, screenSnapshotPath, screenSnapshotRegion, reuseExistingSelectionChrome, retainedSelectionChromeWindow),
-            CaptureActionKind.QrCode => await ExecuteQrCodeAsync(imagePath, owner),
+            CaptureActionKind.QrCode => await ExecuteQrCodeAsync(imagePath, owner, captureRegion),
             CaptureActionKind.CopyImage => ExecuteCopyImage(imagePath),
             CaptureActionKind.Save => ExecuteSave(imagePath, owner),
             CaptureActionKind.SaveAs => ExecuteSaveAs(imagePath, owner),
@@ -395,9 +396,10 @@ public sealed class CaptureActionService
         return popupWindow;
     }
 
-    private async Task<string> ExecuteQrCodeAsync(string imagePath, Window? owner)
+    private async Task<string> ExecuteQrCodeAsync(string imagePath, Window? owner, Int32Rect? captureRegion)
     {
-        var qrResult = await _qrCodeService.DecodeAsync(imagePath);
+        using var timeoutCts = new CancellationTokenSource(QrCodeDecodeTimeout);
+        var qrResult = await _qrCodeService.DecodeAsync(imagePath, timeoutCts.Token);
         await _historyStore.AppendAsync(new CaptureTranslationRecord
         {
             WorkflowType = "qr",
@@ -407,18 +409,16 @@ public sealed class CaptureActionService
         });
 
         var status = qrResult.Success ? "二维码识别已完成。" : $"二维码识别失败：{qrResult.ErrorMessage}";
-        var resultWindow = new ResultWindow(
-            "二维码识别结果",
+        var popupWindow = new QrCodeResultPopupWindow(
             status,
-            "二维码内容",
             qrResult.Success ? qrResult.Text : qrResult.ErrorMessage,
-            "截图路径",
-            imagePath,
-            imagePath: imagePath)
+            qrResult.Success,
+            captureRegion,
+            owner)
         {
             Owner = owner
         };
-        resultWindow.ShowDialog();
+        popupWindow.Show();
 
         return status;
     }

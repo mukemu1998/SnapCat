@@ -36,6 +36,7 @@ public partial class MainWindow
             new("自动翻译", _settings.HotkeyCaptureAndTranslate, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false)),
             new("等待操作", _settings.HotkeyCaptureAndWaitForAction, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false)),
             new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false)),
+            new("复制截图", _settings.HotkeyCaptureAndCopy, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: false)),
             new("显示全部贴图", _settings.HotkeyShowAllPinned, ShowAllPinnedImages),
             new("隐藏全部贴图", _settings.HotkeyHideAllPinned, HideAllPinnedImages),
             new("显示未成组贴图", _settings.HotkeyShowUngroupedPinned, ShowUngroupedPinnedImages),
@@ -70,6 +71,11 @@ public partial class MainWindow
     private void RecordSaveHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
         BeginHotkeyRecording(HotkeyCaptureAndSaveTextBox, "保存截图");
+    }
+
+    private void RecordCopyHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyCaptureAndCopyTextBox, "复制截图");
     }
 
     private void RecordPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
@@ -147,6 +153,11 @@ public partial class MainWindow
         ClearHotkeyTextBox(HotkeyCaptureAndSaveTextBox);
     }
 
+    private void ClearCopyHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyCaptureAndCopyTextBox);
+    }
+
     private void ClearPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
     {
         ClearHotkeyTextBox(PinnedCloseShortcutTextBox);
@@ -212,6 +223,7 @@ public partial class MainWindow
         HotkeyCaptureAndTranslateTextBox.Text = defaults.HotkeyCaptureAndTranslate;
         HotkeyCaptureAndWaitTextBox.Text = defaults.HotkeyCaptureAndWaitForAction;
         HotkeyCaptureAndSaveTextBox.Text = defaults.HotkeyCaptureAndSave;
+        HotkeyCaptureAndCopyTextBox.Text = defaults.HotkeyCaptureAndCopy;
         PinnedCloseShortcutTextBox.Text = defaults.PinnedCloseShortcut;
         PinnedHideShortcutTextBox.Text = defaults.PinnedHideShortcut;
         HotkeyShowAllPinnedTextBox.Text = defaults.HotkeyShowAllPinned;
@@ -295,6 +307,7 @@ public partial class MainWindow
             ["自动翻译"] = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
             ["等待操作"] = HotkeyCaptureAndWaitTextBox.Text.Trim(),
             ["保存截图"] = HotkeyCaptureAndSaveTextBox.Text.Trim(),
+            ["复制截图"] = HotkeyCaptureAndCopyTextBox.Text.Trim(),
             ["关闭贴图"] = PinnedCloseShortcutTextBox.Text.Trim(),
             ["隐藏贴图"] = PinnedHideShortcutTextBox.Text.Trim(),
             ["显示全部贴图"] = HotkeyShowAllPinnedTextBox.Text.Trim(),

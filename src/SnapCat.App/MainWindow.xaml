@@ -1342,6 +1342,8 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
@@ -1719,185 +1721,97 @@
                                                   MaxHeight="360"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   VerticalScrollBarVisibility="Auto">
-                                    <Grid Margin="0,0,8,0">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="Auto" />
-                                        </Grid.RowDefinitions>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="220" />
-                                            <ColumnDefinition Width="100" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="90" />
-                                            <ColumnDefinition Width="90" />
-                                        </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,8,0">
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选并固定到屏幕" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunPinActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndPinTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordPinHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearPinHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
 
-                                        <TextBlock Grid.Row="0"
-                                                   Grid.Column="0"
-                                                   Margin="0,0,12,12"
-                                                   VerticalAlignment="Center"
-                                                   Text="自由框选并固定到屏幕" />
-                                        <Button Grid.Row="0"
-                                                Grid.Column="1"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RunPinActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndPinTextBox"
-                                                 Grid.Row="0"
-                                                 Grid.Column="2"
-                                                 Margin="0,0,12,12"
-                                                 IsReadOnly="True"
-                                                 VerticalContentAlignment="Center" />
-                                        <Button Grid.Row="0"
-                                                Grid.Column="3"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RecordPinHotkeyButton_OnClick">录制</Button>
-                                        <Button Grid.Row="0"
-                                                Grid.Column="4"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,0,12"
-                                                Click="ClearPinHotkeyButton_OnClick">清空</Button>
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选后 OCR 识别" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunOcrActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndOcrTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordOcrHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearOcrHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
 
-                                        <TextBlock Grid.Row="1"
-                                                   Grid.Column="0"
-                                                   Margin="0,0,12,12"
-                                                   VerticalAlignment="Center"
-                                                   Text="自由框选后 OCR 识别" />
-                                        <Button Grid.Row="1"
-                                                Grid.Column="1"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RunOcrActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndOcrTextBox"
-                                                 Grid.Row="1"
-                                                 Grid.Column="2"
-                                                 Margin="0,0,12,12"
-                                                 IsReadOnly="True"
-                                                 VerticalContentAlignment="Center" />
-                                        <Button Grid.Row="1"
-                                                Grid.Column="3"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RecordOcrHotkeyButton_OnClick">录制</Button>
-                                        <Button Grid.Row="1"
-                                                Grid.Column="4"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,0,12"
-                                                Click="ClearOcrHotkeyButton_OnClick">清空</Button>
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选后自动翻译" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunTranslateActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndTranslateTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordTranslateHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearTranslateHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
 
-                                        <TextBlock Grid.Row="2"
-                                                   Grid.Column="0"
-                                                   Margin="0,0,12,12"
-                                                   VerticalAlignment="Center"
-                                                   Text="自由框选后自动翻译" />
-                                        <Button Grid.Row="2"
-                                                Grid.Column="1"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RunTranslateActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndTranslateTextBox"
-                                                 Grid.Row="2"
-                                                 Grid.Column="2"
-                                                 Margin="0,0,12,12"
-                                                 IsReadOnly="True"
-                                                 VerticalContentAlignment="Center" />
-                                        <Button Grid.Row="2"
-                                                Grid.Column="3"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RecordTranslateHotkeyButton_OnClick">录制</Button>
-                                        <Button Grid.Row="2"
-                                                Grid.Column="4"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,0,12"
-                                                Click="ClearTranslateHotkeyButton_OnClick">清空</Button>
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选后等待操作选择" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunWaitActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndWaitTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordWaitHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearWaitHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
 
-                                        <TextBlock Grid.Row="3"
-                                                   Grid.Column="0"
-                                                   Margin="0,0,12,12"
-                                                   VerticalAlignment="Center"
-                                                   Text="自由框选后等待操作选择" />
-                                        <Button Grid.Row="3"
-                                                Grid.Column="1"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RunWaitActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndWaitTextBox"
-                                                 Grid.Row="3"
-                                                 Grid.Column="2"
-                                                 Margin="0,0,12,12"
-                                                 IsReadOnly="True"
-                                                 VerticalContentAlignment="Center" />
-                                        <Button Grid.Row="3"
-                                                Grid.Column="3"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,12"
-                                                Click="RecordWaitHotkeyButton_OnClick">录制</Button>
-                                        <Button Grid.Row="3"
-                                                Grid.Column="4"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,0,12"
-                                                Click="ClearWaitHotkeyButton_OnClick">清空</Button>
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选并保存到默认位置" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunSaveActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndSaveTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordSaveHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearSaveHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
 
-                                        <TextBlock Grid.Row="4"
-                                                   Grid.Column="0"
-                                                   VerticalAlignment="Center"
-                                                   Text="自由框选并保存到默认位置" />
-                                        <Button Grid.Row="4"
-                                                Grid.Column="1"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,0"
-                                                Click="RunSaveActionButton_OnClick">执行</Button>
-                                        <TextBox x:Name="HotkeyCaptureAndSaveTextBox"
-                                                 Grid.Row="4"
-                                                 Grid.Column="2"
-                                                 Margin="0,0,12,0"
-                                                 IsReadOnly="True"
-                                                 VerticalContentAlignment="Center" />
-                                        <Button Grid.Row="4"
-                                                Grid.Column="3"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Margin="0,0,12,0"
-                                                Click="RecordSaveHotkeyButton_OnClick">录制</Button>
-                                        <Button Grid.Row="4"
-                                                Grid.Column="4"
-                                                Style="{StaticResource CompactRoundedButtonStyle}"
-                                                Width="78"
-                                                Height="32"
-                                                Click="ClearSaveHotkeyButton_OnClick">清空</Button>
-                                    </Grid>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选并复制到剪贴板" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunCopyActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndCopyTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordCopyHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearCopyHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
+                                    </StackPanel>
                                     </ScrollViewer>
                                 </StackPanel>
                             </Border>
@@ -2185,6 +2099,7 @@
                                         <ComboBoxItem Tag="CaptureAndTranslate">自由框选后自动翻译</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndWaitForAction">自由框选后等待操作选择</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndSave">自由框选并保存到默认位置</ComboBoxItem>
+                                        <ComboBoxItem Tag="CaptureAndCopy">自由框选并复制到剪贴板</ComboBoxItem>
                                     </ComboBox>
                                     <TextBlock Margin="0,12,0,0"
                                                Foreground="{DynamicResource Theme.Brush.TextSecondary}"

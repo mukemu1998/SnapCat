@@ -80,6 +80,9 @@ public partial class MainWindow
                 case CaptureWorkflowKind.CaptureAndSave:
                     action = CaptureActionKind.Save;
                     break;
+                case CaptureWorkflowKind.CaptureAndCopy:
+                    action = CaptureActionKind.CopyImage;
+                    break;
                 default:
                 {
                     var selection = await SelectActionAsync(captureRegion, shouldUseImmediateSnapshot);
@@ -103,6 +106,7 @@ public partial class MainWindow
             if (IsWindowsTextRecognitionEngine(_settings.OcrEngine)
                 && (action == CaptureActionKind.OcrOnly || action == CaptureActionKind.OcrAndTranslate))
             {
+                var canAutoSelectWindowsText = Services.WindowsTextExtractorLauncher.CanAutoSelectReliably(workingCaptureRegion);
                 var keepSnapshotOverlayForWindowsText = shouldUseImmediateSnapshot && overlay is not null && overlay.IsVisible;
                 if (!keepSnapshotOverlayForWindowsText && overlay is not null && overlay.IsVisible)
                 {
@@ -117,9 +121,13 @@ public partial class MainWindow
                 var windowsTextStatusPrefix = keepSnapshotOverlayForWindowsText
                     ? "已基于临时定屏触发 Win+Shift+T"
                     : "已触发 Win+Shift+T";
-                StatusTextBlock.Text = action == CaptureActionKind.OcrAndTranslate
-                    ? $"{windowsTextStatusPrefix}，并尝试用当前选框自动提取后翻译。"
-                    : $"{windowsTextStatusPrefix}，并尝试用当前选框自动提取。";
+                StatusTextBlock.Text = canAutoSelectWindowsText
+                    ? (action == CaptureActionKind.OcrAndTranslate
+                        ? $"{windowsTextStatusPrefix}，并尝试用当前选框自动提取后翻译。"
+                        : $"{windowsTextStatusPrefix}，并尝试用当前选框自动提取。")
+                    : (action == CaptureActionKind.OcrAndTranslate
+                        ? $"{windowsTextStatusPrefix}，当前选区较小，请手动补框并复制后自动翻译。"
+                        : $"{windowsTextStatusPrefix}，当前选区较小，请手动补框并复制。");
 
                 if (keepSnapshotOverlayForWindowsText && overlay is not null && overlay.IsVisible)
                 {
@@ -133,6 +141,15 @@ public partial class MainWindow
                 }
 
                 return;
+            }
+
+            if (action is not (CaptureActionKind.OcrOnly or CaptureActionKind.OcrAndTranslate)
+                && overlay is not null
+                && overlay.IsVisible)
+            {
+                overlay.Close();
+                overlay = null;
+                await Task.Delay(80);
             }
 
             await Task.Delay(120);

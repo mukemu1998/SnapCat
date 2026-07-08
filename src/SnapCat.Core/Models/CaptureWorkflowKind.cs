@@ -6,5 +6,6 @@ public enum CaptureWorkflowKind
     CaptureAndOcr,
     CaptureAndTranslate,
     CaptureAndWaitForAction,
-    CaptureAndSave
+    CaptureAndSave,
+    CaptureAndCopy
 }

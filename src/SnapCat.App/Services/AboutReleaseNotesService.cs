@@ -12,6 +12,16 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.3.2-preview" => new AboutReleaseNotes(
+                "本版更新：贴图菜单与截图复制流程整理",
+                "这一版重点收束上一轮 OCR、二维码、截图复制和贴图右键菜单体验，让常用操作更短，低频操作更安全。",
+                [
+                    "新增“自由框选并复制到剪贴板”组合指令，可单独绑定快捷键，框选后直接复制截图。",
+                    "二维码识别改为贴近选框的小结果窗，支持一键复制，并修复识别时可能卡住的问题。",
+                    "Windows 高质量文本提取在小选区失败时支持手动补框后继续接入翻译浮窗。",
+                    "贴图右键菜单精简为常用一级操作，编辑、阵列、分组和更多操作折叠收纳。",
+                    "贴图阵列输入框和右键子菜单进一步收窄，降低菜单遮挡。"
+                ]),
             "0.3.1-preview" => new AboutReleaseNotes(
                 "本版更新：Windows 文本提取链路优化",
                 "这一版重点打磨 Windows 高质量文本提取、临时定屏框选和翻译浮窗联动，让 OCR 翻译链路更接近系统级体验。",

@@ -9,6 +9,8 @@ public static class WindowsTextExtractorLauncher
     private static readonly TimeSpan TextExtractorReadyDelay = TimeSpan.FromMilliseconds(1100);
     private static readonly TimeSpan CopyRetryDelay = TimeSpan.FromMilliseconds(850);
     private const int CopyAttemptCount = 3;
+    private const int MinimumReliableAutoSelectWidth = 80;
+    private const int MinimumReliableAutoSelectHeight = 32;
     private const ushort VirtualKeyLeftWindows = 0x5B;
     private const ushort VirtualKeyShift = 0x10;
     private const ushort VirtualKeyControl = 0x11;
@@ -27,7 +29,7 @@ public static class WindowsTextExtractorLauncher
     {
         SendKeyboardShortcut();
 
-        if (autoSelectRegion is null || autoSelectRegion.Value.Width < 2 || autoSelectRegion.Value.Height < 2)
+        if (autoSelectRegion is null || !CanAutoSelectReliably(autoSelectRegion.Value))
         {
             return;
         }
@@ -35,6 +37,19 @@ public static class WindowsTextExtractorLauncher
         await Task.Delay(900, cancellationToken);
         AutoDragSelection(autoSelectRegion.Value);
         await SendDelayedSelectAllAndCopyAsync(cancellationToken);
+    }
+
+    public static bool CanAutoSelectReliably(Int32Rect region)
+    {
+        return region.Width >= MinimumReliableAutoSelectWidth
+            && region.Height >= MinimumReliableAutoSelectHeight;
+    }
+
+    public static async Task TrySelectAllAndCopyAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
+        SendSelectAllAndCopyShortcut();
     }
 
     private static void SendKeyboardShortcut()

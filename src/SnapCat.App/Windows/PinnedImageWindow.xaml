@@ -31,7 +31,7 @@
                                                   Color="#FF000000" />
                             </Border.Effect>
                             <StackPanel IsItemsHost="True"
-                                        MinWidth="156"
+                                        MinWidth="128"
                                         KeyboardNavigation.DirectionalNavigation="Cycle" />
                         </Border>
                     </ControlTemplate>
@@ -53,7 +53,7 @@
                                     Margin="0,0,0,2"
                                     Background="{TemplateBinding Background}"
                                     CornerRadius="9">
-                                <Grid MinWidth="132">
+                                <Grid MinWidth="104">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="18" />
@@ -90,7 +90,7 @@
                                                           Color="#FF000000" />
                                     </Border.Effect>
                                     <StackPanel IsItemsHost="True"
-                                                MinWidth="156"
+                                                MinWidth="128"
                                                 KeyboardNavigation.DirectionalNavigation="Cycle" />
                                 </Border>
                             </Popup>
@@ -124,10 +124,10 @@
         </Style>
 
         <Style x:Key="ArrayCountTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Width" Value="68" />
+            <Setter Property="Width" Value="48" />
             <Setter Property="Height" Value="22" />
             <Setter Property="Margin" Value="0" />
-            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Padding" Value="6,0" />
             <Setter Property="Foreground" Value="#FFF3F4F6" />
             <Setter Property="Background" Value="#CC111827" />
             <Setter Property="BorderBrush" Value="#995B6B84" />
@@ -226,42 +226,31 @@
         <Border.ContextMenu>
             <ContextMenu x:Name="PinnedContextMenu"
                          Opened="ContextMenu_OnOpened">
-                <MenuItem Header="复制">
-                    <MenuItem Header="复制图片" Click="CopyImageMenuItem_OnClick" />
-                    <MenuItem Header="复制并贴图" Click="DuplicatePinnedMenuItem_OnClick" />
-                    <MenuItem Header="复制图片路径" Click="CopyImagePathMenuItem_OnClick" />
-                    <MenuItem Header="打开截图位置" Click="OpenImageLocationMenuItem_OnClick" />
-                </MenuItem>
-                <MenuItem Header="贴图组">
-                    <MenuItem x:Name="UngroupedGroupMenuItem"
-                              Header="未成组"
-                              IsCheckable="True"
-                              Tag=""
-                              Click="GroupMenuItem_OnClick" />
-                    <MenuItem x:Name="GroupOneMenuItem"
-                              Header="贴图组 1"
-                              IsCheckable="True"
-                              Tag="贴图组 1"
-                              Click="GroupMenuItem_OnClick" />
-                    <MenuItem x:Name="GroupTwoMenuItem"
-                              Header="贴图组 2"
-                              IsCheckable="True"
-                              Tag="贴图组 2"
-                              Click="GroupMenuItem_OnClick" />
-                    <MenuItem x:Name="GroupThreeMenuItem"
-                              Header="贴图组 3"
-                              IsCheckable="True"
-                              Tag="贴图组 3"
-                              Click="GroupMenuItem_OnClick" />
-                </MenuItem>
-                <MenuItem Header="变换">
+                <MenuItem Header="复制图片" Click="CopyImageMenuItem_OnClick" />
+                <MenuItem Header="复制并贴图" Click="DuplicatePinnedMenuItem_OnClick" />
+                <MenuItem Header="另存为" Click="SaveAsMenuItem_OnClick" />
+                <Separator />
+                <MenuItem x:Name="OcrMenuItem"
+                          Header="OCR 识别"
+                          Click="OcrMenuItem_OnClick" />
+                <MenuItem x:Name="OcrTranslateMenuItem"
+                          Header="OCR 识别并翻译"
+                          Click="OcrTranslateMenuItem_OnClick" />
+                <MenuItem Header="二维码识别" Click="QrCodeMenuItem_OnClick" />
+                <Separator />
+                <MenuItem Header="隐藏" Click="HideCurrentMenuItem_OnClick" />
+                <MenuItem Header="关闭" Click="CloseMenuItem_OnClick" />
+                <MenuItem Header="编辑">
                     <MenuItem Header="左右翻转" Click="FlipHorizontalMenuItem_OnClick" />
                     <MenuItem Header="上下翻转" Click="FlipVerticalMenuItem_OnClick" />
                     <MenuItem x:Name="ResetOrientationMenuItem"
                               Header="恢复原始方向"
                               Click="ResetOrientationMenuItem_OnClick" />
+                    <MenuItem Header="放大 10%" Click="ZoomInMenuItem_OnClick" />
+                    <MenuItem Header="缩小 10%" Click="ZoomOutMenuItem_OnClick" />
+                    <MenuItem Header="还原 100% 尺寸" Click="ResetZoomMenuItem_OnClick" />
                 </MenuItem>
-                <MenuItem Header="阵列长贴图">
+                <MenuItem Header="阵列">
                     <MenuItem Header="向右">
                         <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
                                  Tag="Right"
@@ -303,31 +292,38 @@
                                  KeyDown="ArrayCountTextBox_OnKeyDown" />
                     </MenuItem>
                 </MenuItem>
-                <MenuItem Header="缩放">
-                    <MenuItem Header="放大 10%" Click="ZoomInMenuItem_OnClick" />
-                    <MenuItem Header="缩小 10%" Click="ZoomOutMenuItem_OnClick" />
-                    <MenuItem Header="还原 100% 尺寸" Click="ResetZoomMenuItem_OnClick" />
+                <MenuItem Header="分组">
+                    <MenuItem x:Name="UngroupedGroupMenuItem"
+                              Header="未成组"
+                              IsCheckable="True"
+                              Tag=""
+                              Click="GroupMenuItem_OnClick" />
+                    <MenuItem x:Name="GroupOneMenuItem"
+                              Header="贴图组 1"
+                              IsCheckable="True"
+                              Tag="贴图组 1"
+                              Click="GroupMenuItem_OnClick" />
+                    <MenuItem x:Name="GroupTwoMenuItem"
+                              Header="贴图组 2"
+                              IsCheckable="True"
+                              Tag="贴图组 2"
+                              Click="GroupMenuItem_OnClick" />
+                    <MenuItem x:Name="GroupThreeMenuItem"
+                              Header="贴图组 3"
+                              IsCheckable="True"
+                              Tag="贴图组 3"
+                              Click="GroupMenuItem_OnClick" />
                 </MenuItem>
-                <MenuItem Header="识别">
-                    <MenuItem x:Name="OcrMenuItem"
-                              Header="OCR 文本识别"
-                              Click="OcrMenuItem_OnClick" />
-                    <MenuItem x:Name="OcrTranslateMenuItem"
-                              Header="OCR 文本识别并翻译"
-                              Click="OcrTranslateMenuItem_OnClick" />
-                    <MenuItem Header="二维码识别" Click="QrCodeMenuItem_OnClick" />
-                </MenuItem>
-                <MenuItem Header="保存">
+                <MenuItem Header="更多">
+                    <MenuItem Header="复制图片路径" Click="CopyImagePathMenuItem_OnClick" />
+                    <MenuItem Header="打开截图位置" Click="OpenImageLocationMenuItem_OnClick" />
+                    <Separator />
                     <MenuItem Header="保存" Click="SaveMenuItem_OnClick" />
-                    <MenuItem Header="另存为" Click="SaveAsMenuItem_OnClick" />
-                </MenuItem>
-                <MenuItem Header="关闭">
-                    <MenuItem Header="隐藏当前贴图" Click="HideCurrentMenuItem_OnClick" />
+                    <Separator />
                     <MenuItem x:Name="CloseOtherPinnedMenuItem"
                               Header="关闭其他贴图"
                               Click="CloseOtherPinnedMenuItem_OnClick" />
                     <MenuItem Header="关闭全部贴图" Click="CloseAllPinnedMenuItem_OnClick" />
-                    <MenuItem Header="关闭当前贴图" Click="CloseMenuItem_OnClick" />
                 </MenuItem>
             </ContextMenu>
         </Border.ContextMenu>

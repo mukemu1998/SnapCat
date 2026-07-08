@@ -103,7 +103,8 @@ public sealed class StartupDiagnosticsService
             ["OCR 识别"] = settings.HotkeyCaptureAndOcr,
             ["自动翻译"] = settings.HotkeyCaptureAndTranslate,
             ["等待操作"] = settings.HotkeyCaptureAndWaitForAction,
-            ["保存截图"] = settings.HotkeyCaptureAndSave
+            ["保存截图"] = settings.HotkeyCaptureAndSave,
+            ["复制截图"] = settings.HotkeyCaptureAndCopy
         };
 
         var duplicates = hotkeys

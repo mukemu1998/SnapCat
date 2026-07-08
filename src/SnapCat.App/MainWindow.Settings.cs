@@ -60,6 +60,7 @@ public partial class MainWindow
             HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
             HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitTextBox.Text.Trim(),
             HotkeyCaptureAndSave = HotkeyCaptureAndSaveTextBox.Text.Trim(),
+            HotkeyCaptureAndCopy = HotkeyCaptureAndCopyTextBox.Text.Trim(),
             PinnedCloseShortcut = PinnedCloseShortcutTextBox.Text.Trim(),
             PinnedHideShortcut = PinnedHideShortcutTextBox.Text.Trim(),
             HotkeyShowAllPinned = HotkeyShowAllPinnedTextBox.Text.Trim(),
@@ -99,6 +100,7 @@ public partial class MainWindow
         HotkeyCaptureAndTranslateTextBox.Text = settings.HotkeyCaptureAndTranslate;
         HotkeyCaptureAndWaitTextBox.Text = settings.HotkeyCaptureAndWaitForAction;
         HotkeyCaptureAndSaveTextBox.Text = settings.HotkeyCaptureAndSave;
+        HotkeyCaptureAndCopyTextBox.Text = settings.HotkeyCaptureAndCopy;
         PinnedCloseShortcutTextBox.Text = settings.PinnedCloseShortcut;
         PinnedHideShortcutTextBox.Text = settings.PinnedHideShortcut;
         HotkeyShowAllPinnedTextBox.Text = settings.HotkeyShowAllPinned;

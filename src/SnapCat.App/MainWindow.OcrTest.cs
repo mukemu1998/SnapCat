@@ -19,7 +19,11 @@ namespace SnapCat.App;
 public partial class MainWindow
 {
     private const int WindowsTextClipboardWatchSeconds = 90;
+    private static readonly TimeSpan WindowsTextManualCopyAssistInitialDelay = TimeSpan.FromMilliseconds(1600);
+    private static readonly TimeSpan WindowsTextManualCopyAssistInterval = TimeSpan.FromMilliseconds(850);
+    private const int WindowsTextManualCopyAssistAttempts = 42;
     private DispatcherTimer? _windowsTextClipboardTimer;
+    private CancellationTokenSource? _windowsTextManualCopyAssistCts;
     private DateTime _windowsTextClipboardWatchExpiresAt;
     private string _windowsTextInitialClipboardText = string.Empty;
     private uint _windowsTextInitialClipboardSequenceNumber;
@@ -62,19 +66,23 @@ public partial class MainWindow
     {
         try
         {
+            var canAutoSelect = autoSelectRegion is not null
+                && Services.WindowsTextExtractorLauncher.CanAutoSelectReliably(autoSelectRegion.Value);
             var autoSelectHint = autoSelectRegion is null
                 ? "操作方式：使用系统文本提取框选文字区域，完成后复制识别文本。"
-                : "操作方式：SnapCat 会尝试把当前选框自动交给系统文本提取；如果系统未接住，可手动补框选一次。";
+                : canAutoSelect
+                    ? "操作方式：SnapCat 会尝试把当前选框自动交给系统文本提取；如果系统未接住，可手动补框选一次。"
+                    : "操作方式：当前选区较小，已改为手动补框模式；请在系统文本提取中重新框选文字区域，完成后复制识别文本。";
             OcrTestResultTextBox.Text =
                 "已触发 Win+Shift+T 文本提取。\n\n" +
                 $"{autoSelectHint}\n\n" +
                 (translateAfterCopy
                     ? $"SnapCat 会在接下来 {WindowsTextClipboardWatchSeconds} 秒内等待剪贴板文本；复制成功后会自动打开翻译浮窗。"
                     : $"SnapCat 会在接下来 {WindowsTextClipboardWatchSeconds} 秒内等待剪贴板文本；复制成功后会自动显示识别结果。");
-            StatusTextBlock.Text = autoSelectRegion is null
+            StatusTextBlock.Text = autoSelectRegion is null || !canAutoSelect
                 ? (translateAfterCopy
-                    ? "已触发 Win+Shift+T，等待复制识别文本并翻译。"
-                    : "已触发 Win+Shift+T，等待复制识别文本。")
+                    ? "已触发 Win+Shift+T，请手动框选并复制识别文本后自动翻译。"
+                    : "已触发 Win+Shift+T，请手动框选并复制识别文本。")
                 : (translateAfterCopy
                     ? "已触发 Win+Shift+T，并尝试用当前选框自动提取后翻译。"
                     : "已触发 Win+Shift+T，并尝试用当前选框自动提取。");
@@ -83,6 +91,10 @@ public partial class MainWindow
             _windowsTextClipboardAnchorRegion = autoSelectRegion;
             StartWindowsTextClipboardWatch(translateAfterCopy);
             await Services.WindowsTextExtractorLauncher.LaunchTextExtractorShortcutAsync(autoSelectRegion);
+            if (autoSelectRegion is null || !canAutoSelect)
+            {
+                StartWindowsTextManualCopyAssist();
+            }
         }
         catch (Exception ex)
         {
@@ -114,6 +126,8 @@ public partial class MainWindow
 
     private void StopWindowsTextClipboardWatch()
     {
+        StopWindowsTextManualCopyAssist();
+
         if (_windowsTextClipboardTimer is null)
         {
             return;
@@ -122,6 +136,44 @@ public partial class MainWindow
         _windowsTextClipboardTimer.Stop();
         _windowsTextClipboardTimer.Tick -= WindowsTextClipboardTimer_OnTick;
         _windowsTextClipboardTimer = null;
+    }
+
+    private void StartWindowsTextManualCopyAssist()
+    {
+        StopWindowsTextManualCopyAssist();
+
+        _windowsTextManualCopyAssistCts = new CancellationTokenSource();
+        var token = _windowsTextManualCopyAssistCts.Token;
+        _ = RunWindowsTextManualCopyAssistAsync(token);
+    }
+
+    private void StopWindowsTextManualCopyAssist()
+    {
+        if (_windowsTextManualCopyAssistCts is null)
+        {
+            return;
+        }
+
+        _windowsTextManualCopyAssistCts.Cancel();
+        _windowsTextManualCopyAssistCts.Dispose();
+        _windowsTextManualCopyAssistCts = null;
+    }
+
+    private static async Task RunWindowsTextManualCopyAssistAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(WindowsTextManualCopyAssistInitialDelay, cancellationToken);
+            for (var attempt = 0; attempt < WindowsTextManualCopyAssistAttempts; attempt++)
+            {
+                await Services.WindowsTextExtractorLauncher.TrySelectAllAndCopyAsync(cancellationToken);
+                await Task.Delay(WindowsTextManualCopyAssistInterval, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The clipboard watcher stops this helper as soon as text is received or the flow ends.
+        }
     }
 
     private async void WindowsTextClipboardTimer_OnTick(object? sender, EventArgs e)
@@ -280,7 +332,7 @@ public partial class MainWindow
 
     private Func<Task> CreateWindowsTextRepeatCaptureAction()
     {
-        return () => StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false);
+        return () => StartWindowsTextRecognitionBridgeAsync(translateAfterCopy: true);
     }
 
     private static string CreateOcrTestImage()

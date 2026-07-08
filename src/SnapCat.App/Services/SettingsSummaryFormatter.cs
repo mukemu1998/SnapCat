@@ -30,6 +30,7 @@ internal static class SettingsSummaryFormatter
             $"快捷键 3（自动翻译）：{FormatSummaryValue(settings.HotkeyCaptureAndTranslate)}\n" +
             $"快捷键 4（等待操作）：{FormatSummaryValue(settings.HotkeyCaptureAndWaitForAction)}\n" +
             $"快捷键 5（保存截图）：{FormatSummaryValue(settings.HotkeyCaptureAndSave)}\n" +
+            $"快捷键 6（复制截图）：{FormatSummaryValue(settings.HotkeyCaptureAndCopy)}\n" +
             $"贴图关闭键：{FormatSummaryValue(settings.PinnedCloseShortcut)}\n" +
             $"贴图隐藏键：{FormatSummaryValue(settings.PinnedHideShortcut)}\n" +
             $"打开主菜单：{FormatSummaryValue(settings.HotkeyShowMainWindow)}\n" +
@@ -67,6 +68,7 @@ internal static class SettingsSummaryFormatter
                 CaptureWorkflowKind.CaptureAndOcr => "自由框选后 OCR 识别",
                 CaptureWorkflowKind.CaptureAndTranslate => "自由框选后自动翻译",
                 CaptureWorkflowKind.CaptureAndSave => "自由框选并保存到默认位置",
+                CaptureWorkflowKind.CaptureAndCopy => "自由框选并复制到剪贴板",
                 _ => "自由框选后等待操作选择"
             }
             : "自由框选后等待操作选择";

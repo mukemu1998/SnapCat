@@ -211,6 +211,11 @@ public partial class MainWindow : Window
         await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: true, hideMainWindowForCapture: false);
     }
 
+    private async void RunCopyActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: true, hideMainWindowForCapture: false);
+    }
+
     private void OpenUserConfigDirectoryButton_OnClick(object sender, RoutedEventArgs e)
     {
         OpenDirectory(_app.UserDataDirectory, "用户配置目录");
