@@ -24,12 +24,6 @@
                                 BorderBrush="#B84B5563"
                                 BorderThickness="1"
                                 CornerRadius="16">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="16"
-                                                  ShadowDepth="4"
-                                                  Opacity="0.24"
-                                                  Color="#FF000000" />
-                            </Border.Effect>
                             <StackPanel IsItemsHost="True"
                                         MinWidth="128"
                                         KeyboardNavigation.DirectionalNavigation="Cycle" />
@@ -83,12 +77,6 @@
                                         BorderBrush="#B84B5563"
                                         BorderThickness="1"
                                         CornerRadius="16">
-                                    <Border.Effect>
-                                        <DropShadowEffect BlurRadius="16"
-                                                          ShadowDepth="4"
-                                                          Opacity="0.24"
-                                                          Color="#FF000000" />
-                                    </Border.Effect>
                                     <StackPanel IsItemsHost="True"
                                                 MinWidth="128"
                                                 KeyboardNavigation.DirectionalNavigation="Cycle" />
@@ -241,6 +229,11 @@
                 <MenuItem Header="隐藏" Click="HideCurrentMenuItem_OnClick" />
                 <MenuItem Header="关闭" Click="CloseMenuItem_OnClick" />
                 <MenuItem Header="编辑">
+                    <MenuItem Header="标注编辑" Click="CanvasEditMenuItem_OnClick" />
+                    <Separator />
+                    <MenuItem Header="向左旋转" Click="RotateLeftMenuItem_OnClick" />
+                    <MenuItem Header="向右旋转" Click="RotateRightMenuItem_OnClick" />
+                    <Separator />
                     <MenuItem Header="左右翻转" Click="FlipHorizontalMenuItem_OnClick" />
                     <MenuItem Header="上下翻转" Click="FlipVerticalMenuItem_OnClick" />
                     <MenuItem x:Name="ResetOrientationMenuItem"

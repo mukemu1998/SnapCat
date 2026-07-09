@@ -26,6 +26,7 @@ public partial class PinnedImageWindow : Window
     private double _currentScale = 1.0d;
     private bool _flipHorizontally;
     private bool _flipVertically;
+    private int _rotationDegrees;
     private bool _isHoverOverlayVisible;
     private readonly DispatcherTimer _scaleIndicatorTimer;
 

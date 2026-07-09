@@ -61,7 +61,7 @@ public partial class MainWindow
             TraySettingsNavButton,
             TraySettingsSection,
             "托盘与启动",
-            "这里整理托盘左键动作、开机自启和启动方式，系统行为都在当前窗口查看和修改。");
+            "这里整理单击托盘动作、开机自启和启动方式，系统行为都在当前窗口查看和修改。");
 
         _sections[MainSection.UserConfig] = new NavigationSectionMetadata(
             UserConfigNavButton,

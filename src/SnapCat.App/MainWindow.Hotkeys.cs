@@ -37,6 +37,7 @@ public partial class MainWindow
             new("等待操作", _settings.HotkeyCaptureAndWaitForAction, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false)),
             new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false)),
             new("复制截图", _settings.HotkeyCaptureAndCopy, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: false)),
+            new("全屏画布编辑", _settings.HotkeyFullScreenCanvasEdit, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.FullScreenCanvasEdit, returnToMainWindow: false)),
             new("显示全部贴图", _settings.HotkeyShowAllPinned, ShowAllPinnedImages),
             new("隐藏全部贴图", _settings.HotkeyHideAllPinned, HideAllPinnedImages),
             new("显示未成组贴图", _settings.HotkeyShowUngroupedPinned, ShowUngroupedPinnedImages),
@@ -76,6 +77,11 @@ public partial class MainWindow
     private void RecordCopyHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
         BeginHotkeyRecording(HotkeyCaptureAndCopyTextBox, "复制截图");
+    }
+
+    private void RecordFullScreenCanvasHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyFullScreenCanvasTextBox, "全屏画布编辑");
     }
 
     private void RecordPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
@@ -158,6 +164,11 @@ public partial class MainWindow
         ClearHotkeyTextBox(HotkeyCaptureAndCopyTextBox);
     }
 
+    private void ClearFullScreenCanvasHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyFullScreenCanvasTextBox);
+    }
+
     private void ClearPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
     {
         ClearHotkeyTextBox(PinnedCloseShortcutTextBox);
@@ -218,22 +229,23 @@ public partial class MainWindow
     private void RestoreDefaultHotkeysButton_OnClick(object sender, RoutedEventArgs e)
     {
         var defaults = new AppSettings();
-        HotkeyCaptureAndPinTextBox.Text = defaults.HotkeyCaptureAndPin;
-        HotkeyCaptureAndOcrTextBox.Text = defaults.HotkeyCaptureAndOcr;
-        HotkeyCaptureAndTranslateTextBox.Text = defaults.HotkeyCaptureAndTranslate;
-        HotkeyCaptureAndWaitTextBox.Text = defaults.HotkeyCaptureAndWaitForAction;
-        HotkeyCaptureAndSaveTextBox.Text = defaults.HotkeyCaptureAndSave;
-        HotkeyCaptureAndCopyTextBox.Text = defaults.HotkeyCaptureAndCopy;
-        PinnedCloseShortcutTextBox.Text = defaults.PinnedCloseShortcut;
-        PinnedHideShortcutTextBox.Text = defaults.PinnedHideShortcut;
-        HotkeyShowAllPinnedTextBox.Text = defaults.HotkeyShowAllPinned;
-        HotkeyHideAllPinnedTextBox.Text = defaults.HotkeyHideAllPinned;
-        HotkeyShowUngroupedPinnedTextBox.Text = defaults.HotkeyShowUngroupedPinned;
-        HotkeyShowPinnedGroupOneTextBox.Text = defaults.HotkeyShowPinnedGroupOne;
-        HotkeyShowPinnedGroupTwoTextBox.Text = defaults.HotkeyShowPinnedGroupTwo;
-        HotkeyShowPinnedGroupThreeTextBox.Text = defaults.HotkeyShowPinnedGroupThree;
-        HotkeyShowMainWindowTextBox.Text = defaults.HotkeyShowMainWindow;
-        HotkeyExitApplicationTextBox.Text = defaults.HotkeyExitApplication;
+        HotkeyCaptureAndPinTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndPin);
+        HotkeyCaptureAndOcrTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndOcr);
+        HotkeyCaptureAndTranslateTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndTranslate);
+        HotkeyCaptureAndWaitTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndWaitForAction);
+        HotkeyCaptureAndSaveTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndSave);
+        HotkeyCaptureAndCopyTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndCopy);
+        HotkeyFullScreenCanvasTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyFullScreenCanvasEdit);
+        PinnedCloseShortcutTextBox.Text = HotkeyTextFormatter.FormatText(defaults.PinnedCloseShortcut);
+        PinnedHideShortcutTextBox.Text = HotkeyTextFormatter.FormatText(defaults.PinnedHideShortcut);
+        HotkeyShowAllPinnedTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyShowAllPinned);
+        HotkeyHideAllPinnedTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyHideAllPinned);
+        HotkeyShowUngroupedPinnedTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyShowUngroupedPinned);
+        HotkeyShowPinnedGroupOneTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyShowPinnedGroupOne);
+        HotkeyShowPinnedGroupTwoTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyShowPinnedGroupTwo);
+        HotkeyShowPinnedGroupThreeTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyShowPinnedGroupThree);
+        HotkeyShowMainWindowTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyShowMainWindow);
+        HotkeyExitApplicationTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyExitApplication);
         ValidateHotkeyConflicts();
         MarkSettingsDirty();
         StatusTextBlock.Text = "已还原默认快捷键。";
@@ -308,6 +320,7 @@ public partial class MainWindow
             ["等待操作"] = HotkeyCaptureAndWaitTextBox.Text.Trim(),
             ["保存截图"] = HotkeyCaptureAndSaveTextBox.Text.Trim(),
             ["复制截图"] = HotkeyCaptureAndCopyTextBox.Text.Trim(),
+            ["全屏画布编辑"] = HotkeyFullScreenCanvasTextBox.Text.Trim(),
             ["关闭贴图"] = PinnedCloseShortcutTextBox.Text.Trim(),
             ["隐藏贴图"] = PinnedHideShortcutTextBox.Text.Trim(),
             ["显示全部贴图"] = HotkeyShowAllPinnedTextBox.Text.Trim(),

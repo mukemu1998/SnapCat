@@ -12,18 +12,39 @@ public partial class PinnedImageWindow
 {
     private BitmapSource GetEffectiveBitmapSource()
     {
-        return PinnedImageBitmapService.CreateFlippedBitmap(_sourceBitmap, _flipHorizontally, _flipVertically);
+        return PinnedImageBitmapService.CreateTransformedBitmap(
+            _sourceBitmap,
+            _flipHorizontally,
+            _flipVertically,
+            _rotationDegrees);
     }
 
-    private void UpdateImageOrientation()
+    private void UpdateImageOrientation(bool resizeWindowToOrientation = false)
     {
-        PinnedImage.RenderTransformOrigin = new WpfPoint(0.5d, 0.5d);
-        PinnedImage.RenderTransform = new ScaleTransform(_flipHorizontally ? -1d : 1d, _flipVertically ? -1d : 1d);
+        var center = new WpfPoint(Left + (Width / 2d), Top + (Height / 2d));
+        var effectiveBitmap = GetEffectiveBitmapSource();
+
+        PinnedImage.Source = effectiveBitmap;
+        PinnedImage.RenderTransform = Transform.Identity;
+
+        if (!resizeWindowToOrientation || !IsLoaded)
+        {
+            return;
+        }
+
+        var effectiveSize = GetBitmapSizeInDeviceIndependentPixels(effectiveBitmap);
+        _originalWidth = effectiveSize.X;
+        _originalHeight = effectiveSize.Y;
+        Width = Math.Max(1d, Math.Round(_originalWidth * _currentScale));
+        Height = Math.Max(1d, Math.Round(_originalHeight * _currentScale));
+        Left = center.X - (Width / 2d);
+        Top = center.Y - (Height / 2d);
+        _app.PinnedWindowRegistryService.SaveActiveWindows();
     }
 
     private string CreateOperationImagePath()
     {
-        if (!_flipHorizontally && !_flipVertically && File.Exists(_imagePath))
+        if (!_flipHorizontally && !_flipVertically && _rotationDegrees == 0 && File.Exists(_imagePath))
         {
             return _imagePath;
         }
@@ -34,13 +55,27 @@ public partial class PinnedImageWindow
     private void CreateDuplicatePinnedWindow(double offsetX, double offsetY)
     {
         var duplicateImagePath = PinnedImageBitmapService.WriteBitmapToTempFile(GetEffectiveBitmapSource(), "pinned-copy");
+        CreatePinnedWindowFromImage(duplicateImagePath, Left + offsetX, Top + offsetY, Width, Height, _currentScale);
+    }
+
+    private void CreatePinnedWindowFromImage(string imagePath, double left, double top, double width, double height, double? scale = null)
+    {
         var duplicateWindow = new PinnedImageWindow(
-            duplicateImagePath,
+            imagePath,
             TranslationLanguageHelper.CloneSettings(_settings));
+        duplicateWindow.GroupName = GroupName;
 
         duplicateWindow.Loaded += (_, _) =>
         {
-            duplicateWindow.ImportViewState(Left + offsetX, Top + offsetY, _currentScale);
+            if (scale.HasValue)
+            {
+                duplicateWindow.ImportViewState(left, top, scale.Value);
+            }
+            else
+            {
+                duplicateWindow.ImportDisplayedBounds(left, top, width, height);
+            }
+
             duplicateWindow.BringPinnedWindowToFront();
         };
 
@@ -103,6 +138,13 @@ public partial class PinnedImageWindow
     private void CopyDisplayedPinnedImageToClipboard()
     {
         Clipboard.SetImage(CreateDisplayedCellBitmap());
+    }
+
+    private static WpfPoint GetBitmapSizeInDeviceIndependentPixels(BitmapSource bitmap)
+    {
+        var dpiX = bitmap.DpiX > 0 ? bitmap.DpiX : 96d;
+        var dpiY = bitmap.DpiY > 0 ? bitmap.DpiY : 96d;
+        return new WpfPoint(bitmap.PixelWidth * 96d / dpiX, bitmap.PixelHeight * 96d / dpiY);
     }
 
     private void PasteClipboardImageAsPinnedWindow()

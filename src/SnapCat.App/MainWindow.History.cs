@@ -4,8 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using SnapCat.App.Services;
+using SnapCat.App.Windows;
 using Clipboard = System.Windows.Clipboard;
-using WpfMessageBox = System.Windows.MessageBox;
 
 namespace SnapCat.App;
 
@@ -135,14 +135,13 @@ public partial class MainWindow
             return;
         }
 
-        var confirm = WpfMessageBox.Show(
+        var confirmed = ConfirmDialogWindow.Confirm(
             this,
-            $"确定删除这条历史记录吗？\n\n{item.Summary}",
             "删除历史记录",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            $"确定要删除这条历史记录吗？\n\n{item.Summary}",
+            "删除");
 
-        if (confirm != MessageBoxResult.Yes)
+        if (!confirmed)
         {
             StatusTextBlock.Text = "已取消删除。";
             return;
@@ -161,14 +160,13 @@ public partial class MainWindow
             return;
         }
 
-        var confirm = WpfMessageBox.Show(
+        var confirmed = ConfirmDialogWindow.Confirm(
             this,
-            "确定清空全部历史记录吗？此操作不可撤销。",
             "清空历史记录",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "确定要清空全部历史记录吗？此操作不可撤销。",
+            "清空");
 
-        if (confirm != MessageBoxResult.Yes)
+        if (!confirmed)
         {
             StatusTextBlock.Text = "已取消清空历史记录。";
             return;

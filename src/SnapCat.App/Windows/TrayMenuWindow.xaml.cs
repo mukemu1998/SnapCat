@@ -114,7 +114,7 @@ public partial class TrayMenuWindow : Window
 
     private static string FormatShortcut(string shortcut)
     {
-        return string.IsNullOrWhiteSpace(shortcut) ? string.Empty : shortcut.Trim();
+        return string.IsNullOrWhiteSpace(shortcut) ? string.Empty : HotkeyTextFormatter.FormatText(shortcut);
     }
 
     private void ExecuteAndClose(Action action)

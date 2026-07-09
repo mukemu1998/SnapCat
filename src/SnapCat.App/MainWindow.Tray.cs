@@ -69,11 +69,11 @@ public partial class MainWindow
                 await _app.SettingsStore.SaveAsync(_settings);
                 ApplySettingsToControls(_settings);
                 RenderSettingsSummary();
-                StatusTextBlock.Text = $"托盘左键默认动作已切换为：{SettingsSummaryFormatter.FormatTrayLeftClickAction(_settings.TrayLeftClickAction)}";
+                StatusTextBlock.Text = $"单击托盘默认动作已切换为：{SettingsSummaryFormatter.FormatTrayLeftClickAction(_settings.TrayLeftClickAction)}";
             }
             catch (Exception ex)
             {
-                StatusTextBlock.Text = $"切换托盘左键默认动作失败：{ex.Message}";
+                StatusTextBlock.Text = $"切换单击托盘默认动作失败：{ex.Message}";
             }
         });
     }

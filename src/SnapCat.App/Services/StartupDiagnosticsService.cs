@@ -104,7 +104,8 @@ public sealed class StartupDiagnosticsService
             ["自动翻译"] = settings.HotkeyCaptureAndTranslate,
             ["等待操作"] = settings.HotkeyCaptureAndWaitForAction,
             ["保存截图"] = settings.HotkeyCaptureAndSave,
-            ["复制截图"] = settings.HotkeyCaptureAndCopy
+            ["复制截图"] = settings.HotkeyCaptureAndCopy,
+            ["全屏画布编辑"] = settings.HotkeyFullScreenCanvasEdit
         };
 
         var duplicates = hotkeys

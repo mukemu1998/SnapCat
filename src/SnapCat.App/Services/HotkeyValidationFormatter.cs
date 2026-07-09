@@ -12,7 +12,7 @@ public static class HotkeyValidationFormatter
     {
         var duplicates = hotkeys
             .Where(static pair => !string.IsNullOrWhiteSpace(pair.Value))
-            .GroupBy(static pair => pair.Value, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(static pair => HotkeyTextFormatter.FormatText(pair.Value), StringComparer.OrdinalIgnoreCase)
             .Where(static group => group.Count() > 1)
             .ToList();
 
@@ -31,7 +31,7 @@ public static class HotkeyValidationFormatter
         var messages = duplicates.Select(group =>
         {
             var labels = string.Join("、", group.Select(static pair => pair.Key));
-            return $"快捷键冲突：{labels} 都使用了 {group.Key}";
+            return $"快捷键冲突：{labels} 都使用了 {HotkeyTextFormatter.FormatText(group.Key)}";
         });
 
         messages = messages.Concat(registrationFailures.Select(FormatRegistrationFailure));
@@ -40,6 +40,6 @@ public static class HotkeyValidationFormatter
 
     private static string FormatRegistrationFailure(HotkeyRegistrationResult result)
     {
-        return $"注册失败：{result.Label} ({SettingsSummaryFormatter.FormatSummaryValue(result.HotkeyText)}) - {result.Message}";
+        return $"注册失败：{result.Label} ({SettingsSummaryFormatter.FormatHotkeySummaryValue(result.HotkeyText)}) - {result.Message}";
     }
 }

@@ -239,6 +239,10 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string HotkeyCaptureAndSave { get; set; } = "Ctrl+Shift+4";
 
+        public string HotkeyCaptureAndCopy { get; set; } = string.Empty;
+
+        public string HotkeyFullScreenCanvasEdit { get; set; } = string.Empty;
+
         public string PinnedCloseShortcut { get; set; } = "Esc";
 
         public string PinnedHideShortcut { get; set; } = new AppSettings().PinnedHideShortcut;
@@ -260,6 +264,10 @@ public sealed class JsonSettingsStore : ISettingsStore
         public string HotkeyExitApplication { get; set; } = string.Empty;
 
         public string TrayLeftClickAction { get; set; } = nameof(CaptureWorkflowKind.CaptureAndWaitForAction);
+
+        public string TrayTooltipWorkflowOne { get; set; } = nameof(CaptureWorkflowKind.CaptureAndTranslate);
+
+        public string TrayTooltipWorkflowTwo { get; set; } = nameof(CaptureWorkflowKind.CaptureAndPin);
 
         public string CaptureStartupMode { get; set; } = SnapCat.Core.Models.CaptureStartupMode.Snapshot;
 
@@ -293,6 +301,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = HotkeyCaptureAndSave,
+                HotkeyCaptureAndCopy = HotkeyCaptureAndCopy,
+                HotkeyFullScreenCanvasEdit = HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = PinnedCloseShortcut,
                 PinnedHideShortcut = NormalizePinnedHideShortcut(PinnedHideShortcut),
                 HotkeyShowAllPinned = HotkeyShowAllPinned,
@@ -304,6 +314,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyShowMainWindow = HotkeyShowMainWindow,
                 HotkeyExitApplication = HotkeyExitApplication,
                 TrayLeftClickAction = TrayLeftClickAction,
+                TrayTooltipWorkflowOne = TrayTooltipWorkflowOne,
+                TrayTooltipWorkflowTwo = TrayTooltipWorkflowTwo,
                 CaptureStartupMode = SnapCat.Core.Models.CaptureStartupMode.Normalize(CaptureStartupMode),
                 ThemeId = ThemeId,
                 TempFileRetentionDays = TempFileRetentionDays,
@@ -337,6 +349,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndTranslate = settings.HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = settings.HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
+                HotkeyCaptureAndCopy = settings.HotkeyCaptureAndCopy,
+                HotkeyFullScreenCanvasEdit = settings.HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = settings.PinnedCloseShortcut,
                 PinnedHideShortcut = settings.PinnedHideShortcut,
                 HotkeyShowAllPinned = settings.HotkeyShowAllPinned,
@@ -348,6 +362,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyShowMainWindow = settings.HotkeyShowMainWindow,
                 HotkeyExitApplication = settings.HotkeyExitApplication,
                 TrayLeftClickAction = settings.TrayLeftClickAction,
+                TrayTooltipWorkflowOne = settings.TrayTooltipWorkflowOne,
+                TrayTooltipWorkflowTwo = settings.TrayTooltipWorkflowTwo,
                 CaptureStartupMode = SnapCat.Core.Models.CaptureStartupMode.Normalize(settings.CaptureStartupMode),
                 ThemeId = settings.ThemeId,
                 TempFileRetentionDays = settings.TempFileRetentionDays,
@@ -377,6 +393,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndTranslate = clone.HotkeyCaptureAndTranslate,
                 HotkeyCaptureAndWaitForAction = clone.HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = clone.HotkeyCaptureAndSave,
+                HotkeyCaptureAndCopy = clone.HotkeyCaptureAndCopy,
+                HotkeyFullScreenCanvasEdit = clone.HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = clone.PinnedCloseShortcut,
                 PinnedHideShortcut = clone.PinnedHideShortcut,
                 HotkeyShowAllPinned = clone.HotkeyShowAllPinned,
@@ -388,6 +406,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyShowMainWindow = clone.HotkeyShowMainWindow,
                 HotkeyExitApplication = clone.HotkeyExitApplication,
                 TrayLeftClickAction = clone.TrayLeftClickAction,
+                TrayTooltipWorkflowOne = clone.TrayTooltipWorkflowOne,
+                TrayTooltipWorkflowTwo = clone.TrayTooltipWorkflowTwo,
                 CaptureStartupMode = SnapCat.Core.Models.CaptureStartupMode.Normalize(clone.CaptureStartupMode),
                 ThemeId = clone.ThemeId,
                 TempFileRetentionDays = clone.TempFileRetentionDays,

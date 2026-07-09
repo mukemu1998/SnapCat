@@ -85,7 +85,14 @@ public partial class TranslationPopupWindow : Window
         _hasAnchoredPosition = preserveCurrentPosition;
 
         Title = title;
-        _viewModel.Reset(title, "正在识别文本...", string.Empty, string.Empty, _settings, repeatCaptureAction);
+        _viewModel.Reset(
+            title,
+            "正在识别文本...",
+            string.Empty,
+            string.Empty,
+            _settings,
+            repeatCaptureAction,
+            preserveLanguageSelection: true);
         TranslatedTextBox.Height = double.NaN;
 
         ConfigureApiProfiles();

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Controls.Primitives;
 using SnapCat.App.Services;
 using SnapCat.Core.Models;
 using Clipboard = System.Windows.Clipboard;
@@ -83,6 +84,8 @@ public partial class TranslationPopupWindow
             if (current is System.Windows.Controls.Button
                 or System.Windows.Controls.TextBox
                 or System.Windows.Controls.ComboBox
+                or System.Windows.Controls.ComboBoxItem
+                or ToggleButton
                 or System.Windows.Controls.Primitives.ScrollBar
                 or System.Windows.Controls.Primitives.Thumb)
             {

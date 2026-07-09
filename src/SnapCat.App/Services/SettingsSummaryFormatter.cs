@@ -25,19 +25,22 @@ internal static class SettingsSummaryFormatter
             $"OCR：{FormatOcrSummary(settings)}\n" +
             $"翻译：{FormatTranslationSummary(settings)}\n" +
             $"开机自启：{(settings.LaunchAtStartup ? "已开启" : "未开启")}\n" +
-            $"快捷键 1（固定到屏幕）：{FormatSummaryValue(settings.HotkeyCaptureAndPin)}\n" +
-            $"快捷键 2（OCR 识别）：{FormatSummaryValue(settings.HotkeyCaptureAndOcr)}\n" +
-            $"快捷键 3（自动翻译）：{FormatSummaryValue(settings.HotkeyCaptureAndTranslate)}\n" +
-            $"快捷键 4（等待操作）：{FormatSummaryValue(settings.HotkeyCaptureAndWaitForAction)}\n" +
-            $"快捷键 5（保存截图）：{FormatSummaryValue(settings.HotkeyCaptureAndSave)}\n" +
-            $"快捷键 6（复制截图）：{FormatSummaryValue(settings.HotkeyCaptureAndCopy)}\n" +
-            $"贴图关闭键：{FormatSummaryValue(settings.PinnedCloseShortcut)}\n" +
-            $"贴图隐藏键：{FormatSummaryValue(settings.PinnedHideShortcut)}\n" +
-            $"打开主菜单：{FormatSummaryValue(settings.HotkeyShowMainWindow)}\n" +
-            $"退出软件：{FormatSummaryValue(settings.HotkeyExitApplication)}\n" +
+            $"快捷键 1（固定到屏幕）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndPin)}\n" +
+            $"快捷键 2（OCR 识别）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndOcr)}\n" +
+            $"快捷键 3（自动翻译）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndTranslate)}\n" +
+            $"快捷键 4（等待操作）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndWaitForAction)}\n" +
+            $"快捷键 5（保存截图）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndSave)}\n" +
+            $"快捷键 6（复制截图）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndCopy)}\n" +
+            $"快捷键 7（全屏画布）：{FormatHotkeySummaryValue(settings.HotkeyFullScreenCanvasEdit)}\n" +
+            $"贴图关闭键：{FormatHotkeySummaryValue(settings.PinnedCloseShortcut)}\n" +
+            $"贴图隐藏键：{FormatHotkeySummaryValue(settings.PinnedHideShortcut)}\n" +
+            $"打开主菜单：{FormatHotkeySummaryValue(settings.HotkeyShowMainWindow)}\n" +
+            $"退出软件：{FormatHotkeySummaryValue(settings.HotkeyExitApplication)}\n" +
             $"临时文件保留：{FormatRetentionDays(settings.TempFileRetentionDays)}\n" +
             $"历史记录保留：{FormatRetentionDays(settings.HistoryRetentionDays)}\n" +
-            $"托盘左键：{FormatTrayLeftClickAction(settings.TrayLeftClickAction)}\n" +
+            $"单击托盘：{FormatTrayLeftClickAction(settings.TrayLeftClickAction)}\n" +
+            $"托盘悬浮摘要 1：{FormatWorkflow(settings.TrayTooltipWorkflowOne)}\n" +
+            $"托盘悬浮摘要 2：{FormatWorkflow(settings.TrayTooltipWorkflowTwo)}\n" +
             $"框选入口：{FormatCaptureStartupMode(settings.CaptureStartupMode)}\n" +
             $"用户配置目录：{userDataDirectory}";
     }
@@ -45,6 +48,11 @@ internal static class SettingsSummaryFormatter
     public static string FormatSummaryValue(string value)
     {
         return string.IsNullOrWhiteSpace(value) ? "未填写" : value;
+    }
+
+    public static string FormatHotkeySummaryValue(string value)
+    {
+        return FormatSummaryValue(HotkeyTextFormatter.FormatText(value));
     }
 
     public static string FormatWorkflow(string value)
@@ -69,6 +77,7 @@ internal static class SettingsSummaryFormatter
                 CaptureWorkflowKind.CaptureAndTranslate => "自由框选后自动翻译",
                 CaptureWorkflowKind.CaptureAndSave => "自由框选并保存到默认位置",
                 CaptureWorkflowKind.CaptureAndCopy => "自由框选并复制到剪贴板",
+                CaptureWorkflowKind.FullScreenCanvasEdit => "全屏画布编辑",
                 _ => "自由框选后等待操作选择"
             }
             : "自由框选后等待操作选择";

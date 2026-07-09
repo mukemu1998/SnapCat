@@ -17,28 +17,39 @@ internal static class SettingsComparer
             && string.Equals(left.OcrEngine, right.OcrEngine, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.TesseractExecutablePath, right.TesseractExecutablePath, StringComparison.Ordinal)
             && string.Equals(left.TesseractLanguage, right.TesseractLanguage, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyCaptureAndPin, right.HotkeyCaptureAndPin, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyCaptureAndOcr, right.HotkeyCaptureAndOcr, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyCaptureAndTranslate, right.HotkeyCaptureAndTranslate, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyCaptureAndWaitForAction, right.HotkeyCaptureAndWaitForAction, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyCaptureAndCopy, right.HotkeyCaptureAndCopy, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.PinnedCloseShortcut, right.PinnedCloseShortcut, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.PinnedHideShortcut, right.PinnedHideShortcut, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyShowAllPinned, right.HotkeyShowAllPinned, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyHideAllPinned, right.HotkeyHideAllPinned, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyShowUngroupedPinned, right.HotkeyShowUngroupedPinned, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyShowPinnedGroupOne, right.HotkeyShowPinnedGroupOne, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyShowPinnedGroupTwo, right.HotkeyShowPinnedGroupTwo, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyShowPinnedGroupThree, right.HotkeyShowPinnedGroupThree, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyShowMainWindow, right.HotkeyShowMainWindow, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(left.HotkeyExitApplication, right.HotkeyExitApplication, StringComparison.OrdinalIgnoreCase)
+            && HotkeyEquals(left.HotkeyCaptureAndPin, right.HotkeyCaptureAndPin)
+            && HotkeyEquals(left.HotkeyCaptureAndOcr, right.HotkeyCaptureAndOcr)
+            && HotkeyEquals(left.HotkeyCaptureAndTranslate, right.HotkeyCaptureAndTranslate)
+            && HotkeyEquals(left.HotkeyCaptureAndWaitForAction, right.HotkeyCaptureAndWaitForAction)
+            && HotkeyEquals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave)
+            && HotkeyEquals(left.HotkeyCaptureAndCopy, right.HotkeyCaptureAndCopy)
+            && HotkeyEquals(left.HotkeyFullScreenCanvasEdit, right.HotkeyFullScreenCanvasEdit)
+            && HotkeyEquals(left.PinnedCloseShortcut, right.PinnedCloseShortcut)
+            && HotkeyEquals(left.PinnedHideShortcut, right.PinnedHideShortcut)
+            && HotkeyEquals(left.HotkeyShowAllPinned, right.HotkeyShowAllPinned)
+            && HotkeyEquals(left.HotkeyHideAllPinned, right.HotkeyHideAllPinned)
+            && HotkeyEquals(left.HotkeyShowUngroupedPinned, right.HotkeyShowUngroupedPinned)
+            && HotkeyEquals(left.HotkeyShowPinnedGroupOne, right.HotkeyShowPinnedGroupOne)
+            && HotkeyEquals(left.HotkeyShowPinnedGroupTwo, right.HotkeyShowPinnedGroupTwo)
+            && HotkeyEquals(left.HotkeyShowPinnedGroupThree, right.HotkeyShowPinnedGroupThree)
+            && HotkeyEquals(left.HotkeyShowMainWindow, right.HotkeyShowMainWindow)
+            && HotkeyEquals(left.HotkeyExitApplication, right.HotkeyExitApplication)
             && string.Equals(left.TrayLeftClickAction, right.TrayLeftClickAction, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.TrayTooltipWorkflowOne, right.TrayTooltipWorkflowOne, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.TrayTooltipWorkflowTwo, right.TrayTooltipWorkflowTwo, StringComparison.OrdinalIgnoreCase)
             && string.Equals(CaptureStartupMode.Normalize(left.CaptureStartupMode), CaptureStartupMode.Normalize(right.CaptureStartupMode), StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.ThemeId, right.ThemeId, StringComparison.OrdinalIgnoreCase)
             && left.TempFileRetentionDays == right.TempFileRetentionDays
             && left.HistoryRetentionDays == right.HistoryRetentionDays
             && left.LaunchAtStartup == right.LaunchAtStartup;
+    }
+
+    private static bool HotkeyEquals(string left, string right)
+    {
+        return string.Equals(
+            HotkeyTextFormatter.FormatText(left),
+            HotkeyTextFormatter.FormatText(right),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool AreApiProfilesEquivalent(

@@ -29,6 +29,7 @@ public partial class MainWindow
         _settings = settings;
         _settings.ThemeId = _app.ThemeService.ApplyTheme(WpfApplication.Current, settings.ThemeId);
         _app.TrayIconService.RefreshThemeIcon();
+        RefreshWindowThemeIcon();
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
 
         await _app.SettingsStore.SaveAsync(_settings);
@@ -55,24 +56,27 @@ public partial class MainWindow
             TesseractExecutablePath = TesseractPathTextBox.Text.Trim(),
             TesseractLanguage = GetSelectedTesseractLanguage(),
             OcrEngine = GetSelectedOcrEngine(),
-            HotkeyCaptureAndPin = HotkeyCaptureAndPinTextBox.Text.Trim(),
-            HotkeyCaptureAndOcr = HotkeyCaptureAndOcrTextBox.Text.Trim(),
-            HotkeyCaptureAndTranslate = HotkeyCaptureAndTranslateTextBox.Text.Trim(),
-            HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitTextBox.Text.Trim(),
-            HotkeyCaptureAndSave = HotkeyCaptureAndSaveTextBox.Text.Trim(),
-            HotkeyCaptureAndCopy = HotkeyCaptureAndCopyTextBox.Text.Trim(),
-            PinnedCloseShortcut = PinnedCloseShortcutTextBox.Text.Trim(),
-            PinnedHideShortcut = PinnedHideShortcutTextBox.Text.Trim(),
-            HotkeyShowAllPinned = HotkeyShowAllPinnedTextBox.Text.Trim(),
-            HotkeyHideAllPinned = HotkeyHideAllPinnedTextBox.Text.Trim(),
-            HotkeyShowUngroupedPinned = HotkeyShowUngroupedPinnedTextBox.Text.Trim(),
-            HotkeyShowPinnedGroupOne = HotkeyShowPinnedGroupOneTextBox.Text.Trim(),
-            HotkeyShowPinnedGroupTwo = HotkeyShowPinnedGroupTwoTextBox.Text.Trim(),
-            HotkeyShowPinnedGroupThree = HotkeyShowPinnedGroupThreeTextBox.Text.Trim(),
-            HotkeyShowMainWindow = HotkeyShowMainWindowTextBox.Text.Trim(),
-            HotkeyExitApplication = HotkeyExitApplicationTextBox.Text.Trim(),
+            HotkeyCaptureAndPin = FormatHotkeySetting(HotkeyCaptureAndPinTextBox.Text),
+            HotkeyCaptureAndOcr = FormatHotkeySetting(HotkeyCaptureAndOcrTextBox.Text),
+            HotkeyCaptureAndTranslate = FormatHotkeySetting(HotkeyCaptureAndTranslateTextBox.Text),
+            HotkeyCaptureAndWaitForAction = FormatHotkeySetting(HotkeyCaptureAndWaitTextBox.Text),
+            HotkeyCaptureAndSave = FormatHotkeySetting(HotkeyCaptureAndSaveTextBox.Text),
+            HotkeyCaptureAndCopy = FormatHotkeySetting(HotkeyCaptureAndCopyTextBox.Text),
+            HotkeyFullScreenCanvasEdit = FormatHotkeySetting(HotkeyFullScreenCanvasTextBox.Text),
+            PinnedCloseShortcut = FormatHotkeySetting(PinnedCloseShortcutTextBox.Text),
+            PinnedHideShortcut = FormatHotkeySetting(PinnedHideShortcutTextBox.Text),
+            HotkeyShowAllPinned = FormatHotkeySetting(HotkeyShowAllPinnedTextBox.Text),
+            HotkeyHideAllPinned = FormatHotkeySetting(HotkeyHideAllPinnedTextBox.Text),
+            HotkeyShowUngroupedPinned = FormatHotkeySetting(HotkeyShowUngroupedPinnedTextBox.Text),
+            HotkeyShowPinnedGroupOne = FormatHotkeySetting(HotkeyShowPinnedGroupOneTextBox.Text),
+            HotkeyShowPinnedGroupTwo = FormatHotkeySetting(HotkeyShowPinnedGroupTwoTextBox.Text),
+            HotkeyShowPinnedGroupThree = FormatHotkeySetting(HotkeyShowPinnedGroupThreeTextBox.Text),
+            HotkeyShowMainWindow = FormatHotkeySetting(HotkeyShowMainWindowTextBox.Text),
+            HotkeyExitApplication = FormatHotkeySetting(HotkeyExitApplicationTextBox.Text),
             CaptureStartupMode = GetSelectedCaptureStartupMode(),
             TrayLeftClickAction = GetSelectedTrayLeftClickAction(),
+            TrayTooltipWorkflowOne = GetSelectedTrayTooltipWorkflowOne(),
+            TrayTooltipWorkflowTwo = GetSelectedTrayTooltipWorkflowTwo(),
             ThemeId = GetSelectedThemeId(),
             TempFileRetentionDays = SettingsValueParser.ParseRetentionDays(TempRetentionDaysTextBox.Text, defaults.TempFileRetentionDays),
             HistoryRetentionDays = SettingsValueParser.ParseRetentionDays(HistoryRetentionDaysTextBox.Text, defaults.HistoryRetentionDays),
@@ -95,28 +99,31 @@ public partial class MainWindow
         SetTargetLanguageSelection(settings.TargetLanguage);
         TesseractPathTextBox.Text = settings.TesseractExecutablePath;
         SetTesseractLanguageSelection(settings.TesseractLanguage);
-        HotkeyCaptureAndPinTextBox.Text = settings.HotkeyCaptureAndPin;
-        HotkeyCaptureAndOcrTextBox.Text = settings.HotkeyCaptureAndOcr;
-        HotkeyCaptureAndTranslateTextBox.Text = settings.HotkeyCaptureAndTranslate;
-        HotkeyCaptureAndWaitTextBox.Text = settings.HotkeyCaptureAndWaitForAction;
-        HotkeyCaptureAndSaveTextBox.Text = settings.HotkeyCaptureAndSave;
-        HotkeyCaptureAndCopyTextBox.Text = settings.HotkeyCaptureAndCopy;
-        PinnedCloseShortcutTextBox.Text = settings.PinnedCloseShortcut;
-        PinnedHideShortcutTextBox.Text = settings.PinnedHideShortcut;
-        HotkeyShowAllPinnedTextBox.Text = settings.HotkeyShowAllPinned;
-        HotkeyHideAllPinnedTextBox.Text = settings.HotkeyHideAllPinned;
-        HotkeyShowUngroupedPinnedTextBox.Text = settings.HotkeyShowUngroupedPinned;
-        HotkeyShowPinnedGroupOneTextBox.Text = settings.HotkeyShowPinnedGroupOne;
-        HotkeyShowPinnedGroupTwoTextBox.Text = settings.HotkeyShowPinnedGroupTwo;
-        HotkeyShowPinnedGroupThreeTextBox.Text = settings.HotkeyShowPinnedGroupThree;
-        HotkeyShowMainWindowTextBox.Text = settings.HotkeyShowMainWindow;
-        HotkeyExitApplicationTextBox.Text = settings.HotkeyExitApplication;
+        HotkeyCaptureAndPinTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndPin);
+        HotkeyCaptureAndOcrTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndOcr);
+        HotkeyCaptureAndTranslateTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndTranslate);
+        HotkeyCaptureAndWaitTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndWaitForAction);
+        HotkeyCaptureAndSaveTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndSave);
+        HotkeyCaptureAndCopyTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndCopy);
+        HotkeyFullScreenCanvasTextBox.Text = FormatHotkeySetting(settings.HotkeyFullScreenCanvasEdit);
+        PinnedCloseShortcutTextBox.Text = FormatHotkeySetting(settings.PinnedCloseShortcut);
+        PinnedHideShortcutTextBox.Text = FormatHotkeySetting(settings.PinnedHideShortcut);
+        HotkeyShowAllPinnedTextBox.Text = FormatHotkeySetting(settings.HotkeyShowAllPinned);
+        HotkeyHideAllPinnedTextBox.Text = FormatHotkeySetting(settings.HotkeyHideAllPinned);
+        HotkeyShowUngroupedPinnedTextBox.Text = FormatHotkeySetting(settings.HotkeyShowUngroupedPinned);
+        HotkeyShowPinnedGroupOneTextBox.Text = FormatHotkeySetting(settings.HotkeyShowPinnedGroupOne);
+        HotkeyShowPinnedGroupTwoTextBox.Text = FormatHotkeySetting(settings.HotkeyShowPinnedGroupTwo);
+        HotkeyShowPinnedGroupThreeTextBox.Text = FormatHotkeySetting(settings.HotkeyShowPinnedGroupThree);
+        HotkeyShowMainWindowTextBox.Text = FormatHotkeySetting(settings.HotkeyShowMainWindow);
+        HotkeyExitApplicationTextBox.Text = FormatHotkeySetting(settings.HotkeyExitApplication);
         TempRetentionDaysTextBox.Text = settings.TempFileRetentionDays.ToString();
         HistoryRetentionDaysTextBox.Text = settings.HistoryRetentionDays.ToString();
         LaunchAtStartupCheckBox.IsChecked = settings.LaunchAtStartup;
         SetOcrEngineSelection(settings.OcrEngine);
         SetCaptureStartupModeSelection(settings.CaptureStartupMode);
         SetTrayLeftClickSelection(settings.TrayLeftClickAction);
+        SetTrayTooltipWorkflowSelection(TrayTooltipWorkflowOneComboBox, settings.TrayTooltipWorkflowOne, nameof(CaptureWorkflowKind.CaptureAndTranslate));
+        SetTrayTooltipWorkflowSelection(TrayTooltipWorkflowTwoComboBox, settings.TrayTooltipWorkflowTwo, nameof(CaptureWorkflowKind.CaptureAndPin));
         SetThemeSelection(settings.ThemeId);
         SetTranslationProviderSelection(string.IsNullOrWhiteSpace(settings.TranslationProviderPreference)
             ? (SmartTranslationService.HasCustomApiSettings(settings)
@@ -238,6 +245,33 @@ public partial class MainWindow
             nameof(CaptureWorkflowKind.CaptureAndWaitForAction));
     }
 
+    private void SetTrayTooltipWorkflowSelection(System.Windows.Controls.ComboBox comboBox, string value, string fallback)
+    {
+        if (!ComboBoxSelectionHelper.SelectByTag(comboBox, value, StringComparison.Ordinal))
+        {
+            ComboBoxSelectionHelper.SelectByTag(comboBox, fallback, StringComparison.Ordinal);
+        }
+    }
+
+    private string GetSelectedTrayTooltipWorkflowOne()
+    {
+        return ComboBoxSelectionHelper.GetSelectedTag(
+            TrayTooltipWorkflowOneComboBox,
+            nameof(CaptureWorkflowKind.CaptureAndTranslate));
+    }
+
+    private string GetSelectedTrayTooltipWorkflowTwo()
+    {
+        return ComboBoxSelectionHelper.GetSelectedTag(
+            TrayTooltipWorkflowTwoComboBox,
+            nameof(CaptureWorkflowKind.CaptureAndPin));
+    }
+
+    private static string FormatHotkeySetting(string? value)
+    {
+        return HotkeyTextFormatter.FormatText(value);
+    }
+
     private void SetCaptureStartupModeSelection(string value)
     {
         if (!ComboBoxSelectionHelper.SelectByTag(
@@ -283,6 +317,7 @@ public partial class MainWindow
         var selectedThemeId = GetSelectedThemeId();
         _app.ThemeService.ApplyTheme(WpfApplication.Current, selectedThemeId);
         _app.TrayIconService.RefreshThemeIcon();
+        RefreshWindowThemeIcon();
         MarkSettingsDirty();
     }
 

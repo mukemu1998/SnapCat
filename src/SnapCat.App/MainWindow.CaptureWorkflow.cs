@@ -38,6 +38,47 @@ public partial class MainWindow
                 await Task.Delay(180);
             }
 
+            if (workflow == CaptureWorkflowKind.FullScreenCanvasEdit)
+            {
+                var fullScreenRegion = _app.ScreenCaptureService.GetCurrentScreenRegion();
+                var fullScreenPath = _app.ScreenCaptureService.CaptureCurrentScreenToTempFile();
+                CanvasEditorWindow editorWindow;
+                try
+                {
+                    editorWindow = new CanvasEditorWindow(
+                        fullScreenPath,
+                        fullScreenRegion,
+                        CanvasEditorMode.FullScreenCanvas);
+                }
+                catch (Exception ex)
+                {
+                    StatusTextBlock.Text = $"全屏画布启动失败：{ex.Message}";
+                    return;
+                }
+
+                if (editorWindow.ShowDialog() == true && !string.IsNullOrWhiteSpace(editorWindow.SavedPath))
+                {
+                    await _app.HistoryStore.AppendAsync(new CaptureTranslationRecord
+                    {
+                        WorkflowType = "canvas",
+                        ImagePath = editorWindow.SavedPath
+                    });
+                    StatusTextBlock.Text = $"画布已保存：{editorWindow.SavedPath}";
+                    await LoadHistoryAsync();
+                }
+                else
+                {
+                    StatusTextBlock.Text = "已取消全屏画布编辑。";
+                }
+
+                if (shouldRestoreMainWindow)
+                {
+                    ShowMainWindow();
+                }
+
+                return;
+            }
+
             var shouldUseImmediateSnapshot = CaptureStartupMode.Normalize(_settings.CaptureStartupMode) == CaptureStartupMode.Snapshot;
             var screenSnapshotRegion = shouldUseImmediateSnapshot
                 ? _app.ScreenCaptureService.GetCurrentScreenRegion()
@@ -63,6 +104,9 @@ public partial class MainWindow
             }
 
             var captureRegion = overlay.SelectedRegion!.Value;
+            string? editedActionImagePath = null;
+
+        selectNextAction:
             var action = CaptureActionKind.Cancel;
             var workingCaptureRegion = captureRegion;
 
@@ -83,6 +127,9 @@ public partial class MainWindow
                 case CaptureWorkflowKind.CaptureAndCopy:
                     action = CaptureActionKind.CopyImage;
                     break;
+                case CaptureWorkflowKind.FullScreenCanvasEdit:
+                    action = CaptureActionKind.CanvasEdit;
+                    break;
                 default:
                 {
                     var selection = await SelectActionAsync(captureRegion, shouldUseImmediateSnapshot);
@@ -101,6 +148,52 @@ public partial class MainWindow
 
                 StatusTextBlock.Text = "已取消截图后操作。";
                 return;
+            }
+
+            if (workflow == CaptureWorkflowKind.CaptureAndWaitForAction
+                && action == CaptureActionKind.CanvasEdit)
+            {
+                var editInputPath = !string.IsNullOrWhiteSpace(editedActionImagePath)
+                    ? editedActionImagePath
+                    : !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
+                        ? _app.ScreenCaptureService.CropSnapshotToTempFile(
+                            screenSnapshotPath,
+                            screenSnapshotRegion.Value,
+                            workingCaptureRegion)
+                        : _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
+
+                CanvasEditorWindow editorWindow;
+                try
+                {
+                    editorWindow = new CanvasEditorWindow(
+                        editInputPath,
+                        workingCaptureRegion,
+                        CanvasEditorMode.QuickAnnotate,
+                        saveAsAndCopyOnConfirm: true);
+                }
+                catch (Exception ex)
+                {
+                    StatusTextBlock.Text = $"标注编辑启动失败：{ex.Message}";
+                    goto selectNextAction;
+                }
+
+                if (editorWindow.ShowDialog() == true && !string.IsNullOrWhiteSpace(editorWindow.SavedPath))
+                {
+                    editedActionImagePath = editorWindow.SavedPath;
+                    await _app.HistoryStore.AppendAsync(new CaptureTranslationRecord
+                    {
+                        WorkflowType = "annotate",
+                        ImagePath = editedActionImagePath
+                    });
+                    StatusTextBlock.Text = "标注编辑已完成，可继续选择下一步操作。";
+                    await LoadHistoryAsync();
+                }
+                else
+                {
+                    StatusTextBlock.Text = "已返回等待操作选择。";
+                }
+
+                goto selectNextAction;
             }
 
             if (IsWindowsTextRecognitionEngine(_settings.OcrEngine)
@@ -153,7 +246,9 @@ public partial class MainWindow
             }
 
             await Task.Delay(120);
-            var workingImagePath = !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
+            var workingImagePath = !string.IsNullOrWhiteSpace(editedActionImagePath)
+                ? editedActionImagePath
+                : !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
                 ? _app.ScreenCaptureService.CropSnapshotToTempFile(
                     screenSnapshotPath,
                     screenSnapshotRegion.Value,

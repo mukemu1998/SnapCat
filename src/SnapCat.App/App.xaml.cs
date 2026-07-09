@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using SnapCat.App.Services;
 using SnapCat.App.Windows;
 using SnapCat.Core.Models;
@@ -14,6 +15,7 @@ namespace SnapCat.App;
 
 public partial class App : WpfApplication
 {
+    private const string AppUserModelId = "HaGCat.SnapCat";
     private const string SingleInstanceMutexName = @"Local\SnapCat-HaG-Cat-SingleInstance";
     private static readonly TimeSpan StartupSettingsLoadTimeout = TimeSpan.FromSeconds(5);
     private readonly string _appDataDirectory;
@@ -116,6 +118,8 @@ public partial class App : WpfApplication
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        SetProcessAppUserModelId();
+
         _singleInstanceMutex = new Mutex(initiallyOwned: true, SingleInstanceMutexName, out var createdNew);
         if (!createdNew)
         {
@@ -258,4 +262,19 @@ public partial class App : WpfApplication
             return new AppSettings();
         }
     }
+
+    private static void SetProcessAppUserModelId()
+    {
+        try
+        {
+            _ = SetCurrentProcessExplicitAppUserModelID(AppUserModelId);
+        }
+        catch
+        {
+            // Shell identity only improves taskbar grouping/icon behavior; startup must not depend on it.
+        }
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appID);
 }

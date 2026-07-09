@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.3.2-preview" src="https://img.shields.io/badge/Version-0.3.2--preview-22c55e" />
+  <img alt="Version 0.3.3-preview" src="https://img.shields.io/badge/Version-0.3.3--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -104,7 +104,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.3.2-preview`，属于 v0.3 预览阶段修正版，重点整理复制截图组合指令、二维码识别结果浮窗、Windows 文本提取补框流程和贴图右键菜单。
+当前版本为 `0.3.3-preview`，属于 v0.3 预览阶段体验增强版，重点整理全屏画布与框选标注、真实像素马赛克、托盘悬浮提示、快捷键显示和托盘摘要配置。
 
 ## 许可
 

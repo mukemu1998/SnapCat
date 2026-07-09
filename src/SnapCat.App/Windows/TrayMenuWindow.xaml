@@ -64,13 +64,6 @@
             BorderBrush="{DynamicResource Theme.Brush.WindowBorder}"
             BorderThickness="1"
             CornerRadius="18">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="16"
-                              ShadowDepth="4"
-                              Opacity="0.24"
-                              Color="{DynamicResource Theme.Color.Shadow}" />
-        </Border.Effect>
-
         <StackPanel>
             <Button Style="{StaticResource MenuButtonStyle}"
                     Click="ShowMainWindowButton_OnClick">

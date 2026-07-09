@@ -55,6 +55,7 @@ public sealed class CaptureActionService
             CaptureActionKind.OcrOnly => await ExecuteOcrOnlyAsync(imagePath, settings, owner, captureRegion, screenSnapshotPath, screenSnapshotRegion, reuseExistingSelectionChrome, retainedSelectionChromeWindow),
             CaptureActionKind.OcrAndTranslate => await ExecuteOcrAndTranslateAsync(imagePath, settings, owner, captureRegion, repeatCaptureAction, screenSnapshotPath, screenSnapshotRegion, reuseExistingSelectionChrome, retainedSelectionChromeWindow),
             CaptureActionKind.QrCode => await ExecuteQrCodeAsync(imagePath, owner, captureRegion),
+            CaptureActionKind.CanvasEdit => await ExecuteCanvasEditAsync(imagePath, owner, captureRegion),
             CaptureActionKind.CopyImage => ExecuteCopyImage(imagePath),
             CaptureActionKind.Save => ExecuteSave(imagePath, owner),
             CaptureActionKind.SaveAs => ExecuteSaveAs(imagePath, owner),
@@ -421,6 +422,43 @@ public sealed class CaptureActionService
         popupWindow.Show();
 
         return status;
+    }
+
+    private async Task<string> ExecuteCanvasEditAsync(string imagePath, Window? owner, Int32Rect? captureRegion)
+    {
+        if (!File.Exists(imagePath))
+        {
+            return "标注编辑失败：截图文件不存在。";
+        }
+
+        CanvasEditorWindow editorWindow;
+        try
+        {
+            editorWindow = new CanvasEditorWindow(
+                imagePath,
+                captureRegion,
+                CanvasEditorMode.QuickAnnotate)
+            {
+                Owner = owner
+            };
+        }
+        catch (Exception ex)
+        {
+            return $"标注编辑启动失败：{ex.Message}";
+        }
+
+        if (editorWindow.ShowDialog() != true || string.IsNullOrWhiteSpace(editorWindow.SavedPath))
+        {
+            return "已取消标注编辑。";
+        }
+
+        await _historyStore.AppendAsync(new CaptureTranslationRecord
+        {
+            WorkflowType = "annotate",
+            ImagePath = editorWindow.SavedPath
+        });
+
+        return $"标注编辑已完成：{editorWindow.SavedPath}";
     }
 
     private string ExecuteCopyImage(string imagePath)

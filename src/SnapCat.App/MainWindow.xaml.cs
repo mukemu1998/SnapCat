@@ -137,6 +137,7 @@ public partial class MainWindow : Window
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
 
         ApplySettingsToControls(_settings);
+        RefreshWindowThemeIcon();
         _hasLoadedSettings = true;
         MarkSettingsClean();
         RegisterHotkeys();
@@ -214,6 +215,11 @@ public partial class MainWindow : Window
     private async void RunCopyActionButton_OnClick(object sender, RoutedEventArgs e)
     {
         await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: true, hideMainWindowForCapture: false);
+    }
+
+    private async void RunFullScreenCanvasActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.FullScreenCanvasEdit, returnToMainWindow: true);
     }
 
     private void OpenUserConfigDirectoryButton_OnClick(object sender, RoutedEventArgs e)

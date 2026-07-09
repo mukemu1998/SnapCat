@@ -134,8 +134,8 @@ public partial class CaptureActionSelectionWindow : Window
     {
         if (ReferenceEquals(e.OriginalSource, RootCanvas))
         {
-            SelectedAction = CaptureActionKind.Cancel;
-            DialogResult = false;
+            // 等待操作模式下，框外点击只吞掉事件，避免误触关闭选框和操作菜单。
+            e.Handled = true;
         }
     }
 

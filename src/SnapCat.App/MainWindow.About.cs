@@ -90,7 +90,7 @@ public partial class MainWindow
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.3.2-preview";
+            ?? "0.3.3-preview";
 
         return TrimVersionMetadata(version);
     }

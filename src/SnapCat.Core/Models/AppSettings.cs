@@ -57,6 +57,8 @@ public sealed class AppSettings
 
     public string HotkeyCaptureAndCopy { get; set; } = string.Empty;
 
+    public string HotkeyFullScreenCanvasEdit { get; set; } = string.Empty;
+
     public string PinnedCloseShortcut { get; set; } = "Esc";
 
     public string PinnedHideShortcut { get; set; } = "鼠标中键";
@@ -78,6 +80,10 @@ public sealed class AppSettings
     public string HotkeyExitApplication { get; set; } = string.Empty;
 
     public string TrayLeftClickAction { get; set; } = nameof(CaptureWorkflowKind.CaptureAndWaitForAction);
+
+    public string TrayTooltipWorkflowOne { get; set; } = nameof(CaptureWorkflowKind.CaptureAndTranslate);
+
+    public string TrayTooltipWorkflowTwo { get; set; } = nameof(CaptureWorkflowKind.CaptureAndPin);
 
     public string CaptureStartupMode { get; set; } = SnapCat.Core.Models.CaptureStartupMode.Snapshot;
 

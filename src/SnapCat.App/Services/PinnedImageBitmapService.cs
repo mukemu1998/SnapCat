@@ -20,14 +20,27 @@ internal static class PinnedImageBitmapService
 
     public static BitmapSource CreateFlippedBitmap(BitmapSource source, bool flipHorizontally, bool flipVertically)
     {
-        if (!flipHorizontally && !flipVertically)
+        return CreateTransformedBitmap(source, flipHorizontally, flipVertically, 0);
+    }
+
+    public static BitmapSource CreateTransformedBitmap(
+        BitmapSource source,
+        bool flipHorizontally,
+        bool flipVertically,
+        int rotationDegrees)
+    {
+        var normalizedRotation = NormalizeRotation(rotationDegrees);
+        if (!flipHorizontally && !flipVertically && normalizedRotation == 0)
         {
             return source;
         }
 
+        var rotatesSideways = normalizedRotation is 90 or 270;
+        var pixelWidth = rotatesSideways ? source.PixelHeight : source.PixelWidth;
+        var pixelHeight = rotatesSideways ? source.PixelWidth : source.PixelHeight;
         var renderBitmap = new RenderTargetBitmap(
-            source.PixelWidth,
-            source.PixelHeight,
+            pixelWidth,
+            pixelHeight,
             source.DpiX > 0 ? source.DpiX : 96,
             source.DpiY > 0 ? source.DpiY : 96,
             PixelFormats.Pbgra32);
@@ -35,14 +48,14 @@ internal static class PinnedImageBitmapService
         var drawingVisual = new DrawingVisual();
         using (var drawingContext = drawingVisual.RenderOpen())
         {
-            drawingContext.PushTransform(new TranslateTransform(
-                flipHorizontally ? source.PixelWidth : 0,
-                flipVertically ? source.PixelHeight : 0));
-            drawingContext.PushTransform(new ScaleTransform(
-                flipHorizontally ? -1 : 1,
-                flipVertically ? -1 : 1));
+            var transform = new TransformGroup();
+            transform.Children.Add(new TranslateTransform(-source.PixelWidth / 2d, -source.PixelHeight / 2d));
+            transform.Children.Add(new ScaleTransform(flipHorizontally ? -1d : 1d, flipVertically ? -1d : 1d));
+            transform.Children.Add(new RotateTransform(normalizedRotation));
+            transform.Children.Add(new TranslateTransform(pixelWidth / 2d, pixelHeight / 2d));
+
+            drawingContext.PushTransform(transform);
             drawingContext.DrawImage(source, new Rect(0, 0, source.PixelWidth, source.PixelHeight));
-            drawingContext.Pop();
             drawingContext.Pop();
         }
 
@@ -92,5 +105,23 @@ internal static class PinnedImageBitmapService
         using var stream = File.Create(filePath);
         encoder.Save(stream);
         return filePath;
+    }
+
+    private static int NormalizeRotation(int rotationDegrees)
+    {
+        var normalized = rotationDegrees % 360;
+        if (normalized < 0)
+        {
+            normalized += 360;
+        }
+
+        return normalized switch
+        {
+            < 45 => 0,
+            < 135 => 90,
+            < 225 => 180,
+            < 315 => 270,
+            _ => 0
+        };
     }
 }

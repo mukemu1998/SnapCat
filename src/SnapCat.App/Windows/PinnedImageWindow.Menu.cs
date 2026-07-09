@@ -20,7 +20,7 @@ public partial class PinnedImageWindow
     {
         SetHoverOverlayVisible(true);
         CloseOtherPinnedMenuItem.IsEnabled = _app.PinnedWindowRegistryService.HasOtherWindows(this);
-        ResetOrientationMenuItem.IsEnabled = _flipHorizontally || _flipVertically;
+        ResetOrientationMenuItem.IsEnabled = _flipHorizontally || _flipVertically || _rotationDegrees != 0;
         UngroupedGroupMenuItem.IsChecked = string.IsNullOrWhiteSpace(GroupName);
         GroupOneMenuItem.IsChecked = string.Equals(GroupName, PinnedWindowRegistryService.GroupOneName, StringComparison.Ordinal);
         GroupTwoMenuItem.IsChecked = string.Equals(GroupName, PinnedWindowRegistryService.GroupTwoName, StringComparison.Ordinal);
@@ -103,11 +103,30 @@ public partial class PinnedImageWindow
         UpdateImageOrientation();
     }
 
+    private void RotateLeftMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        _rotationDegrees = NormalizeRotation(_rotationDegrees - 90);
+        UpdateImageOrientation(resizeWindowToOrientation: true);
+    }
+
+    private void RotateRightMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        _rotationDegrees = NormalizeRotation(_rotationDegrees + 90);
+        UpdateImageOrientation(resizeWindowToOrientation: true);
+    }
+
     private void ResetOrientationMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         _flipHorizontally = false;
         _flipVertically = false;
-        UpdateImageOrientation();
+        _rotationDegrees = 0;
+        UpdateImageOrientation(resizeWindowToOrientation: true);
+    }
+
+    private static int NormalizeRotation(int rotationDegrees)
+    {
+        var normalized = rotationDegrees % 360;
+        return normalized < 0 ? normalized + 360 : normalized;
     }
 
     private void ArrayCountTextBox_OnGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
@@ -169,6 +188,40 @@ public partial class PinnedImageWindow
     private void ResetZoomMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         ResetToOriginalScale(GetWindowCenter());
+    }
+
+    private async void CanvasEditMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var imagePath = PinnedImageBitmapService.WriteBitmapToTempFile(CreateDisplayedCellBitmap(), "pinned-canvas-edit");
+            var editorWindow = new CanvasEditorWindow(
+                imagePath,
+                mode: CanvasEditorMode.QuickAnnotate)
+            {
+                Owner = this
+            };
+
+            if (editorWindow.ShowDialog() == true && !string.IsNullOrWhiteSpace(editorWindow.SavedPath))
+            {
+                CreatePinnedWindowFromImage(
+                    editorWindow.SavedPath,
+                    Left + DuplicateOffset,
+                    Top + DuplicateOffset,
+                    Width,
+                    Height);
+                SetHoverOverlayVisible(false);
+                await _app.HistoryStore.AppendAsync(new CaptureTranslationRecord
+                {
+                    WorkflowType = "pinned-canvas",
+                    ImagePath = editorWindow.SavedPath
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            WpfMessageBox.Show(this, $"标注编辑启动失败：{ex.Message}", "SnapCat", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private async void OcrMenuItem_OnClick(object sender, RoutedEventArgs e)

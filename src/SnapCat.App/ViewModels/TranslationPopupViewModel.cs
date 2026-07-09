@@ -179,14 +179,22 @@ public sealed class TranslationPopupViewModel : ObservableObject
         string sourceText,
         string translatedText,
         AppSettings settings,
-        Func<Task>? repeatCaptureAction)
+        Func<Task>? repeatCaptureAction,
+        bool preserveLanguageSelection = false)
     {
+        var previousSourceLanguage = SourceLanguageCode;
+        var previousTargetLanguage = TargetLanguageCode;
+
         Settings = settings;
         _repeatCaptureAction = repeatCaptureAction;
         Title = title;
         Status = status;
-        SourceLanguageCode = TranslationLanguageHelper.AutoLanguage;
-        TargetLanguageCode = TranslationLanguageHelper.AutoLanguage;
+        SourceLanguageCode = preserveLanguageSelection
+            ? previousSourceLanguage
+            : TranslationLanguageHelper.AutoLanguage;
+        TargetLanguageCode = preserveLanguageSelection
+            ? previousTargetLanguage
+            : TranslationLanguageHelper.AutoLanguage;
         SourceText = sourceText;
         TranslatedText = translatedText;
         IsBusy = false;

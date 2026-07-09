@@ -6,6 +6,7 @@ public enum CaptureActionKind
     OcrOnly,
     OcrAndTranslate,
     QrCode,
+    CanvasEdit,
     CopyImage,
     Save,
     SaveAs,

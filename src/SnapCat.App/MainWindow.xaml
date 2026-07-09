@@ -77,8 +77,8 @@
         </Style>
 
         <Style x:Key="SidebarNavIconStyle" TargetType="Path">
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="18" />
+            <Setter Property="Width" Value="14.4" />
+            <Setter Property="Height" Value="14.4" />
             <Setter Property="Margin" Value="0,0,8,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Stretch" Value="Uniform" />
@@ -882,7 +882,7 @@
                                     Click="NavigationButton_OnClick">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource SidebarNavIconStyle}"
-                                          Data="M4 18 L8 6 L12 18 M6 13 H10 M14 7 H20 M17 7 V18 M15 12 H19" />
+                                          Data="M5 18 L9 6 L13 18 M7 13 H11" />
                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="翻译设置" />
                                 </StackPanel>
                             </Button>
@@ -892,7 +892,7 @@
                                     Click="NavigationButton_OnClick">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource SidebarNavIconStyle}"
-                                          Data="M12 5 A7 7 0 1 1 5 12 M5 12 H3 M12 8 V12 L15 14" />
+                                          Data="M12 5 A7 7 0 1 1 12 19 A7 7 0 1 1 12 5 M12 8 V12 L15 14" />
                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="历史记录" />
                                 </StackPanel>
                             </Button>
@@ -912,7 +912,7 @@
                                     Click="NavigationButton_OnClick">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource SidebarNavIconStyle}"
-                                          Data="M9 4 L15 10 M12 7 L17 12 L14 15 L16 20 L12 16 L8 20 L10 15 L7 12 Z" />
+                                          Data="M9 4 L15 10 M12 7 L17 12 L14 15 M14 15 L16 20 M14 15 L9 10" />
                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="贴图管理" />
                                 </StackPanel>
                             </Button>
@@ -969,8 +969,8 @@
                                     Tag="AppearanceSettings"
                                     Click="NavigationButton_OnClick">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Style="{StaticResource SidebarNavIconStyle}"
-                                          Data="M7 17 L17 7 M15 5 L19 9 M6 18 L4 20 M8 16 L10 20" />
+                                     <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M12 4 L14.2 9 L19.5 9.5 L15.5 13 L16.8 18.5 L12 15.6 L7.2 18.5 L8.5 13 L4.5 9.5 L9.8 9 Z" />
                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="外观主题" />
                                 </StackPanel>
                             </Button>
@@ -1797,7 +1797,7 @@
                                             <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearSaveHotkeyButton_OnClick">清空</Button>
                                         </Grid>
 
-                                        <Grid>
+                                        <Grid Margin="0,0,0,12">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="220" />
                                                 <ColumnDefinition Width="100" />
@@ -1810,6 +1810,21 @@
                                             <TextBox x:Name="HotkeyCaptureAndCopyTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
                                             <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordCopyHotkeyButton_OnClick">录制</Button>
                                             <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearCopyHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="全屏画布编辑" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunFullScreenCanvasActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyFullScreenCanvasTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordFullScreenCanvasHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearFullScreenCanvasHotkeyButton_OnClick">清空</Button>
                                         </Grid>
                                     </StackPanel>
                                     </ScrollViewer>
@@ -2088,7 +2103,7 @@
                                     CornerRadius="12">
                                 <StackPanel>
                                     <TextBlock FontWeight="SemiBold"
-                                               Text="托盘左键默认动作" />
+                                               Text="单击托盘默认动作" />
                                     <ComboBox x:Name="TrayLeftClickActionComboBox"
                                               Width="320"
                                               Margin="0,12,0,0"
@@ -2100,11 +2115,67 @@
                                         <ComboBoxItem Tag="CaptureAndWaitForAction">自由框选后等待操作选择</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndSave">自由框选并保存到默认位置</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndCopy">自由框选并复制到剪贴板</ComboBoxItem>
+                                        <ComboBoxItem Tag="FullScreenCanvasEdit">全屏画布编辑</ComboBoxItem>
                                     </ComboBox>
                                     <TextBlock Margin="0,12,0,0"
                                                Foreground="{DynamicResource Theme.Brush.TextSecondary}"
                                                TextWrapping="Wrap"
-                                               Text="手动启动时主窗口会正常显示；只有开机自启时才会带托盘参数启动。托盘左键默认动作也可以在这里直接改。" />
+                                               Text="手动启动时主窗口会正常显示；只有开机自启时才会带托盘参数启动。单击托盘默认动作也可以在这里直接改。" />
+
+                                    <TextBlock Margin="0,18,0,0"
+                                               FontWeight="SemiBold"
+                                               Text="托盘悬浮摘要" />
+                                    <TextBlock Margin="0,8,0,12"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="原生托盘提示空间有限，这里选择除“单击托盘默认动作”外额外显示的两条组合指令。" />
+                                    <Grid MaxWidth="720"
+                                          HorizontalAlignment="Stretch">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   VerticalAlignment="Center"
+                                                   Text="摘要 1" />
+                                        <ComboBox x:Name="TrayTooltipWorkflowOneComboBox"
+                                                  Grid.Column="1"
+                                                  MinWidth="260"
+                                                  SelectedValuePath="Tag"
+                                                  SelectionChanged="SettingsSelection_OnSelectionChanged">
+                                            <ComboBoxItem Tag="CaptureAndPin">框选+贴图</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndOcr">框选+OCR</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndTranslate">框选+翻译</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndWaitForAction">框选+待执行</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndSave">框选+保存</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndCopy">框选+复制</ComboBoxItem>
+                                            <ComboBoxItem Tag="FullScreenCanvasEdit">全屏画布</ComboBoxItem>
+                                        </ComboBox>
+                                        <TextBlock Grid.Row="1"
+                                                   Grid.Column="0"
+                                                   Margin="0,10,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="摘要 2" />
+                                        <ComboBox x:Name="TrayTooltipWorkflowTwoComboBox"
+                                                  Grid.Row="1"
+                                                  Grid.Column="1"
+                                                  MinWidth="260"
+                                                  Margin="0,10,0,0"
+                                                  SelectedValuePath="Tag"
+                                                  SelectionChanged="SettingsSelection_OnSelectionChanged">
+                                            <ComboBoxItem Tag="CaptureAndPin">框选+贴图</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndOcr">框选+OCR</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndTranslate">框选+翻译</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndWaitForAction">框选+待执行</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndSave">框选+保存</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndCopy">框选+复制</ComboBoxItem>
+                                            <ComboBoxItem Tag="FullScreenCanvasEdit">全屏画布</ComboBoxItem>
+                                        </ComboBox>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
 

@@ -48,14 +48,7 @@ internal static class HotkeyParser
                 continue;
             }
 
-            if (part.Length == 1 && char.IsLetterOrDigit(part[0]))
-            {
-                key = char.ToUpperInvariant(part[0]);
-                hotkey = new ParsedHotkey(modifiers, key);
-                return true;
-            }
-
-            if (Enum.TryParse<Key>(part, true, out var wpfKey))
+            if (HotkeyTextFormatter.TryGetPrimaryKeyFromText(part, out var wpfKey))
             {
                 key = (uint)KeyInterop.VirtualKeyFromKey(wpfKey);
                 if (key == 0)

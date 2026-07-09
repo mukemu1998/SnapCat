@@ -232,13 +232,6 @@
                 Padding="6"
                 SnapsToDevicePixels="True"
                 UseLayoutRounding="True">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="18"
-                                  ShadowDepth="6"
-                                  Opacity="0.28"
-                                  Color="{DynamicResource Theme.Color.Shadow}" />
-            </Border.Effect>
-
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
                 <Button Style="{StaticResource ToolbarButtonStyle}"
@@ -292,6 +285,16 @@
                     <StackPanel>
                         <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE8C8;" />
                         <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="复制" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="CanvasEdit"
+                        ToolTip="标注当前框选范围"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE790;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="标注" />
                     </StackPanel>
                 </Button>
 
