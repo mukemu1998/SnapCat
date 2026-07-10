@@ -217,6 +217,10 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string SelectedApiProfileId { get; set; } = string.Empty;
 
+        public List<PersistedAiProviderProfile> AiProviderProfiles { get; set; } = [];
+
+        public string SelectedAiProviderProfileId { get; set; } = string.Empty;
+
         public string TargetLanguage { get; set; } = "zh-CN";
 
         public string TranslationProviderPreference { get; set; } = SnapCat.Core.Models.TranslationProviderPreference.Local;
@@ -292,6 +296,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 EnableApiContext = EnableApiContext,
                 ApiProfiles = ApiProfiles.Select(static profile => profile.ToModel()).ToList(),
                 SelectedApiProfileId = SelectedApiProfileId,
+                AiProviderProfiles = AiProviderProfiles.Select(static profile => profile.ToModel()).ToList(),
+                SelectedAiProviderProfileId = SelectedAiProviderProfileId,
                 TargetLanguage = TargetLanguage,
                 TranslationProviderPreference = TranslationProviderPreference,
                 OcrEngine = OcrEngine,
@@ -327,6 +333,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             };
 
             settings.NormalizeApiProfiles();
+            settings.NormalizeAiProviderProfiles();
             return settings;
         }
 
@@ -341,6 +348,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 EnableApiContext = settings.EnableApiContext,
                 ApiProfiles = AppSettings.CloneApiProfiles(settings.ApiProfiles),
                 SelectedApiProfileId = settings.SelectedApiProfileId,
+                AiProviderProfiles = AiProviderProfile.CloneAll(settings.AiProviderProfiles),
+                SelectedAiProviderProfileId = settings.SelectedAiProviderProfileId,
                 TargetLanguage = settings.TargetLanguage,
                 TranslationProviderPreference = settings.TranslationProviderPreference,
                 OcrEngine = settings.OcrEngine,
@@ -376,6 +385,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             };
 
             clone.NormalizeApiProfiles();
+            clone.NormalizeAiProviderProfiles();
 
             return new PersistedAppSettings
             {
@@ -386,6 +396,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 EnableApiContext = clone.EnableApiContext,
                 ApiProfiles = clone.ApiProfiles.Select(static profile => PersistedApiTranslationProfile.FromModel(profile)).ToList(),
                 SelectedApiProfileId = clone.SelectedApiProfileId,
+                AiProviderProfiles = clone.AiProviderProfiles.Select(static profile => PersistedAiProviderProfile.FromModel(profile)).ToList(),
+                SelectedAiProviderProfileId = clone.SelectedAiProviderProfileId,
                 TargetLanguage = clone.TargetLanguage,
                 TranslationProviderPreference = clone.TranslationProviderPreference,
                 OcrEngine = clone.OcrEngine,
@@ -471,6 +483,67 @@ public sealed class JsonSettingsStore : ISettingsStore
             ProtectedModel = Protect(profile.Model),
             SystemPrompt = string.IsNullOrWhiteSpace(profile.SystemPrompt) ? AppSettings.DefaultSystemPrompt : profile.SystemPrompt,
             EnableContext = profile.EnableContext
+        };
+    }
+
+    private sealed class PersistedAiProviderProfile
+    {
+        public string Id { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Protocol { get; set; } = AiProviderProtocol.OpenAiCompatible;
+
+        public string BaseUrl { get; set; } = string.Empty;
+
+        public string ApiKey { get; set; } = string.Empty;
+
+        public string Model { get; set; } = string.Empty;
+
+        public string ProtectedBaseUrl { get; set; } = string.Empty;
+
+        public string ProtectedApiKey { get; set; } = string.Empty;
+
+        public string ProtectedModel { get; set; } = string.Empty;
+
+        public bool IsEnabled { get; set; } = true;
+
+        public AiModelCapabilities Capabilities { get; set; } = AiModelCapabilities.None;
+
+        public int MaxReferenceImageCount { get; set; } = 1;
+
+        public int MaxOutputCount { get; set; } = 1;
+
+        public bool SupportsCostEstimate { get; set; }
+
+        public AiProviderProfile ToModel() => new()
+        {
+            Id = Id,
+            Name = Name,
+            Protocol = Protocol,
+            BaseUrl = Unprotect(ProtectedBaseUrl, BaseUrl),
+            ApiKey = Unprotect(ProtectedApiKey, ApiKey),
+            Model = Unprotect(ProtectedModel, Model),
+            IsEnabled = IsEnabled,
+            Capabilities = Capabilities,
+            MaxReferenceImageCount = MaxReferenceImageCount,
+            MaxOutputCount = MaxOutputCount,
+            SupportsCostEstimate = SupportsCostEstimate
+        };
+
+        public static PersistedAiProviderProfile FromModel(AiProviderProfile profile) => new()
+        {
+            Id = profile.Id,
+            Name = profile.Name,
+            Protocol = AiProviderProtocol.Normalize(profile.Protocol),
+            ProtectedBaseUrl = Protect(profile.BaseUrl),
+            ProtectedApiKey = Protect(profile.ApiKey),
+            ProtectedModel = Protect(profile.Model),
+            IsEnabled = profile.IsEnabled,
+            Capabilities = profile.Capabilities,
+            MaxReferenceImageCount = profile.MaxReferenceImageCount,
+            MaxOutputCount = profile.MaxOutputCount,
+            SupportsCostEstimate = profile.SupportsCostEstimate
         };
     }
 

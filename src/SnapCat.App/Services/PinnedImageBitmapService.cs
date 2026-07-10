@@ -36,26 +36,35 @@ internal static class PinnedImageBitmapService
         }
 
         var rotatesSideways = normalizedRotation is 90 or 270;
+        var sourceDpiX = source.DpiX > 0 ? source.DpiX : 96d;
+        var sourceDpiY = source.DpiY > 0 ? source.DpiY : 96d;
+        // DrawingVisual uses DIPs; pixel dimensions would magnify high-DPI images during rendering.
+        var sourceWidth = source.PixelWidth * 96d / sourceDpiX;
+        var sourceHeight = source.PixelHeight * 96d / sourceDpiY;
         var pixelWidth = rotatesSideways ? source.PixelHeight : source.PixelWidth;
         var pixelHeight = rotatesSideways ? source.PixelWidth : source.PixelHeight;
+        var outputDpiX = rotatesSideways ? sourceDpiY : sourceDpiX;
+        var outputDpiY = rotatesSideways ? sourceDpiX : sourceDpiY;
+        var outputWidth = rotatesSideways ? sourceHeight : sourceWidth;
+        var outputHeight = rotatesSideways ? sourceWidth : sourceHeight;
         var renderBitmap = new RenderTargetBitmap(
             pixelWidth,
             pixelHeight,
-            source.DpiX > 0 ? source.DpiX : 96,
-            source.DpiY > 0 ? source.DpiY : 96,
+            outputDpiX,
+            outputDpiY,
             PixelFormats.Pbgra32);
 
         var drawingVisual = new DrawingVisual();
         using (var drawingContext = drawingVisual.RenderOpen())
         {
             var transform = new TransformGroup();
-            transform.Children.Add(new TranslateTransform(-source.PixelWidth / 2d, -source.PixelHeight / 2d));
+            transform.Children.Add(new TranslateTransform(-sourceWidth / 2d, -sourceHeight / 2d));
             transform.Children.Add(new ScaleTransform(flipHorizontally ? -1d : 1d, flipVertically ? -1d : 1d));
             transform.Children.Add(new RotateTransform(normalizedRotation));
-            transform.Children.Add(new TranslateTransform(pixelWidth / 2d, pixelHeight / 2d));
+            transform.Children.Add(new TranslateTransform(outputWidth / 2d, outputHeight / 2d));
 
             drawingContext.PushTransform(transform);
-            drawingContext.DrawImage(source, new Rect(0, 0, source.PixelWidth, source.PixelHeight));
+            drawingContext.DrawImage(source, new Rect(0, 0, sourceWidth, sourceHeight));
             drawingContext.Pop();
         }
 
@@ -67,14 +76,18 @@ internal static class PinnedImageBitmapService
     public static BitmapSource CreateTiledBitmap(BitmapSource source, PinnedArrayDirection direction, int tileCount)
     {
         var isHorizontal = direction is PinnedArrayDirection.Left or PinnedArrayDirection.Right;
+        var sourceDpiX = source.DpiX > 0 ? source.DpiX : 96d;
+        var sourceDpiY = source.DpiY > 0 ? source.DpiY : 96d;
+        var sourceWidth = source.PixelWidth * 96d / sourceDpiX;
+        var sourceHeight = source.PixelHeight * 96d / sourceDpiY;
         var pixelWidth = isHorizontal ? source.PixelWidth * tileCount : source.PixelWidth;
         var pixelHeight = isHorizontal ? source.PixelHeight : source.PixelHeight * tileCount;
 
         var renderBitmap = new RenderTargetBitmap(
             pixelWidth,
             pixelHeight,
-            source.DpiX > 0 ? source.DpiX : 96,
-            source.DpiY > 0 ? source.DpiY : 96,
+            sourceDpiX,
+            sourceDpiY,
             PixelFormats.Pbgra32);
 
         var drawingVisual = new DrawingVisual();
@@ -82,9 +95,9 @@ internal static class PinnedImageBitmapService
         {
             for (var index = 0; index < tileCount; index++)
             {
-                var x = isHorizontal ? source.PixelWidth * index : 0;
-                var y = isHorizontal ? 0 : source.PixelHeight * index;
-                drawingContext.DrawImage(source, new Rect(x, y, source.PixelWidth, source.PixelHeight));
+                var x = isHorizontal ? sourceWidth * index : 0;
+                var y = isHorizontal ? 0 : sourceHeight * index;
+                drawingContext.DrawImage(source, new Rect(x, y, sourceWidth, sourceHeight));
             }
         }
 

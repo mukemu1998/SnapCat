@@ -146,6 +146,44 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ArrayExecuteButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Foreground" Value="#FFF3F4F6" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.Accent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.Accent}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.86" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="OverlayCircleButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
@@ -244,45 +282,69 @@
                     <MenuItem Header="还原 100% 尺寸" Click="ResetZoomMenuItem_OnClick" />
                 </MenuItem>
                 <MenuItem Header="阵列">
-                    <MenuItem Header="向右">
-                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
-                                 Tag="Right"
-                                 MaxLength="2"
-                                 Text="3"
-                                 ToolTip="输入 1-99，按回车执行"
-                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
-                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
-                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    <MenuItem Header="向右" StaysOpenOnClick="True">
+                        <StackPanel Orientation="Horizontal" Margin="8,3">
+                            <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                     Tag="Right"
+                                     MaxLength="2"
+                                     Text="3"
+                                     ToolTip="输入 1-99，按回车或点击执行"
+                                     GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                     PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                     KeyDown="ArrayCountTextBox_OnKeyDown" />
+                            <Button Style="{StaticResource ArrayExecuteButtonStyle}"
+                                    Content="执行"
+                                    ToolTip="按当前数量向右阵列"
+                                    Click="ArrayCountExecuteButton_OnClick" />
+                        </StackPanel>
                     </MenuItem>
-                    <MenuItem Header="向左">
-                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
-                                 Tag="Left"
-                                 MaxLength="2"
-                                 Text="3"
-                                 ToolTip="输入 1-99，按回车执行"
-                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
-                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
-                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    <MenuItem Header="向左" StaysOpenOnClick="True">
+                        <StackPanel Orientation="Horizontal" Margin="8,3">
+                            <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                     Tag="Left"
+                                     MaxLength="2"
+                                     Text="3"
+                                     ToolTip="输入 1-99，按回车或点击执行"
+                                     GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                     PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                     KeyDown="ArrayCountTextBox_OnKeyDown" />
+                            <Button Style="{StaticResource ArrayExecuteButtonStyle}"
+                                    Content="执行"
+                                    ToolTip="按当前数量向左阵列"
+                                    Click="ArrayCountExecuteButton_OnClick" />
+                        </StackPanel>
                     </MenuItem>
-                    <MenuItem Header="向下">
-                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
-                                 Tag="Down"
-                                 MaxLength="2"
-                                 Text="3"
-                                 ToolTip="输入 1-99，按回车执行"
-                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
-                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
-                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    <MenuItem Header="向下" StaysOpenOnClick="True">
+                        <StackPanel Orientation="Horizontal" Margin="8,3">
+                            <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                     Tag="Down"
+                                     MaxLength="2"
+                                     Text="3"
+                                     ToolTip="输入 1-99，按回车或点击执行"
+                                     GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                     PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                     KeyDown="ArrayCountTextBox_OnKeyDown" />
+                            <Button Style="{StaticResource ArrayExecuteButtonStyle}"
+                                    Content="执行"
+                                    ToolTip="按当前数量向下阵列"
+                                    Click="ArrayCountExecuteButton_OnClick" />
+                        </StackPanel>
                     </MenuItem>
-                    <MenuItem Header="向上">
-                        <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
-                                 Tag="Up"
-                                 MaxLength="2"
-                                 Text="3"
-                                 ToolTip="输入 1-99，按回车执行"
-                                 GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
-                                 PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
-                                 KeyDown="ArrayCountTextBox_OnKeyDown" />
+                    <MenuItem Header="向上" StaysOpenOnClick="True">
+                        <StackPanel Orientation="Horizontal" Margin="8,3">
+                            <TextBox Style="{StaticResource ArrayCountTextBoxStyle}"
+                                     Tag="Up"
+                                     MaxLength="2"
+                                     Text="3"
+                                     ToolTip="输入 1-99，按回车或点击执行"
+                                     GotKeyboardFocus="ArrayCountTextBox_OnGotKeyboardFocus"
+                                     PreviewTextInput="ArrayCountTextBox_OnPreviewTextInput"
+                                     KeyDown="ArrayCountTextBox_OnKeyDown" />
+                            <Button Style="{StaticResource ArrayExecuteButtonStyle}"
+                                    Content="执行"
+                                    ToolTip="按当前数量向上阵列"
+                                    Click="ArrayCountExecuteButton_OnClick" />
+                        </StackPanel>
                     </MenuItem>
                 </MenuItem>
                 <MenuItem Header="分组">

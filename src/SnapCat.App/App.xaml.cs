@@ -65,6 +65,7 @@ public partial class App : WpfApplication
         PinnedWindowRegistryService = new PinnedWindowRegistryService(PinnedWindowLayoutStore);
         StartupRegistrationService = new StartupRegistrationService();
         StartupDiagnosticsService = new StartupDiagnosticsService();
+        AiTaskCoordinator = new AiTaskCoordinator();
         CaptureActionService = new CaptureActionService(
             OcrService,
             TranslationService,
@@ -107,6 +108,8 @@ public partial class App : WpfApplication
     public StartupRegistrationService StartupRegistrationService { get; private set; } = null!;
 
     public StartupDiagnosticsService StartupDiagnosticsService { get; private set; } = null!;
+
+    public IAiTaskCoordinator AiTaskCoordinator { get; private set; } = null!;
 
     public ThemeService ThemeService { get; }
 
@@ -202,6 +205,7 @@ public partial class App : WpfApplication
     {
         if (_runtimeServicesInitialized)
         {
+            AiTaskCoordinator.InterruptActiveTasks("SnapCat 已退出，未完成的 AI 任务已中断。");
             PreparePinnedWindowsForExit();
             GlobalHotkeyService.Dispose();
             TrayIconService.Dispose();

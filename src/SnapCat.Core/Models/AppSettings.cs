@@ -33,6 +33,11 @@ public sealed class AppSettings
 
     public string SelectedApiProfileId { get; set; } = string.Empty;
 
+    // AI provider credentials remain in the user-local settings store and are never project data.
+    public List<AiProviderProfile> AiProviderProfiles { get; set; } = [];
+
+    public string SelectedAiProviderProfileId { get; set; } = string.Empty;
+
     public string TargetLanguage { get; set; } = "zh-CN";
 
     public string TranslationProviderPreference { get; set; } = SnapCat.Core.Models.TranslationProviderPreference.Local;
@@ -162,6 +167,40 @@ public sealed class AppSettings
         }
 
         SyncLegacyApiFieldsFromSelectedProfile();
+    }
+
+    public void NormalizeAiProviderProfiles()
+    {
+        for (var index = 0; index < AiProviderProfiles.Count; index++)
+        {
+            AiProviderProfiles[index].Normalize(index);
+        }
+
+        if (AiProviderProfiles.Count == 0)
+        {
+            SelectedAiProviderProfileId = string.Empty;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SelectedAiProviderProfileId)
+            || AiProviderProfiles.All(profile => !string.Equals(profile.Id, SelectedAiProviderProfileId, StringComparison.Ordinal)))
+        {
+            SelectedAiProviderProfileId = AiProviderProfiles[0].Id;
+        }
+    }
+
+    public AiProviderProfile? GetSelectedAiProviderProfile()
+    {
+        return AiProviderProfiles.FirstOrDefault(profile =>
+            string.Equals(profile.Id, SelectedAiProviderProfileId, StringComparison.Ordinal))
+            ?? AiProviderProfiles.FirstOrDefault();
+    }
+
+    public IReadOnlyList<AiProviderProfile> GetEnabledAiProviderProfiles(AiModelCapabilities requiredCapabilities)
+    {
+        return AiProviderProfiles
+            .Where(profile => profile.IsEnabled && profile.Supports(requiredCapabilities))
+            .ToList();
     }
 
     public void SyncLegacyApiFieldsFromSelectedProfile()

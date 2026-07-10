@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.3.4-preview" src="https://img.shields.io/badge/Version-0.3.4--preview-22c55e" />
+  <img alt="Version 0.3.5-preview" src="https://img.shields.io/badge/Version-0.3.5--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -106,7 +106,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.3.4-preview`，属于 v0.3 预览阶段标注流程整理版，重点修复重复标注状态，并补齐框选标注快捷键、确定复制、独立另存和色板交互。
+当前版本为 `0.3.5-preview`，属于 AI 基础架构准备版：新增本地安全 AI 配置、模型能力与任务状态底座；贴图阵列数量输入新增“执行”按钮，并修复高 DPI 贴图翻转、旋转和阵列渲染显示问题。视觉提示词分析和无限 AI 画布将在后续阶段逐步开放。
 
 ## 许可
 

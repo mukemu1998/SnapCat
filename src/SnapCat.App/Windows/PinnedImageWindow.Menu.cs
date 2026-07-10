@@ -10,6 +10,7 @@ using MouseButton = System.Windows.Input.MouseButton;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using TextCompositionEventArgs = System.Windows.Input.TextCompositionEventArgs;
 using WpfMessageBox = System.Windows.MessageBox;
+using WpfPanel = System.Windows.Controls.Panel;
 using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace SnapCat.App.Windows;
@@ -149,9 +150,31 @@ public partial class PinnedImageWindow
             return;
         }
 
+        ExecuteArrayCommand(textBox);
+        e.Handled = true;
+    }
+
+    private void ArrayCountExecuteButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Parent: WpfPanel panel })
+        {
+            return;
+        }
+
+        var textBox = panel.Children.OfType<WpfTextBox>().FirstOrDefault();
+        if (textBox is null)
+        {
+            return;
+        }
+
+        ExecuteArrayCommand(textBox);
+        e.Handled = true;
+    }
+
+    private void ExecuteArrayCommand(WpfTextBox textBox)
+    {
         if (!PinnedArrayCommandParser.TryResolveDirection(textBox.Tag, out var direction))
         {
-            e.Handled = true;
             return;
         }
 
@@ -159,7 +182,6 @@ public partial class PinnedImageWindow
         textBox.Text = tileCount.ToString();
         PinnedContextMenu.IsOpen = false;
         CreateArrayPinnedWindow(direction, tileCount);
-        e.Handled = true;
     }
 
     private void GroupMenuItem_OnClick(object sender, RoutedEventArgs e)
