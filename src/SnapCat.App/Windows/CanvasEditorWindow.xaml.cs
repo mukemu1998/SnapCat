@@ -166,15 +166,18 @@ public partial class CanvasEditorWindow : Window
             SaveButton,
             "✓",
             _saveAsAndCopyOnConfirm
-                ? "另存为并复制到剪贴板，完成后返回等待菜单"
+                ? "确定编辑并复制到剪贴板"
                 : "确定编辑");
+        ApplyIconButton(SaveAsButton, CreateFolderIcon(), "另存为");
         ApplyCompactButton(
             CancelToolButton,
             "×",
             _saveAsAndCopyOnConfirm
                 ? "取消并返回等待菜单"
                 : "取消");
-        SaveAsButton.Visibility = Visibility.Collapsed;
+        SaveAsButton.Visibility = _saveAsAndCopyOnConfirm
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         UpdateColorSourceUi();
     }
 
@@ -1740,11 +1743,15 @@ public partial class CanvasEditorWindow : Window
                 }
             }
         };
-        card.MouseLeftButtonDown += (_, e) =>
+        popup.PreviewMouseLeftButtonDown += (_, e) =>
         {
-            if (e.OriginalSource == card)
+            if (e.LeftButton == MouseButtonState.Pressed
+                && e.OriginalSource is DependencyObject source
+                && !IsDescendantOf<WpfButton>(source, card)
+                && !IsDescendantOf(source, colorMap))
             {
                 popup.DragMove();
+                e.Handled = true;
             }
         };
         popup.Content = card;
@@ -1832,9 +1839,84 @@ public partial class CanvasEditorWindow : Window
 
     private void PositionColorPaletteWindow(Window popup)
     {
-        var point = CustomColorButton.PointToScreen(new WpfPoint(0, CustomColorButton.ActualHeight + 6));
-        popup.Left = point.X;
-        popup.Top = point.Y;
+        popup.UpdateLayout();
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var anchorTopLeftPx = CustomColorButton.PointToScreen(new WpfPoint(0, 0));
+        var anchorBottomRightPx = CustomColorButton.PointToScreen(
+            new WpfPoint(CustomColorButton.ActualWidth, CustomColorButton.ActualHeight));
+        var anchor = new Rect(
+            anchorTopLeftPx.X / dpi.DpiScaleX,
+            anchorTopLeftPx.Y / dpi.DpiScaleY,
+            Math.Max(1d, (anchorBottomRightPx.X - anchorTopLeftPx.X) / dpi.DpiScaleX),
+            Math.Max(1d, (anchorBottomRightPx.Y - anchorTopLeftPx.Y) / dpi.DpiScaleY));
+        var screen = FormsScreen.FromPoint(new System.Drawing.Point(
+            (int)Math.Round(anchorTopLeftPx.X),
+            (int)Math.Round(anchorTopLeftPx.Y)));
+        var workArea = new Rect(
+            screen.WorkingArea.Left / dpi.DpiScaleX,
+            screen.WorkingArea.Top / dpi.DpiScaleY,
+            screen.WorkingArea.Width / dpi.DpiScaleX,
+            screen.WorkingArea.Height / dpi.DpiScaleY);
+        var popupWidth = Math.Max(1d, popup.ActualWidth);
+        var popupHeight = Math.Max(1d, popup.ActualHeight);
+        const double gap = 6d;
+
+        var candidates = new[]
+        {
+            new WpfPoint(anchor.Left, anchor.Bottom + gap),
+            new WpfPoint(anchor.Left, anchor.Top - popupHeight - gap),
+            new WpfPoint(anchor.Right + gap, anchor.Top),
+            new WpfPoint(anchor.Left - popupWidth - gap, anchor.Top)
+        };
+        var position = candidates.FirstOrDefault(candidate =>
+            candidate.X >= workArea.Left
+            && candidate.Y >= workArea.Top
+            && candidate.X + popupWidth <= workArea.Right
+            && candidate.Y + popupHeight <= workArea.Bottom);
+        if (position == default)
+        {
+            position = candidates[0];
+        }
+
+        popup.Left = Math.Clamp(position.X, workArea.Left + gap, Math.Max(workArea.Left + gap, workArea.Right - popupWidth - gap));
+        popup.Top = Math.Clamp(position.Y, workArea.Top + gap, Math.Max(workArea.Top + gap, workArea.Bottom - popupHeight - gap));
+    }
+
+    private static bool IsDescendantOf<T>(DependencyObject source, DependencyObject boundary)
+        where T : DependencyObject
+    {
+        for (DependencyObject? current = source; current is not null && !ReferenceEquals(current, boundary); current = GetParent(current))
+        {
+            if (current is T)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsDescendantOf(DependencyObject source, DependencyObject target)
+    {
+        for (DependencyObject? current = source; current is not null; current = GetParent(current))
+        {
+            if (ReferenceEquals(current, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static DependencyObject? GetParent(DependencyObject source)
+    {
+        return source switch
+        {
+            Visual or System.Windows.Media.Media3D.Visual3D => VisualTreeHelper.GetParent(source),
+            FrameworkContentElement contentElement => contentElement.Parent,
+            _ => LogicalTreeHelper.GetParent(source)
+        };
     }
 
     private void CloseColorPaletteWindow()
@@ -2001,13 +2083,7 @@ public partial class CanvasEditorWindow : Window
         }
         else if (_saveAsAndCopyOnConfirm)
         {
-            var savedPath = _app.CapturedImageFileService.SaveAs(tempPath);
-            if (string.IsNullOrWhiteSpace(savedPath))
-            {
-                return;
-            }
-
-            SavedPath = savedPath;
+            SavedPath = tempPath;
             CopyImageToClipboard(SavedPath);
         }
         else
@@ -2070,7 +2146,9 @@ public partial class CanvasEditorWindow : Window
 
     private void Toolbar_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed && e.OriginalSource is not WpfButton and not Slider and not WpfComboBox)
+        if (e.LeftButton == MouseButtonState.Pressed
+            && e.OriginalSource is DependencyObject source
+            && !IsToolbarControl(source))
         {
             _isToolbarDragging = true;
             _toolbarDragStart = e.GetPosition(RootGrid);
@@ -2078,6 +2156,19 @@ public partial class CanvasEditorWindow : Window
             Toolbar.CaptureMouse();
             e.Handled = true;
         }
+    }
+
+    private bool IsToolbarControl(DependencyObject source)
+    {
+        for (DependencyObject? current = source; current is not null && !ReferenceEquals(current, Toolbar); current = GetParent(current))
+        {
+            if (current is WpfButton or Slider or WpfComboBox)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void Toolbar_OnMouseMove(object sender, WpfMouseEventArgs e)

@@ -217,6 +217,11 @@ public partial class MainWindow : Window
         await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: true, hideMainWindowForCapture: false);
     }
 
+    private async void RunAnnotateActionButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        await StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndAnnotate, returnToMainWindow: true, hideMainWindowForCapture: false);
+    }
+
     private async void RunFullScreenCanvasActionButton_OnClick(object sender, RoutedEventArgs e)
     {
         await StartCaptureWorkflowAsync(CaptureWorkflowKind.FullScreenCanvasEdit, returnToMainWindow: true);

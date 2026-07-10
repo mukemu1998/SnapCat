@@ -57,6 +57,8 @@ public sealed class AppSettings
 
     public string HotkeyCaptureAndCopy { get; set; } = string.Empty;
 
+    public string HotkeyCaptureAndAnnotate { get; set; } = string.Empty;
+
     public string HotkeyFullScreenCanvasEdit { get; set; } = string.Empty;
 
     public string PinnedCloseShortcut { get; set; } = "Esc";

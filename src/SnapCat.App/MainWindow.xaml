@@ -1812,6 +1812,21 @@
                                             <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearCopyHotkeyButton_OnClick">清空</Button>
                                         </Grid>
 
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选并标注" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunAnnotateActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndAnnotateTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordAnnotateHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearAnnotateHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
+
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="220" />
@@ -2115,6 +2130,7 @@
                                         <ComboBoxItem Tag="CaptureAndWaitForAction">自由框选后等待操作选择</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndSave">自由框选并保存到默认位置</ComboBoxItem>
                                         <ComboBoxItem Tag="CaptureAndCopy">自由框选并复制到剪贴板</ComboBoxItem>
+                                        <ComboBoxItem Tag="CaptureAndAnnotate">自由框选并标注</ComboBoxItem>
                                         <ComboBoxItem Tag="FullScreenCanvasEdit">全屏画布编辑</ComboBoxItem>
                                     </ComboBox>
                                     <TextBlock Margin="0,12,0,0"
@@ -2153,6 +2169,7 @@
                                             <ComboBoxItem Tag="CaptureAndWaitForAction">框选+待执行</ComboBoxItem>
                                             <ComboBoxItem Tag="CaptureAndSave">框选+保存</ComboBoxItem>
                                             <ComboBoxItem Tag="CaptureAndCopy">框选+复制</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndAnnotate">框选+标注</ComboBoxItem>
                                             <ComboBoxItem Tag="FullScreenCanvasEdit">全屏画布</ComboBoxItem>
                                         </ComboBox>
                                         <TextBlock Grid.Row="1"
@@ -2173,6 +2190,7 @@
                                             <ComboBoxItem Tag="CaptureAndWaitForAction">框选+待执行</ComboBoxItem>
                                             <ComboBoxItem Tag="CaptureAndSave">框选+保存</ComboBoxItem>
                                             <ComboBoxItem Tag="CaptureAndCopy">框选+复制</ComboBoxItem>
+                                            <ComboBoxItem Tag="CaptureAndAnnotate">框选+标注</ComboBoxItem>
                                             <ComboBoxItem Tag="FullScreenCanvasEdit">全屏画布</ComboBoxItem>
                                         </ComboBox>
                                     </Grid>

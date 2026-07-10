@@ -31,7 +31,8 @@ internal static class SettingsSummaryFormatter
             $"快捷键 4（等待操作）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndWaitForAction)}\n" +
             $"快捷键 5（保存截图）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndSave)}\n" +
             $"快捷键 6（复制截图）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndCopy)}\n" +
-            $"快捷键 7（全屏画布）：{FormatHotkeySummaryValue(settings.HotkeyFullScreenCanvasEdit)}\n" +
+            $"快捷键 7（框选标注）：{FormatHotkeySummaryValue(settings.HotkeyCaptureAndAnnotate)}\n" +
+            $"快捷键 8（全屏画布）：{FormatHotkeySummaryValue(settings.HotkeyFullScreenCanvasEdit)}\n" +
             $"贴图关闭键：{FormatHotkeySummaryValue(settings.PinnedCloseShortcut)}\n" +
             $"贴图隐藏键：{FormatHotkeySummaryValue(settings.PinnedHideShortcut)}\n" +
             $"打开主菜单：{FormatHotkeySummaryValue(settings.HotkeyShowMainWindow)}\n" +
@@ -77,6 +78,7 @@ internal static class SettingsSummaryFormatter
                 CaptureWorkflowKind.CaptureAndTranslate => "自由框选后自动翻译",
                 CaptureWorkflowKind.CaptureAndSave => "自由框选并保存到默认位置",
                 CaptureWorkflowKind.CaptureAndCopy => "自由框选并复制到剪贴板",
+                CaptureWorkflowKind.CaptureAndAnnotate => "自由框选并标注",
                 CaptureWorkflowKind.FullScreenCanvasEdit => "全屏画布编辑",
                 _ => "自由框选后等待操作选择"
             }

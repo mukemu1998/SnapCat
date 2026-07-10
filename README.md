@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.3.3-preview" src="https://img.shields.io/badge/Version-0.3.3--preview-22c55e" />
+  <img alt="Version 0.3.4-preview" src="https://img.shields.io/badge/Version-0.3.4--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -39,7 +39,7 @@ SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本
 | 本地与 API 翻译 | 默认可用本地轻量翻译，也可添加多套兼容 OpenAI 的 API 配置。 |
 | 翻译浮窗 | 截图翻译后在框选附近显示小浮窗，支持语言选择、朗读、复制和再次框选。 |
 | 截图固定与贴图管理 | 贴图支持拖动、缩放、翻转、旋转、阵列、隐藏、分组和启动后恢复。 |
-| 画布标注与马赛克 | 支持全屏画布、框选范围标注、文本、箭头、画笔、马克笔、橡皮擦和真实像素马赛克。 |
+| 画布标注与马赛克 | 支持全屏画布、独立框选标注快捷键、文本、箭头、画笔、马克笔、橡皮擦和真实像素马赛克。 |
 | 二维码识别 | 支持框选二维码识别，并在选框附近显示结果和复制入口。 |
 | 托盘与快捷键 | 支持托盘常驻、托盘菜单、单击托盘默认动作、托盘摘要和多类自定义快捷键。 |
 | 主题与图标 | 内置多套深色主题，主界面、图标、托盘和任务栏显示跟随主题色调。 |
@@ -106,7 +106,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.3.3-preview`，属于 v0.3 预览阶段体验增强版，重点整理全屏画布与框选标注、真实像素马赛克、托盘悬浮提示、快捷键显示和托盘摘要配置。
+当前版本为 `0.3.4-preview`，属于 v0.3 预览阶段标注流程整理版，重点修复重复标注状态，并补齐框选标注快捷键、确定复制、独立另存和色板交互。
 
 ## 许可
 

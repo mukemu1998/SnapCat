@@ -105,7 +105,7 @@ public sealed class TrayIconService : IDisposable
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.3.3-preview";
+            ?? "0.3.4-preview";
         return version.Split('+', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? version;
     }
 
@@ -443,6 +443,7 @@ public sealed class TrayIconService : IDisposable
         yield return (CaptureWorkflowKind.CaptureAndOcr, settings.HotkeyCaptureAndOcr);
         yield return (CaptureWorkflowKind.CaptureAndSave, settings.HotkeyCaptureAndSave);
         yield return (CaptureWorkflowKind.CaptureAndCopy, settings.HotkeyCaptureAndCopy);
+        yield return (CaptureWorkflowKind.CaptureAndAnnotate, settings.HotkeyCaptureAndAnnotate);
         yield return (CaptureWorkflowKind.FullScreenCanvasEdit, settings.HotkeyFullScreenCanvasEdit);
     }
 
@@ -466,6 +467,7 @@ public sealed class TrayIconService : IDisposable
             CaptureWorkflowKind.CaptureAndWaitForAction => "框选+待执行",
             CaptureWorkflowKind.CaptureAndSave => "框选+保存",
             CaptureWorkflowKind.CaptureAndCopy => "框选+复制",
+            CaptureWorkflowKind.CaptureAndAnnotate => "框选+标注",
             CaptureWorkflowKind.FullScreenCanvasEdit => "全屏画布",
             _ => "框选"
         };

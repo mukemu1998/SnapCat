@@ -105,6 +105,7 @@ public sealed class StartupDiagnosticsService
             ["等待操作"] = settings.HotkeyCaptureAndWaitForAction,
             ["保存截图"] = settings.HotkeyCaptureAndSave,
             ["复制截图"] = settings.HotkeyCaptureAndCopy,
+            ["框选标注"] = settings.HotkeyCaptureAndAnnotate,
             ["全屏画布编辑"] = settings.HotkeyFullScreenCanvasEdit
         };
 

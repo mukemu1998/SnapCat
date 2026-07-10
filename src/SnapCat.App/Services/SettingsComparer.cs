@@ -23,6 +23,7 @@ internal static class SettingsComparer
             && HotkeyEquals(left.HotkeyCaptureAndWaitForAction, right.HotkeyCaptureAndWaitForAction)
             && HotkeyEquals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave)
             && HotkeyEquals(left.HotkeyCaptureAndCopy, right.HotkeyCaptureAndCopy)
+            && HotkeyEquals(left.HotkeyCaptureAndAnnotate, right.HotkeyCaptureAndAnnotate)
             && HotkeyEquals(left.HotkeyFullScreenCanvasEdit, right.HotkeyFullScreenCanvasEdit)
             && HotkeyEquals(left.PinnedCloseShortcut, right.PinnedCloseShortcut)
             && HotkeyEquals(left.PinnedHideShortcut, right.PinnedHideShortcut)

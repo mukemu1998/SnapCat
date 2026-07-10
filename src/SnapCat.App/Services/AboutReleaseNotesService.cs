@@ -12,6 +12,16 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.3.4-preview" => new AboutReleaseNotes(
+                "本版更新：框选标注流程整理",
+                "这一版重点修复等待菜单重复标注状态，并补齐框选标注快捷键、确认复制、独立另存和色板交互。",
+                [
+                    "再次进入标注时会基于当前选框原图重新编辑，不再叠加上一次标注结果。",
+                    "标注完成动作拆分为“确定并复制”和“另存为”，完成后返回等待菜单。",
+                    "新增“自由框选并标注”执行命令，可独立绑定并持久化全局快捷键。",
+                    "色板会贴近工具栏并自动避让屏幕边缘，工具栏和色板空白区域支持拖动。",
+                    "调整后的等待选框会延续到后续操作，减少重复调整。"
+                ]),
             "0.3.3-preview" => new AboutReleaseNotes(
                 "本版更新：画布标注、马赛克和托盘提示增强",
                 "这一版重点整理全屏画布与框选标注、真实像素马赛克、托盘悬浮提示和快捷键显示，让常用操作更直观。",

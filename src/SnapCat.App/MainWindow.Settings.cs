@@ -62,6 +62,7 @@ public partial class MainWindow
             HotkeyCaptureAndWaitForAction = FormatHotkeySetting(HotkeyCaptureAndWaitTextBox.Text),
             HotkeyCaptureAndSave = FormatHotkeySetting(HotkeyCaptureAndSaveTextBox.Text),
             HotkeyCaptureAndCopy = FormatHotkeySetting(HotkeyCaptureAndCopyTextBox.Text),
+            HotkeyCaptureAndAnnotate = FormatHotkeySetting(HotkeyCaptureAndAnnotateTextBox.Text),
             HotkeyFullScreenCanvasEdit = FormatHotkeySetting(HotkeyFullScreenCanvasTextBox.Text),
             PinnedCloseShortcut = FormatHotkeySetting(PinnedCloseShortcutTextBox.Text),
             PinnedHideShortcut = FormatHotkeySetting(PinnedHideShortcutTextBox.Text),
@@ -105,6 +106,7 @@ public partial class MainWindow
         HotkeyCaptureAndWaitTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndWaitForAction);
         HotkeyCaptureAndSaveTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndSave);
         HotkeyCaptureAndCopyTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndCopy);
+        HotkeyCaptureAndAnnotateTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndAnnotate);
         HotkeyFullScreenCanvasTextBox.Text = FormatHotkeySetting(settings.HotkeyFullScreenCanvasEdit);
         PinnedCloseShortcutTextBox.Text = FormatHotkeySetting(settings.PinnedCloseShortcut);
         PinnedHideShortcutTextBox.Text = FormatHotkeySetting(settings.PinnedHideShortcut);

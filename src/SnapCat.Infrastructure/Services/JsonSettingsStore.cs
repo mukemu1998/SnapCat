@@ -241,6 +241,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string HotkeyCaptureAndCopy { get; set; } = string.Empty;
 
+        public string HotkeyCaptureAndAnnotate { get; set; } = string.Empty;
+
         public string HotkeyFullScreenCanvasEdit { get; set; } = string.Empty;
 
         public string PinnedCloseShortcut { get; set; } = "Esc";
@@ -302,6 +304,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndWaitForAction = HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = HotkeyCaptureAndSave,
                 HotkeyCaptureAndCopy = HotkeyCaptureAndCopy,
+                HotkeyCaptureAndAnnotate = HotkeyCaptureAndAnnotate,
                 HotkeyFullScreenCanvasEdit = HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = PinnedCloseShortcut,
                 PinnedHideShortcut = NormalizePinnedHideShortcut(PinnedHideShortcut),
@@ -350,6 +353,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndWaitForAction = settings.HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
                 HotkeyCaptureAndCopy = settings.HotkeyCaptureAndCopy,
+                HotkeyCaptureAndAnnotate = settings.HotkeyCaptureAndAnnotate,
                 HotkeyFullScreenCanvasEdit = settings.HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = settings.PinnedCloseShortcut,
                 PinnedHideShortcut = settings.PinnedHideShortcut,
@@ -394,6 +398,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndWaitForAction = clone.HotkeyCaptureAndWaitForAction,
                 HotkeyCaptureAndSave = clone.HotkeyCaptureAndSave,
                 HotkeyCaptureAndCopy = clone.HotkeyCaptureAndCopy,
+                HotkeyCaptureAndAnnotate = clone.HotkeyCaptureAndAnnotate,
                 HotkeyFullScreenCanvasEdit = clone.HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = clone.PinnedCloseShortcut,
                 PinnedHideShortcut = clone.PinnedHideShortcut,

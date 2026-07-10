@@ -8,5 +8,6 @@ public enum CaptureWorkflowKind
     CaptureAndWaitForAction,
     CaptureAndSave,
     CaptureAndCopy,
+    CaptureAndAnnotate,
     FullScreenCanvasEdit
 }

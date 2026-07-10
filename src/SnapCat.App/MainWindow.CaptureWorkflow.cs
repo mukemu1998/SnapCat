@@ -127,6 +127,9 @@ public partial class MainWindow
                 case CaptureWorkflowKind.CaptureAndCopy:
                     action = CaptureActionKind.CopyImage;
                     break;
+                case CaptureWorkflowKind.CaptureAndAnnotate:
+                    action = CaptureActionKind.CanvasEdit;
+                    break;
                 case CaptureWorkflowKind.FullScreenCanvasEdit:
                     action = CaptureActionKind.CanvasEdit;
                     break;
@@ -135,6 +138,7 @@ public partial class MainWindow
                     var selection = await SelectActionAsync(captureRegion, shouldUseImmediateSnapshot);
                     action = selection.Action;
                     workingCaptureRegion = selection.CaptureRegion;
+                    captureRegion = workingCaptureRegion;
                     break;
                 }
             }
@@ -153,14 +157,14 @@ public partial class MainWindow
             if (workflow == CaptureWorkflowKind.CaptureAndWaitForAction
                 && action == CaptureActionKind.CanvasEdit)
             {
-                var editInputPath = !string.IsNullOrWhiteSpace(editedActionImagePath)
-                    ? editedActionImagePath
-                    : !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
-                        ? _app.ScreenCaptureService.CropSnapshotToTempFile(
-                            screenSnapshotPath,
-                            screenSnapshotRegion.Value,
-                            workingCaptureRegion)
-                        : _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
+                editedActionImagePath = null;
+                // 每次进入标注都从当前等待选框的原始画面开始，已确认的结果仅供后续操作使用。
+                var editInputPath = !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
+                    ? _app.ScreenCaptureService.CropSnapshotToTempFile(
+                        screenSnapshotPath,
+                        screenSnapshotRegion.Value,
+                        workingCaptureRegion)
+                    : _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
 
                 CanvasEditorWindow editorWindow;
                 try
@@ -194,6 +198,60 @@ public partial class MainWindow
                 }
 
                 goto selectNextAction;
+            }
+
+            if (workflow == CaptureWorkflowKind.CaptureAndAnnotate
+                && action == CaptureActionKind.CanvasEdit)
+            {
+                var editInputPath = !string.IsNullOrWhiteSpace(screenSnapshotPath) && screenSnapshotRegion is not null
+                    ? _app.ScreenCaptureService.CropSnapshotToTempFile(
+                        screenSnapshotPath,
+                        screenSnapshotRegion.Value,
+                        workingCaptureRegion)
+                    : _app.ScreenCaptureService.CaptureToTempFile(workingCaptureRegion);
+
+                if (overlay is not null && overlay.IsVisible)
+                {
+                    overlay.Close();
+                    overlay = null;
+                }
+
+                CanvasEditorWindow editorWindow;
+                try
+                {
+                    editorWindow = new CanvasEditorWindow(
+                        editInputPath,
+                        workingCaptureRegion,
+                        CanvasEditorMode.QuickAnnotate,
+                        saveAsAndCopyOnConfirm: true);
+                }
+                catch (Exception ex)
+                {
+                    StatusTextBlock.Text = $"标注编辑启动失败：{ex.Message}";
+                    return;
+                }
+
+                if (editorWindow.ShowDialog() == true && !string.IsNullOrWhiteSpace(editorWindow.SavedPath))
+                {
+                    await _app.HistoryStore.AppendAsync(new CaptureTranslationRecord
+                    {
+                        WorkflowType = "annotate",
+                        ImagePath = editorWindow.SavedPath
+                    });
+                    StatusTextBlock.Text = "框选标注已完成。";
+                    await LoadHistoryAsync();
+                }
+                else
+                {
+                    StatusTextBlock.Text = "已取消框选标注。";
+                }
+
+                if (shouldRestoreMainWindow)
+                {
+                    ShowMainWindow();
+                }
+
+                return;
             }
 
             if (IsWindowsTextRecognitionEngine(_settings.OcrEngine)
