@@ -52,15 +52,17 @@ public sealed class ReleaseUpdatePackageService
             response.EnsureSuccessStatusCode();
             var expectedLength = package.SizeBytes > 0 ? package.SizeBytes : response.Content.Headers.ContentLength;
             await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var destination = File.Create(temporaryArchivePath);
-            var buffer = new byte[64 * 1024];
             var receivedBytes = 0L;
-            int read;
-            while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+            await using (var destination = File.Create(temporaryArchivePath))
             {
-                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-                receivedBytes += read;
-                progress?.Report(new UpdateDownloadProgress(receivedBytes, expectedLength));
+                var buffer = new byte[64 * 1024];
+                int read;
+                while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    receivedBytes += read;
+                    progress?.Report(new UpdateDownloadProgress(receivedBytes, expectedLength));
+                }
             }
 
             if (package.SizeBytes > 0 && receivedBytes != package.SizeBytes)

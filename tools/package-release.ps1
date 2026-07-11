@@ -16,7 +16,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.3-preview"
+    $version = "0.4.4-preview"
 }
 
 $releaseRoot = Join-Path $repoRoot "artifacts\releases\v$version"
@@ -141,17 +141,12 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
 @(
     "# SnapCat v$version 发布说明"
     ""
-    "## 版本定位"
+    "## 更新内容"
     ""
-    "v$version 是 SnapCat 的识别体验整理预览版：保持 Windows 高质量文本提取作为推荐 OCR，并保留本地 Ollama 模型用于图片提示词分析。"
-    ""
-    "## 重点更新"
-    ""
-    "- Windows 高质量文本提取继续作为推荐 OCR；轻量 OCR、翻译、二维码、贴图和画布标注保持原有操作方式。"
-    "- 本地 Ollama 视觉模型继续用于图片提示词分析，为后续多参考图分析和外部生图工作流提供基础。"
-    "- 已移除不适合即时截图场景的实验性本地 AI OCR；旧设置会自动回落到推荐 OCR，无需手动调整。"
+    "- 修复自动升级下载完成后临时包文件仍被占用的问题，更新助手现在可正常接手后续校验、解压与替换。"
+    "- 增加下载、SHA256 校验和安全解压的回归测试，避免同类文件句柄问题再次影响自动升级。"
+    "- OCR、翻译、贴图、画布标注和图片提示词分析保持原有操作方式。"
     "- 用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存在用户本地目录。"
-    "- portable 和 runtime-dependent 包均携带 Updater、VERSION、README、LICENSE 和 SHA256 校验文件。"
     ""
     "## 使用建议"
     ""
@@ -163,15 +158,6 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     ""
     "- portable：解压后可直接双击 SnapCat.exe 使用，适合普通用户。"
     "- runtime-dependent：体积更小，但需要系统已安装 .NET 8 Desktop Runtime。"
-    ""
-    "## 已知说明"
-    ""
-    "- 旧版本如果没有内置 Updater 更新助手，需要先手动替换到含更新助手的版本，之后才能使用自动覆盖升级。"
-    "- Windows 高质量文本提取依赖系统文本提取能力和快捷键环境；本地视觉模型用于图片理解与提示词分析，并不替代默认文本提取流程。"
-    "- 原生托盘提示受 Windows 长度限制，SnapCat 会按整行展示，放不下的摘要会自动省略。"
-    "- 画布标注仍处于预览增强阶段，复杂文本框编辑、极长路径马赛克和局部标注细节后续还会继续打磨。"
-    "- 本地轻量翻译适合短文本和基础翻译，长文本、上下文或更高质量翻译建议配置 DeepSeek 等兼容 OpenAI 的 API。"
-    "- 此版本为后续 ComfyUI 本地连接、外部生图服务与 AI 画布能力提供稳定基线。"
     ""
     "## 校验"
     ""

@@ -12,6 +12,14 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.4.4-preview" => new AboutReleaseNotes(
+                "本版更新：自动升级修复",
+                "修复更新包下载后的文件占用问题，自动升级流程更稳定。",
+                [
+                    "下载完成后会先释放临时文件，再进行校验、解压和更新替换。",
+                    "已补充自动升级下载与解压的基础回归检查。",
+                    "旧版本自动升级失败时，请手动覆盖一次本版本。"
+                ]),
             "0.4.3-preview" => new AboutReleaseNotes(
                 "本版更新：识别体验整理",
                 "Windows 高质量文本提取继续作为推荐 OCR；本地视觉模型用于图片提示词分析。",

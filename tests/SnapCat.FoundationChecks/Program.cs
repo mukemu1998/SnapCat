@@ -14,6 +14,7 @@ try
     await VerifySettingsBackupRecoveryAsync(temporaryDirectory);
     VerifySettingsSnapshotAndComparison();
     VerifyReleaseUpdateManifest();
+    await VerifyDownloadedUpdatePackageStagingAsync(temporaryDirectory);
     await VerifyUpdatePackageStagingAsync(temporaryDirectory);
     VerifyTaskStateMachine();
     Console.WriteLine("SnapCat AI foundation checks passed.");
@@ -202,6 +203,38 @@ static void VerifyReleaseUpdateManifest()
     }
 }
 
+static async Task VerifyDownloadedUpdatePackageStagingAsync(string directory)
+{
+    var packageBytes = CreateUpdateArchive();
+    var workingDirectory = Path.Combine(directory, "download-stage");
+    using var client = new HttpClient(new UpdatePackageHttpMessageHandler(packageBytes));
+    var service = new ReleaseUpdatePackageService(client);
+    var package = new ReleasePackageManifest
+    {
+        Kind = ReleasePackageKind.Portable,
+        DownloadUrl = "https://example.invalid/SnapCat-update.zip",
+        Sha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(packageBytes)).ToLowerInvariant(),
+        SizeBytes = packageBytes.Length
+    };
+
+    var staged = await service.DownloadAndStageAsync(package, workingDirectory);
+    Assert(File.Exists(staged.ArchivePath), "Downloaded update archives should be moved after their write stream is released.");
+    Assert(File.Exists(Path.Combine(staged.StagingDirectory, "SnapCat.exe")), "Downloaded updates should stage a runnable application payload.");
+}
+
+static byte[] CreateUpdateArchive()
+{
+    using var stream = new MemoryStream();
+    using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+    {
+        var executable = archive.CreateEntry("SnapCat.exe");
+        using var writer = new StreamWriter(executable.Open());
+        writer.Write("test payload");
+    }
+
+    return stream.ToArray();
+}
+
 static async Task VerifyUpdatePackageStagingAsync(string directory)
 {
     var updateDirectory = Path.Combine(directory, "update-package");
@@ -262,5 +295,16 @@ static void Assert(bool condition, string message)
     if (!condition)
     {
         throw new InvalidOperationException(message);
+    }
+}
+
+sealed class UpdatePackageHttpMessageHandler(byte[] packageBytes) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(packageBytes)
+        });
     }
 }
