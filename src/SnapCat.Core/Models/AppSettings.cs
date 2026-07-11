@@ -104,6 +104,8 @@ public sealed class AppSettings
 
     public bool LaunchAtStartup { get; set; }
 
+    public bool AutoCheckUpdates { get; set; } = true;
+
     public bool HasAnyApiProfile()
     {
         return ApiProfiles.Any(profile =>

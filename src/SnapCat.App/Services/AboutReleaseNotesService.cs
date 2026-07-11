@@ -12,6 +12,17 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.4.1-preview" => new AboutReleaseNotes(
+                "本版更新：自动更新与主菜单捕获",
+                "这一版补齐 SnapCat 的发布后升级链路，并让截图快捷键在主菜单打开时也能直接框选主菜单内容。",
+                [
+                    "关于页新增手动检查更新与启动后自动检查更新开关，发现新版本时会询问是否下载并升级。",
+                    "自动升级会匹配当前包类型，下载 zip 后进行 SHA256 校验、安全解压，并由独立更新助手替换程序文件后重启。",
+                    "覆盖升级不会写入或清空用户本地配置，主题、快捷键、API Key、视觉模型配置和历史策略继续保存在用户目录。",
+                    "当主菜单正在桌面显示时，按截图快捷键不会再自动隐藏主菜单，方便框选截取菜单内容。",
+                    "发布包会携带 Updater 更新助手、VERSION 文件、README、LICENSE 和校验文件，为后续版本自动升级做准备。",
+                    "旧版如果没有内置更新助手，需要先手动替换到此版或更新版本，之后才能使用自动覆盖升级。"
+                ]),
             "0.4.0-preview" => new AboutReleaseNotes(
                 "本版更新：图片提示词分析 MVP",
                 "这一版开放 SnapCat 的第一条 AI 可见能力：框选图片后可调用本地或云端视觉模型，整理出可编辑的生图提示词。",

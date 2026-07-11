@@ -47,7 +47,8 @@ internal static class SettingsComparer
             && string.Equals(left.ThemeId, right.ThemeId, StringComparison.OrdinalIgnoreCase)
             && left.TempFileRetentionDays == right.TempFileRetentionDays
             && left.HistoryRetentionDays == right.HistoryRetentionDays
-            && left.LaunchAtStartup == right.LaunchAtStartup;
+            && left.LaunchAtStartup == right.LaunchAtStartup
+            && left.AutoCheckUpdates == right.AutoCheckUpdates;
     }
 
     private static bool HotkeyEquals(string left, string right)

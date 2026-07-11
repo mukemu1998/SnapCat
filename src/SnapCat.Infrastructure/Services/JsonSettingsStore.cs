@@ -287,6 +287,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public bool LaunchAtStartup { get; set; }
 
+        public bool AutoCheckUpdates { get; set; } = true;
+
         public AppSettings ToAppSettings()
         {
             var settings = new AppSettings
@@ -332,7 +334,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 ThemeId = ThemeId,
                 TempFileRetentionDays = TempFileRetentionDays,
                 HistoryRetentionDays = HistoryRetentionDays,
-                LaunchAtStartup = LaunchAtStartup
+                LaunchAtStartup = LaunchAtStartup,
+                AutoCheckUpdates = AutoCheckUpdates
             };
 
             settings.NormalizeApiProfiles();
@@ -385,7 +388,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 ThemeId = settings.ThemeId,
                 TempFileRetentionDays = settings.TempFileRetentionDays,
                 HistoryRetentionDays = settings.HistoryRetentionDays,
-                LaunchAtStartup = settings.LaunchAtStartup
+                LaunchAtStartup = settings.LaunchAtStartup,
+                AutoCheckUpdates = settings.AutoCheckUpdates
             };
 
             clone.NormalizeApiProfiles();
@@ -434,7 +438,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 ThemeId = clone.ThemeId,
                 TempFileRetentionDays = clone.TempFileRetentionDays,
                 HistoryRetentionDays = clone.HistoryRetentionDays,
-                LaunchAtStartup = clone.LaunchAtStartup
+                LaunchAtStartup = clone.LaunchAtStartup,
+                AutoCheckUpdates = clone.AutoCheckUpdates
             };
         }
 

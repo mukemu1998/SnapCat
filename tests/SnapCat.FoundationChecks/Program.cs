@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using SnapCat.Core.Models;
+using SnapCat.Core.Services;
 using SnapCat.Infrastructure.Services;
 
 var temporaryDirectory = Path.Combine(
@@ -9,6 +11,8 @@ var temporaryDirectory = Path.Combine(
 try
 {
     await VerifyAiProfilePersistenceAsync(temporaryDirectory);
+    VerifyReleaseUpdateManifest();
+    await VerifyUpdatePackageStagingAsync(temporaryDirectory);
     VerifyTaskStateMachine();
     Console.WriteLine("SnapCat AI foundation checks passed.");
     return 0;
@@ -32,6 +36,7 @@ static async Task VerifyAiProfilePersistenceAsync(string directory)
     var store = new JsonSettingsStore(directory);
     var settings = new AppSettings
     {
+        AutoCheckUpdates = false,
         AiProviderProfiles =
         [
             new AiProviderProfile
@@ -62,6 +67,7 @@ static async Task VerifyAiProfilePersistenceAsync(string directory)
     Assert(profile.ApiKey == apiKey, "DPAPI-protected AI API Key should be restored.");
     Assert(profile.Supports(AiModelCapabilities.VisionAnalysis | AiModelCapabilities.TextToImage), "Saved AI capabilities should be restored.");
     Assert(profile.MaxReferenceImageCount == 4 && profile.MaxOutputCount == 6, "Saved AI limits should be restored.");
+    Assert(!loaded.AutoCheckUpdates, "The automatic update preference should be restored.");
 }
 
 static void VerifyTaskStateMachine()
@@ -87,6 +93,97 @@ static void VerifyTaskStateMachine()
     var interruptedCount = coordinator.InterruptActiveTasks("测试退出");
     Assert(interruptedCount == 1, "Only active tasks should be interrupted.");
     Assert(coordinator.Get(activeTask.Id)?.Status == AiTaskStatus.Interrupted, "Active tasks should be marked interrupted.");
+}
+
+static void VerifyReleaseUpdateManifest()
+{
+    Assert(ReleaseVersionComparer.IsNewer("0.4.1-preview", "0.4.0-preview"), "A newer preview version should be detected.");
+    Assert(ReleaseVersionComparer.IsNewer("0.4.1", "0.4.1-preview"), "A stable version should be newer than its preview.");
+    Assert(!ReleaseVersionComparer.IsNewer("0.4.0-preview", "0.4.0-preview"), "The current version must not update itself.");
+
+    const string sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    var manifestJson = $$"""
+    {
+      "version": "0.4.1-preview",
+      "channel": "preview",
+      "publishedAt": "2026-07-11T00:00:00+00:00",
+      "packages": [
+        {
+          "kind": "portable",
+          "downloadUrl": "https://example.invalid/SnapCat-v0.4.1-preview-win-x64-portable.zip",
+          "sha256": "{{sha256}}",
+          "sizeBytes": 1024
+        }
+      ]
+    }
+    """;
+    var manifest = new ReleaseUpdateManifestService().Parse(manifestJson);
+    Assert(manifest.GetPackage(ReleasePackageKind.Portable) is not null, "The portable package should be parsed from the manifest.");
+
+    try
+    {
+        new ReleaseUpdateManifestService().Parse(manifestJson.Replace(sha256, "invalid", StringComparison.Ordinal));
+        throw new InvalidOperationException("Invalid SHA256 values must be rejected.");
+    }
+    catch (InvalidDataException)
+    {
+        // Expected validation failure.
+    }
+}
+
+static async Task VerifyUpdatePackageStagingAsync(string directory)
+{
+    var updateDirectory = Path.Combine(directory, "update-package");
+    Directory.CreateDirectory(updateDirectory);
+    var archivePath = Path.Combine(updateDirectory, "update.zip");
+    using (var archive = ZipFile.Open(archivePath, ZipArchiveMode.Create))
+    {
+        await WriteZipEntryAsync(archive, "SnapCat.exe", "test executable");
+        await WriteZipEntryAsync(archive, "README.md", "test readme");
+    }
+
+    var service = new ReleaseUpdatePackageService(new HttpClient());
+    var archiveSize = new FileInfo(archivePath).Length;
+    var package = new ReleasePackageManifest
+    {
+        Kind = ReleasePackageKind.Portable,
+        DownloadUrl = "https://example.invalid/SnapCat-update.zip",
+        Sha256 = await ReleaseUpdatePackageService.ComputeSha256Async(archivePath),
+        SizeBytes = archiveSize
+    };
+    var staged = await service.StageArchiveAsync(archivePath, package, updateDirectory);
+    Assert(File.Exists(Path.Combine(staged.StagingDirectory, "SnapCat.exe")), "A verified update package should stage SnapCat.exe.");
+
+    var unsafeArchivePath = Path.Combine(updateDirectory, "unsafe.zip");
+    using (var archive = ZipFile.Open(unsafeArchivePath, ZipArchiveMode.Create))
+    {
+        await WriteZipEntryAsync(archive, "../outside.txt", "unsafe");
+    }
+
+    var unsafePackage = new ReleasePackageManifest
+    {
+        Kind = ReleasePackageKind.Portable,
+        DownloadUrl = "https://example.invalid/unsafe.zip",
+        Sha256 = await ReleaseUpdatePackageService.ComputeSha256Async(unsafeArchivePath),
+        SizeBytes = new FileInfo(unsafeArchivePath).Length
+    };
+    try
+    {
+        await service.StageArchiveAsync(unsafeArchivePath, unsafePackage, updateDirectory);
+        throw new InvalidOperationException("Unsafe update archive paths must be rejected.");
+    }
+    catch (InvalidDataException)
+    {
+        // Expected validation failure.
+    }
+}
+
+static async Task WriteZipEntryAsync(ZipArchive archive, string entryName, string content)
+{
+    var entry = archive.CreateEntry(entryName);
+    await using var stream = entry.Open();
+    await using var writer = new StreamWriter(stream);
+    await writer.WriteAsync(content);
 }
 
 static void Assert(bool condition, string message)

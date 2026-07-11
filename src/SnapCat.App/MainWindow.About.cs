@@ -1,8 +1,11 @@
-using System.Net.Http;
+using System.Diagnostics;
+using System.IO;
 using System.Reflection;
-using System.Text.Json;
 using System.Windows;
 using SnapCat.App.Services;
+using SnapCat.App.Windows;
+using SnapCat.Core.Models;
+using SnapCat.Infrastructure.Services;
 
 namespace SnapCat.App;
 
@@ -11,12 +14,7 @@ public partial class MainWindow
     private const string ProjectHomeUrl = "https://github.com/mukemu1998/SnapCat";
     private const string ProjectIssuesUrl = "https://github.com/mukemu1998/SnapCat/issues";
     private const string ProjectReleasesUrl = "https://github.com/mukemu1998/SnapCat/releases";
-    private const string LatestReleaseApiUrl = "https://api.github.com/repos/mukemu1998/SnapCat/releases/latest";
-
-    private static readonly HttpClient UpdateCheckHttpClient = new()
-    {
-        Timeout = TimeSpan.FromSeconds(8)
-    };
+    private const string ReleasesApiUrl = "https://api.github.com/repos/mukemu1998/SnapCat/releases?per_page=20";
 
     private void OpenProjectHomeButton_OnClick(object sender, RoutedEventArgs e)
     {
@@ -35,53 +33,173 @@ public partial class MainWindow
 
     private async void CheckUpdatesButton_OnClick(object sender, RoutedEventArgs e)
     {
-        AboutUpdateStatusTextBlock.Text = "正在检查 GitHub Releases...";
-        StatusTextBlock.Text = "正在检查更新...";
-        AppendOperationLog("开始检查 GitHub Releases 更新。");
+        await CheckForUpdatesAsync(automatic: false);
+    }
+
+    private async Task CheckForUpdatesAsync(bool automatic)
+    {
+        if (_isCheckingUpdates)
+        {
+            return;
+        }
+
+        _isCheckingUpdates = true;
+        if (!automatic)
+        {
+            AboutUpdateStatusTextBlock.Text = "正在检查 GitHub Releases...";
+            StatusTextBlock.Text = "正在检查更新...";
+            AppendOperationLog("开始检查 GitHub Releases 更新。");
+        }
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUrl);
-            request.Headers.UserAgent.ParseAdd("SnapCat");
-            request.Headers.Accept.ParseAdd("application/vnd.github+json");
-
-            using var response = await UpdateCheckHttpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
+            var currentVersion = GetAppVersion();
+            var result = await _app.GitHubReleaseUpdateService.CheckAsync(
+                new Uri(ReleasesApiUrl),
+                currentVersion,
+                GetCurrentPackageKind());
+            if (!automatic || result.IsUpdateAvailable)
             {
-                AboutUpdateStatusTextBlock.Text = $"检查失败：GitHub 返回 {(int)response.StatusCode}。可以手动打开下载页查看。";
-                StatusTextBlock.Text = "检查更新失败。";
-                AppendOperationLog($"检查更新失败：GitHub 返回 {(int)response.StatusCode}。");
+                AboutUpdateStatusTextBlock.Text = result.Message;
+                StatusTextBlock.Text = result.IsUpdateAvailable ? "发现可用更新。" : "检查更新完成。";
+            }
+
+            AppendOperationLog($"检查更新完成：{result.Message}");
+
+            if (!result.IsUpdateAvailable || result.Manifest is null)
+            {
                 return;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            using var document = await JsonDocument.ParseAsync(stream);
-            var latestTag = document.RootElement.TryGetProperty("tag_name", out var tagElement)
-                ? tagElement.GetString() ?? string.Empty
-                : string.Empty;
-            var latestName = document.RootElement.TryGetProperty("name", out var nameElement)
-                ? nameElement.GetString() ?? string.Empty
-                : string.Empty;
-            var latestPage = document.RootElement.TryGetProperty("html_url", out var urlElement)
-                ? urlElement.GetString() ?? ProjectReleasesUrl
-                : ProjectReleasesUrl;
+            if (automatic && !IsVisible)
+            {
+                ShowMainWindow();
+            }
 
-            var currentVersion = GetAppVersion();
-            var latestVersionText = string.IsNullOrWhiteSpace(latestTag)
-                ? SettingsSummaryFormatter.FormatSummaryValue(latestName)
-                : latestTag;
-
-            AboutUpdateStatusTextBlock.Text = IsRemoteVersionNewer(currentVersion, latestVersionText)
-                ? $"发现新版本：{latestVersionText}。当前版本：{currentVersion}。可打开下载页手动覆盖升级：{latestPage}"
-                : $"当前已是最新或不低于最新发布版。当前版本：{currentVersion}，最新发布：{latestVersionText}。";
-            StatusTextBlock.Text = "检查更新完成。";
-            AppendOperationLog($"检查更新完成：当前 {currentVersion}，最新 {latestVersionText}。");
+            var confirmed = ConfirmDialogWindow.Confirm(
+                this,
+                "发现新版本",
+                $"发现 SnapCat {result.Manifest.Version}。\n\n下载完成后会校验文件、退出当前程序并自动覆盖升级。用户配置、主题、快捷键和 API 信息不会被覆盖。\n\n是否立即下载并升级？",
+                "下载并升级",
+                "暂不更新");
+            if (confirmed)
+            {
+                await DownloadAndLaunchUpdaterAsync(result.Manifest);
+            }
         }
         catch (Exception ex)
         {
-            AboutUpdateStatusTextBlock.Text = $"检查更新失败：{ex.Message}。可以手动打开下载页查看。";
-            StatusTextBlock.Text = "检查更新失败。";
+            if (!automatic)
+            {
+                AboutUpdateStatusTextBlock.Text = $"检查更新失败：{ex.Message}。可以手动打开下载页查看。";
+                StatusTextBlock.Text = "检查更新失败。";
+            }
+
             AppendOperationLog($"检查更新失败：{ex.Message}");
+        }
+        finally
+        {
+            _isCheckingUpdates = false;
+        }
+    }
+
+    private async Task DownloadAndLaunchUpdaterAsync(ReleaseUpdateManifest manifest)
+    {
+        var package = manifest.GetPackage(GetCurrentPackageKind());
+        if (package is null)
+        {
+            AboutUpdateStatusTextBlock.Text = "此版本没有适用于当前安装包类型的更新文件。";
+            return;
+        }
+
+        var applicationDirectory = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar);
+        var parentDirectory = Directory.GetParent(applicationDirectory)?.FullName;
+        if (string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            AboutUpdateStatusTextBlock.Text = "无法确定当前程序目录，无法自动升级。";
+            return;
+        }
+
+        var updaterSourceDirectory = Path.Combine(applicationDirectory, "Updater");
+        var updaterSourceExecutable = Path.Combine(updaterSourceDirectory, "SnapCat.Updater.exe");
+        if (!File.Exists(updaterSourceExecutable))
+        {
+            AboutUpdateStatusTextBlock.Text = "当前安装包缺少更新助手，请下载最新完整包后再使用自动升级。";
+            return;
+        }
+
+        var workingDirectory = Path.Combine(parentDirectory, $".SnapCat-update-{Guid.NewGuid():N}");
+        try
+        {
+            AboutUpdateStatusTextBlock.Text = $"正在下载 SnapCat {manifest.Version}...";
+            var progress = new Progress<UpdateDownloadProgress>(value =>
+            {
+                AboutUpdateStatusTextBlock.Text = value.Percent is { } percent
+                    ? $"正在下载 SnapCat {manifest.Version}：{percent:F0}%"
+                    : $"正在下载 SnapCat {manifest.Version}...";
+            });
+            var staged = await _app.ReleaseUpdatePackageService.DownloadAndStageAsync(
+                package,
+                workingDirectory,
+                progress);
+
+            var updaterDirectory = Path.Combine(workingDirectory, "Updater");
+            CopyDirectory(updaterSourceDirectory, updaterDirectory);
+            var updaterExecutable = Path.Combine(updaterDirectory, "SnapCat.Updater.exe");
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = updaterExecutable,
+                WorkingDirectory = updaterDirectory,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            processInfo.ArgumentList.Add("--process-id");
+            processInfo.ArgumentList.Add(Environment.ProcessId.ToString());
+            processInfo.ArgumentList.Add("--staged-directory");
+            processInfo.ArgumentList.Add(staged.StagingDirectory);
+            processInfo.ArgumentList.Add("--target-directory");
+            processInfo.ArgumentList.Add(applicationDirectory);
+            Process.Start(processInfo);
+
+            AboutUpdateStatusTextBlock.Text = "更新已校验完成，正在退出 SnapCat 并自动替换文件...";
+            StatusTextBlock.Text = "正在启动自动升级。";
+            AppendOperationLog($"已准备升级到 {manifest.Version}。\n");
+            ExitApplication();
+        }
+        catch (Exception exception)
+        {
+            AboutUpdateStatusTextBlock.Text = $"自动升级准备失败：{exception.Message}";
+            StatusTextBlock.Text = "自动升级失败。";
+            AppendOperationLog($"自动升级准备失败：{exception.Message}");
+        }
+    }
+
+    private static ReleasePackageKind GetCurrentPackageKind()
+    {
+        var versionFilePath = Path.Combine(AppContext.BaseDirectory, "VERSION.txt");
+        if (File.Exists(versionFilePath))
+        {
+            var content = File.ReadAllText(versionFilePath);
+            if (content.Contains("package_type=runtime-dependent", StringComparison.OrdinalIgnoreCase))
+            {
+                return ReleasePackageKind.RuntimeDependent;
+            }
+        }
+
+        return ReleasePackageKind.Portable;
+    }
+
+    private static void CopyDirectory(string sourceDirectory, string destinationDirectory)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+        foreach (var file in Directory.EnumerateFiles(sourceDirectory))
+        {
+            File.Copy(file, Path.Combine(destinationDirectory, Path.GetFileName(file)), overwrite: true);
+        }
+
+        foreach (var directory in Directory.EnumerateDirectories(sourceDirectory))
+        {
+            CopyDirectory(directory, Path.Combine(destinationDirectory, Path.GetFileName(directory)));
         }
     }
 
@@ -90,7 +208,7 @@ public partial class MainWindow
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.4.0-preview";
+            ?? "0.4.1-preview";
 
         return TrimVersionMetadata(version);
     }
@@ -100,22 +218,4 @@ public partial class MainWindow
         return version.Split('+', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? version;
     }
 
-    private static bool IsRemoteVersionNewer(string currentVersionText, string remoteVersionText)
-    {
-        var currentVersion = ParseVersion(currentVersionText);
-        var remoteVersion = ParseVersion(remoteVersionText);
-
-        return currentVersion is not null
-            && remoteVersion is not null
-            && remoteVersion > currentVersion;
-    }
-
-    private static Version? ParseVersion(string value)
-    {
-        var normalized = value.Trim()
-            .TrimStart('v', 'V')
-            .Split(['+', '-'], StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault();
-        return Version.TryParse(normalized, out var version) ? version : null;
-    }
 }

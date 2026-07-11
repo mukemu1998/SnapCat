@@ -68,6 +68,8 @@ public partial class App : WpfApplication
         AiTaskCoordinator = new AiTaskCoordinator();
         VisualPromptService = new SmartVisualPromptService(new HttpClient(), AiTaskCoordinator);
         OllamaRuntimeService = new OllamaRuntimeService(new HttpClient());
+        GitHubReleaseUpdateService = new GitHubReleaseUpdateService(new HttpClient());
+        ReleaseUpdatePackageService = new ReleaseUpdatePackageService(new HttpClient());
         CaptureActionService = new CaptureActionService(
             OcrService,
             TranslationService,
@@ -116,6 +118,10 @@ public partial class App : WpfApplication
     public IVisualPromptService VisualPromptService { get; private set; } = null!;
 
     public OllamaRuntimeService OllamaRuntimeService { get; private set; } = null!;
+
+    public GitHubReleaseUpdateService GitHubReleaseUpdateService { get; private set; } = null!;
+
+    public ReleaseUpdatePackageService ReleaseUpdatePackageService { get; private set; } = null!;
 
     public ThemeService ThemeService { get; }
 

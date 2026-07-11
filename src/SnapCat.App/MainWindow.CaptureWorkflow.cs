@@ -23,10 +23,14 @@ public partial class MainWindow
         StatusTextBlock.Text = "请在屏幕上进行自由框选。";
 
         Window? owner = null;
+        var mainWindowWasOpen = IsVisible && WindowState != WindowState.Minimized;
         var wasMinimizedToTaskbar = IsVisible
             && WindowState == WindowState.Minimized
             && ShowInTaskbar;
-        var shouldRestoreMainWindow = returnToMainWindow && hideMainWindowForCapture;
+        // A shortcut invoked while the settings window is open should not dismiss it for good.
+        // The window still hides only during capture so it cannot leak into the screenshot.
+        var shouldRestoreMainWindow = hideMainWindowForCapture
+            && (returnToMainWindow || mainWindowWasOpen);
 
         SelectionOverlayWindow? overlay = null;
 
@@ -386,6 +390,11 @@ public partial class MainWindow
             if (wasMinimizedToTaskbar && !returnToMainWindow && !_isExitRequested)
             {
                 KeepMainWindowMinimizedInTaskbar();
+            }
+
+            if (shouldRestoreMainWindow && !IsVisible && !_isExitRequested)
+            {
+                ShowMainWindow();
             }
 
             CaptureButton.IsEnabled = true;

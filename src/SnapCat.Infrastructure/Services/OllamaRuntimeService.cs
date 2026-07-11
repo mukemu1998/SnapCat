@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -96,6 +97,50 @@ public sealed class OllamaRuntimeService
                     : "检测到 Ollama，但服务尚未启动。请从开始菜单启动 Ollama 后重新检测。"
             );
         }
+    }
+
+    public async Task<OllamaRuntimeStatus> EnsureServiceAvailableAsync(CancellationToken cancellationToken = default)
+    {
+        var initialStatus = await ProbeAsync(cancellationToken);
+        if (initialStatus.IsServiceAvailable || !initialStatus.IsInstalled)
+        {
+            return initialStatus;
+        }
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = initialStatus.ExecutablePath,
+                Arguments = "serve",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            });
+        }
+        catch (Exception exception)
+        {
+            return initialStatus with
+            {
+                Message = $"检测到 Ollama，但无法自动启动本地服务：{exception.Message}"
+            };
+        }
+
+        var deadline = DateTime.UtcNow.AddSeconds(8);
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(350, cancellationToken);
+            var status = await ProbeAsync(cancellationToken);
+            if (status.IsServiceAvailable)
+            {
+                return status with { Message = "Ollama 本地服务已自动启动并准备就绪。" };
+            }
+        }
+
+        return initialStatus with
+        {
+            Message = "检测到 Ollama，但本地服务启动超时。请从开始菜单启动 Ollama 后重试。"
+        };
     }
 
     public async Task PullModelAsync(

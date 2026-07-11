@@ -204,6 +204,13 @@ public partial class MainWindow
         StatusTextBlock.Text = $"正在检测视觉配置“{profile.Name}”的连接与模型可用性...";
         try
         {
+            var localServiceMessage = await EnsureLocalOllamaServiceAsync(profile);
+            if (!string.IsNullOrWhiteSpace(localServiceMessage))
+            {
+                StatusTextBlock.Text = $"视觉配置“{profile.Name}”无法连接：{localServiceMessage}";
+                return;
+            }
+
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
             var responseText = await SendVisualPromptProbeAsync(client, profile);
             StatusTextBlock.Text = $"视觉配置“{profile.Name}”连接成功：{responseText}";
@@ -216,6 +223,36 @@ public partial class MainWindow
         {
             button.IsEnabled = true;
         }
+    }
+
+    private async Task<string?> EnsureLocalOllamaServiceAsync(AiProviderProfile profile)
+    {
+        if (!UsesManagedLocalOllama(profile))
+        {
+            return null;
+        }
+
+        var status = await _app.OllamaRuntimeService.EnsureServiceAvailableAsync();
+        _isOllamaServiceAvailable = status.IsServiceAvailable;
+        if (status.IsServiceAvailable)
+        {
+            return null;
+        }
+
+        return status.Message;
+    }
+
+    private static bool UsesManagedLocalOllama(AiProviderProfile profile)
+    {
+        if (!string.Equals(AiProviderProtocol.Normalize(profile.Protocol), AiProviderProtocol.Ollama, StringComparison.OrdinalIgnoreCase)
+            || !Uri.TryCreate(profile.BaseUrl, UriKind.Absolute, out var endpoint))
+        {
+            return false;
+        }
+
+        return (string.Equals(endpoint.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(endpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            && endpoint.Port == 11434;
     }
 
     private static async Task<string> SendVisualPromptProbeAsync(HttpClient client, AiProviderProfile profile)
@@ -467,6 +504,15 @@ public partial class MainWindow
     {
         popup.SetActiveProvider(profile.Name);
         popup.SetBusyState("正在分析图片并整理提示词...");
+        var localServiceMessage = await EnsureLocalOllamaServiceAsync(profile);
+        if (!string.IsNullOrWhiteSpace(localServiceMessage))
+        {
+            var message = $"本地视觉服务不可用：{localServiceMessage}";
+            popup.UpdateResult(string.Empty, message);
+            StatusTextBlock.Text = message;
+            return;
+        }
+
         var result = await _app.VisualPromptService.AnalyzeAsync(imagePath, profile);
         if (result.Success)
         {

@@ -103,6 +103,12 @@ JSON 必须使用以下字段：
             _taskCoordinator.TryTransition(task.Id, AiTaskStatus.Cancelled);
             return VisualPromptResult.FromError("视觉分析已取消。", task.Id, profile.Id);
         }
+        catch (HttpRequestException) when (AiProviderProtocol.Normalize(profile.Protocol) == AiProviderProtocol.Ollama)
+        {
+            const string message = "无法连接本地 Ollama 服务。请确认 Ollama 已启动，或在视觉模型设置中重新检测连接。";
+            _taskCoordinator.TryTransition(task.Id, AiTaskStatus.Failed, message);
+            return VisualPromptResult.FromError($"视觉分析失败：{message}", task.Id, profile.Id);
+        }
         catch (Exception exception)
         {
             _taskCoordinator.TryTransition(task.Id, AiTaskStatus.Failed, exception.Message);

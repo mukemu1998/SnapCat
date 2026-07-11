@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.4.0-preview" src="https://img.shields.io/badge/Version-0.4.0--preview-22c55e" />
+  <img alt="Version 0.4.1-preview" src="https://img.shields.io/badge/Version-0.4.1--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -107,7 +107,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.4.0-preview`，开放第一条图片提示词分析链路：可框选图片并调用本地 Ollama 或 OpenAI 兼容视觉接口，得到可编辑、可复制、可重新分析的中英文提示词。视觉模型配置继续仅保存于用户本地加密目录，不会写入源码或发布包。
+当前版本为 `0.4.1-preview`，补齐检查更新、下载校验、独立更新助手和自动覆盖升级链路；同时保持图片提示词分析、OCR、翻译、贴图、画布标注等核心功能。用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存于用户本地目录，不会写入源码或发布包。
 
 ## 许可
 

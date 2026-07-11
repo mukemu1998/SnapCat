@@ -61,6 +61,7 @@ public partial class MainWindow : Window
     private bool _hasLoadedSettings;
     private bool _hasUnsavedSettings;
     private bool _isCaptureWorkflowActive;
+    private bool _isCheckingUpdates;
     private readonly List<string> _operationLogs = [];
     private bool _isApplyingApiProfileState;
 
@@ -97,6 +98,8 @@ public partial class MainWindow : Window
         HistoryRetentionDaysTextBox.TextChanged += SettingsInput_OnTextChanged;
         LaunchAtStartupCheckBox.Checked += SettingsToggle_OnChanged;
         LaunchAtStartupCheckBox.Unchecked += SettingsToggle_OnChanged;
+        AutoCheckUpdatesCheckBox.Checked += SettingsToggle_OnChanged;
+        AutoCheckUpdatesCheckBox.Unchecked += SettingsToggle_OnChanged;
         StateChanged += MainWindow_OnStateChanged;
         UpdateApiKeyVisibility(false);
     }
@@ -158,6 +161,11 @@ public partial class MainWindow : Window
         {
             RenderEnvironmentChecks();
             await LoadHistoryAsync();
+
+            if (_settings.AutoCheckUpdates)
+            {
+                await CheckForUpdatesAsync(automatic: true);
+            }
         }, DispatcherPriority.ApplicationIdle);
     }
 

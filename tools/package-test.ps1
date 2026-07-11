@@ -10,11 +10,12 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $repoRoot "src\SnapCat.App\SnapCat.App.csproj"
+$updaterProjectPath = Join-Path $repoRoot "src\SnapCat.Updater\SnapCat.Updater.csproj"
 $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.0-preview"
+    $version = "0.4.1-preview"
 }
 
 $safeLabel = ($Label -replace "[^0-9A-Za-z\-_]+", "-").Trim("-")
@@ -28,6 +29,7 @@ $packageName = "SnapCat-test-$Runtime-portable"
 $publishDir = Join-Path $buildRoot $packageName
 $stagingRoot = Join-Path $buildRoot "_staging-$PID"
 $stagingPublishDir = Join-Path $stagingRoot $packageName
+$stagingUpdaterDir = Join-Path $stagingRoot "SnapCat.Updater"
 $zipPath = Join-Path $buildRoot "$packageName.zip"
 $shaPath = "$zipPath.sha256"
 $versionFile = Join-Path $publishDir "VERSION.txt"
@@ -75,6 +77,28 @@ try
     {
         throw "dotnet publish failed with exit code $LASTEXITCODE."
     }
+
+    $updaterPublishArgs = @(
+        "publish"
+        $updaterProjectPath
+        "-c"
+        $Configuration
+        "-r"
+        $Runtime
+        "--output"
+        $stagingUpdaterDir
+        "--self-contained"
+        ($(if ($SelfContained) { "true" } else { "false" }))
+        "/p:DebugType=None"
+        "/p:DebugSymbols=false"
+    )
+    & dotnet @updaterPublishArgs
+    if ($LASTEXITCODE -ne 0)
+    {
+        throw "SnapCat.Updater publish failed with exit code $LASTEXITCODE."
+    }
+
+    Copy-Item -Path $stagingUpdaterDir -Destination (Join-Path $stagingPublishDir "Updater") -Recurse -Force
 
     Get-ChildItem -LiteralPath $stagingPublishDir -Filter "*.pdb" -File -ErrorAction SilentlyContinue | Remove-Item -Force
 

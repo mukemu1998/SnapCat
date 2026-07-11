@@ -85,6 +85,7 @@ public partial class MainWindow
             TempFileRetentionDays = SettingsValueParser.ParseRetentionDays(TempRetentionDaysTextBox.Text, defaults.TempFileRetentionDays),
             HistoryRetentionDays = SettingsValueParser.ParseRetentionDays(HistoryRetentionDaysTextBox.Text, defaults.HistoryRetentionDays),
             LaunchAtStartup = LaunchAtStartupCheckBox.IsChecked == true,
+            AutoCheckUpdates = AutoCheckUpdatesCheckBox.IsChecked == true,
             Temperature = _settings.Temperature
         };
 
@@ -126,6 +127,7 @@ public partial class MainWindow
         TempRetentionDaysTextBox.Text = settings.TempFileRetentionDays.ToString();
         HistoryRetentionDaysTextBox.Text = settings.HistoryRetentionDays.ToString();
         LaunchAtStartupCheckBox.IsChecked = settings.LaunchAtStartup;
+        AutoCheckUpdatesCheckBox.IsChecked = settings.AutoCheckUpdates;
         SetOcrEngineSelection(settings.OcrEngine);
         SetCaptureStartupModeSelection(settings.CaptureStartupMode);
         SetTrayLeftClickSelection(settings.TrayLeftClickAction);

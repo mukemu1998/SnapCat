@@ -31,15 +31,15 @@ public partial class MainWindow
     {
         return
         [
-            new("固定到屏幕", _settings.HotkeyCaptureAndPin, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin, returnToMainWindow: false)),
-            new("OCR 识别", _settings.HotkeyCaptureAndOcr, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndOcr, returnToMainWindow: false)),
-            new("自动翻译", _settings.HotkeyCaptureAndTranslate, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate, returnToMainWindow: false)),
-            new("等待操作", _settings.HotkeyCaptureAndWaitForAction, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction, returnToMainWindow: false)),
-            new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false)),
-            new("复制截图", _settings.HotkeyCaptureAndCopy, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: false)),
-            new("框选标注", _settings.HotkeyCaptureAndAnnotate, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndAnnotate, returnToMainWindow: false)),
-            new("图片提示词分析", _settings.HotkeyCaptureAndVisualPrompt, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndVisualPrompt, returnToMainWindow: false)),
-            new("全屏画布编辑", _settings.HotkeyFullScreenCanvasEdit, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.FullScreenCanvasEdit, returnToMainWindow: false)),
+            new("固定到屏幕", _settings.HotkeyCaptureAndPin, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndPin)),
+            new("OCR 识别", _settings.HotkeyCaptureAndOcr, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndOcr)),
+            new("自动翻译", _settings.HotkeyCaptureAndTranslate, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndTranslate)),
+            new("等待操作", _settings.HotkeyCaptureAndWaitForAction, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndWaitForAction)),
+            new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave)),
+            new("复制截图", _settings.HotkeyCaptureAndCopy, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy)),
+            new("框选标注", _settings.HotkeyCaptureAndAnnotate, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndAnnotate)),
+            new("图片提示词分析", _settings.HotkeyCaptureAndVisualPrompt, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndVisualPrompt)),
+            new("全屏画布编辑", _settings.HotkeyFullScreenCanvasEdit, () => _ = StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind.FullScreenCanvasEdit)),
             new("显示全部贴图", _settings.HotkeyShowAllPinned, ShowAllPinnedImages),
             new("隐藏全部贴图", _settings.HotkeyHideAllPinned, HideAllPinnedImages),
             new("显示未成组贴图", _settings.HotkeyShowUngroupedPinned, ShowUngroupedPinnedImages),
@@ -49,6 +49,15 @@ public partial class MainWindow
             new("打开主菜单", _settings.HotkeyShowMainWindow, ShowMainWindow),
             new("退出软件", _settings.HotkeyExitApplication, ExitApplication)
         ];
+    }
+
+    private Task StartHotkeyCaptureWorkflowAsync(CaptureWorkflowKind workflow)
+    {
+        var mainWindowIsOpen = IsVisible && WindowState != WindowState.Minimized;
+        return StartCaptureWorkflowAsync(
+            workflow,
+            returnToMainWindow: false,
+            hideMainWindowForCapture: !mainWindowIsOpen);
     }
 
     private void RecordPinHotkeyButton_OnClick(object sender, RoutedEventArgs e)

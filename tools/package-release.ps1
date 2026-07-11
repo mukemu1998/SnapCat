@@ -11,11 +11,12 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $repoRoot "src\SnapCat.App\SnapCat.App.csproj"
+$updaterProjectPath = Join-Path $repoRoot "src\SnapCat.Updater\SnapCat.Updater.csproj"
 $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.0-preview"
+    $version = "0.4.1-preview"
 }
 
 $releaseRoot = Join-Path $repoRoot "artifacts\releases\v$version"
@@ -23,6 +24,7 @@ $selfContained = $PackageKind -eq "portable"
 $packageKind = $PackageKind
 $packageName = "SnapCat-v$version-$Runtime-$packageKind"
 $publishDir = Join-Path $releaseRoot $packageName
+$updaterStagingDir = Join-Path $releaseRoot "_updater-$PID"
 $zipPath = Join-Path $releaseRoot "$packageName.zip"
 $shaPath = "$zipPath.sha256"
 $versionFile = Join-Path $publishDir "VERSION.txt"
@@ -93,6 +95,35 @@ if ($LASTEXITCODE -ne 0)
     throw "dotnet publish failed with exit code $LASTEXITCODE."
 }
 
+if (Test-Path -LiteralPath $updaterStagingDir)
+{
+    Remove-Item -LiteralPath $updaterStagingDir -Recurse -Force
+}
+
+$updaterPublishArgs = @(
+    "publish"
+    $updaterProjectPath
+    "-c"
+    $Configuration
+    "-r"
+    $Runtime
+    "--output"
+    $updaterStagingDir
+    "--self-contained"
+    ($(if ($selfContained) { "true" } else { "false" }))
+    "/p:DebugType=None"
+    "/p:DebugSymbols=false"
+)
+
+& dotnet @updaterPublishArgs
+if ($LASTEXITCODE -ne 0)
+{
+    throw "SnapCat.Updater publish failed with exit code $LASTEXITCODE."
+}
+
+Copy-Item -Path $updaterStagingDir -Destination (Join-Path $publishDir "Updater") -Recurse -Force
+Remove-Item -LiteralPath $updaterStagingDir -Recurse -Force
+
 Get-ChildItem -LiteralPath $publishDir -Filter "*.pdb" -File -ErrorAction SilentlyContinue | Remove-Item -Force
 
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination (Join-Path $publishDir "README.md") -Force
@@ -112,17 +143,17 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     ""
     "## 版本定位"
     ""
-    "v$version 是 SnapCat 的图片提示词分析预览版：在既有截图、OCR、翻译、贴图与画布能力之上，开放本地和云端视觉模型的第一条可用分析链路。"
+    "v$version 是 SnapCat 的自动更新与可持续升级预览版：在既有截图、OCR、翻译、贴图、画布和图片提示词分析能力之上，补齐发布后自检、下载、校验和替换升级链路。"
     ""
     "## 重点更新"
     ""
-    "- 图片提示词分析：新增框选图片分析命令、等待菜单入口和独立快捷键，可将选区交给视觉模型整理为可编辑提示词。"
-    "- 本地与云端视觉模型：支持 Ollama 本地视觉模型和 OpenAI 兼容视觉接口；配置卡片支持默认选择、连接检测和模型切换。"
-    "- 双语分析结果：输出完整中文分析与完整英文分析，包含主体、外观、构图、光影、风格、正向提示词和负面提示词。"
-    "- 浮窗交互：分析浮窗贴近选区显示，支持复制、临时切换分析配置和针对当前截图重新分析。"
-    "- 设置可靠性：修复视觉配置、API 配置和快捷键等用户设置的保存恢复链路；保存按钮仅在实际修改后显示。"
-    "- 翻译 API 整理：翻译 API 采用卡片选择和折叠编辑架，API Key 继续默认隐藏，并保持本地加密存储。"
-    "- 用户配置隔离：模型地址、密钥、快捷键、主题和历史策略仅保存在用户目录，不写入源码或发布包。"
+    "- 自动检查更新：关于页新增启动后自动检查更新开关；发现新版本时会询问是否下载并升级。"
+    "- 手动检查更新：关于页的检查更新按钮会读取 GitHub Releases，匹配当前包类型并显示可用版本。"
+    "- 自动升级流程：下载对应 zip 后执行 SHA256 校验、安全解压、独立更新助手替换文件并重启 SnapCat；失败时尽量回滚。"
+    "- 主菜单捕获优化：当主菜单正在桌面显示时，按截图快捷键不会再自动隐藏主菜单，方便直接框选菜单内容。"
+    "- 用户配置保护：主题、快捷键、API Key、视觉模型配置、历史策略等仍保存在用户目录，覆盖程序文件不会清空个人配置。"
+    "- 配置保存整理：视觉配置、翻译 API、自动更新开关等设置继续走本地用户配置保存链路。"
+    "- 发布包整理：portable 和 runtime-dependent 包都会携带 Updater 更新助手、VERSION 文件、README、LICENSE 和 SHA256 校验文件。"
     ""
     "## 使用建议"
     ""
@@ -137,6 +168,7 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     ""
     "## 已知说明"
     ""
+    "- 旧版本如果没有内置 Updater 更新助手，需要先手动替换到此版本或更新版本，之后才能使用自动覆盖升级。"
     "- Windows 高质量文本提取依赖系统文本提取能力和快捷键环境；本地视觉模型用于图片理解与提示词分析，并不替代默认文本提取流程。"
     "- 原生托盘提示受 Windows 长度限制，SnapCat 会按整行展示，放不下的摘要会自动省略。"
     "- 画布标注仍处于预览增强阶段，复杂文本框编辑和局部标注细节后续还会继续打磨。"

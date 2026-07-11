@@ -151,7 +151,8 @@ public static class TranslationLanguageHelper
         ThemeId = settings.ThemeId,
         TempFileRetentionDays = settings.TempFileRetentionDays,
         HistoryRetentionDays = settings.HistoryRetentionDays,
-        LaunchAtStartup = settings.LaunchAtStartup
+        LaunchAtStartup = settings.LaunchAtStartup,
+        AutoCheckUpdates = settings.AutoCheckUpdates
     };
 }
 
