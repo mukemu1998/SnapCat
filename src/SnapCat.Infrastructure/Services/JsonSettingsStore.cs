@@ -59,11 +59,11 @@ public sealed class JsonSettingsStore : ISettingsStore
                     stream,
                     PersistedAppSettings.FromAppSettings(settings),
                     SerializerOptions,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
 
             // Verify the just-written file before replacing the user's current settings.
-            _ = await LoadFromPathAsync(tempPath, cancellationToken);
+            _ = await LoadFromPathAsync(tempPath, cancellationToken).ConfigureAwait(false);
 
             if (File.Exists(_settingsPath))
             {
@@ -84,7 +84,7 @@ public sealed class JsonSettingsStore : ISettingsStore
     private static async Task<AppSettings> LoadFromPathAsync(string path, CancellationToken cancellationToken)
     {
         await using var stream = File.OpenRead(path);
-        var persistedSettings = await JsonSerializer.DeserializeAsync<PersistedAppSettings>(stream, SerializerOptions, cancellationToken);
+        var persistedSettings = await JsonSerializer.DeserializeAsync<PersistedAppSettings>(stream, SerializerOptions, cancellationToken).ConfigureAwait(false);
         return persistedSettings?.ToAppSettings() ?? new AppSettings();
     }
 
@@ -247,6 +247,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string HotkeyCaptureAndAnnotate { get; set; } = string.Empty;
 
+        public string HotkeyCaptureAndVisualPrompt { get; set; } = string.Empty;
+
         public string HotkeyFullScreenCanvasEdit { get; set; } = string.Empty;
 
         public string PinnedCloseShortcut { get; set; } = "Esc";
@@ -311,6 +313,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndSave = HotkeyCaptureAndSave,
                 HotkeyCaptureAndCopy = HotkeyCaptureAndCopy,
                 HotkeyCaptureAndAnnotate = HotkeyCaptureAndAnnotate,
+                HotkeyCaptureAndVisualPrompt = HotkeyCaptureAndVisualPrompt,
                 HotkeyFullScreenCanvasEdit = HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = PinnedCloseShortcut,
                 PinnedHideShortcut = NormalizePinnedHideShortcut(PinnedHideShortcut),
@@ -363,6 +366,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndSave = settings.HotkeyCaptureAndSave,
                 HotkeyCaptureAndCopy = settings.HotkeyCaptureAndCopy,
                 HotkeyCaptureAndAnnotate = settings.HotkeyCaptureAndAnnotate,
+                HotkeyCaptureAndVisualPrompt = settings.HotkeyCaptureAndVisualPrompt,
                 HotkeyFullScreenCanvasEdit = settings.HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = settings.PinnedCloseShortcut,
                 PinnedHideShortcut = settings.PinnedHideShortcut,
@@ -411,6 +415,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 HotkeyCaptureAndSave = clone.HotkeyCaptureAndSave,
                 HotkeyCaptureAndCopy = clone.HotkeyCaptureAndCopy,
                 HotkeyCaptureAndAnnotate = clone.HotkeyCaptureAndAnnotate,
+                HotkeyCaptureAndVisualPrompt = clone.HotkeyCaptureAndVisualPrompt,
                 HotkeyFullScreenCanvasEdit = clone.HotkeyFullScreenCanvasEdit,
                 PinnedCloseShortcut = clone.PinnedCloseShortcut,
                 PinnedHideShortcut = clone.PinnedHideShortcut,

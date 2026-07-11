@@ -8,9 +8,13 @@ internal static class SettingsComparer
     {
         left.NormalizeApiProfiles();
         right.NormalizeApiProfiles();
+        left.NormalizeAiProviderProfiles();
+        right.NormalizeAiProviderProfiles();
 
         return AreApiProfilesEquivalent(left.ApiProfiles, right.ApiProfiles)
+            && AreAiProviderProfilesEquivalent(left.AiProviderProfiles, right.AiProviderProfiles)
             && string.Equals(left.SelectedApiProfileId, right.SelectedApiProfileId, StringComparison.Ordinal)
+            && string.Equals(left.SelectedAiProviderProfileId, right.SelectedAiProviderProfileId, StringComparison.Ordinal)
             && string.Equals(left.TargetLanguage, right.TargetLanguage, StringComparison.OrdinalIgnoreCase)
             && string.Equals(left.TranslationProviderPreference, right.TranslationProviderPreference, StringComparison.OrdinalIgnoreCase)
             && left.EnableApiContext == right.EnableApiContext
@@ -24,6 +28,7 @@ internal static class SettingsComparer
             && HotkeyEquals(left.HotkeyCaptureAndSave, right.HotkeyCaptureAndSave)
             && HotkeyEquals(left.HotkeyCaptureAndCopy, right.HotkeyCaptureAndCopy)
             && HotkeyEquals(left.HotkeyCaptureAndAnnotate, right.HotkeyCaptureAndAnnotate)
+            && HotkeyEquals(left.HotkeyCaptureAndVisualPrompt, right.HotkeyCaptureAndVisualPrompt)
             && HotkeyEquals(left.HotkeyFullScreenCanvasEdit, right.HotkeyFullScreenCanvasEdit)
             && HotkeyEquals(left.PinnedCloseShortcut, right.PinnedCloseShortcut)
             && HotkeyEquals(left.PinnedHideShortcut, right.PinnedHideShortcut)
@@ -73,6 +78,35 @@ internal static class SettingsComparer
                 || !string.Equals(leftProfile.Model, rightProfile.Model, StringComparison.Ordinal)
                 || !string.Equals(leftProfile.SystemPrompt, rightProfile.SystemPrompt, StringComparison.Ordinal)
                 || leftProfile.EnableContext != rightProfile.EnableContext)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool AreAiProviderProfilesEquivalent(
+        IReadOnlyList<AiProviderProfile> left,
+        IReadOnlyList<AiProviderProfile> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < left.Count; index++)
+        {
+            var leftProfile = left[index];
+            var rightProfile = right[index];
+            if (!string.Equals(leftProfile.Id, rightProfile.Id, StringComparison.Ordinal)
+                || !string.Equals(leftProfile.Name, rightProfile.Name, StringComparison.Ordinal)
+                || !string.Equals(leftProfile.Protocol, rightProfile.Protocol, StringComparison.Ordinal)
+                || !string.Equals(leftProfile.BaseUrl, rightProfile.BaseUrl, StringComparison.Ordinal)
+                || !string.Equals(leftProfile.ApiKey, rightProfile.ApiKey, StringComparison.Ordinal)
+                || !string.Equals(leftProfile.Model, rightProfile.Model, StringComparison.Ordinal)
+                || leftProfile.IsEnabled != rightProfile.IsEnabled
+                || leftProfile.Capabilities != rightProfile.Capabilities)
             {
                 return false;
             }

@@ -21,6 +21,12 @@ public partial class MainWindow
             "翻译设置",
             "这里集中管理接口地址、模型、目标语言和翻译测试，默认翻译与自定义 API 都从这里处理。");
 
+        _sections[MainSection.VisualPromptSettings] = new NavigationSectionMetadata(
+            VisualPromptNavButton,
+            VisualPromptSection,
+            "图片提示词分析",
+            "这里管理本地或云端视觉模型配置，并用于框选图片后提取可编辑的生图提示词。");
+
         _sections[MainSection.History] = new NavigationSectionMetadata(
             HistoryNavButton,
             HistorySection,
@@ -124,6 +130,11 @@ public partial class MainWindow
             RenderUserConfigLocationInfo();
         }
 
+        if (section == MainSection.VisualPromptSettings)
+        {
+            _ = RefreshOllamaRuntimeStatusAsync();
+        }
+
     }
 
     private void ApplyNavigationStyle(WpfButton button, bool isSelected)
@@ -149,6 +160,7 @@ public partial class MainWindow
     {
         OcrSettings,
         TranslationSettings,
+        VisualPromptSettings,
         History,
         ScreenshotManagement,
         PinnedImages,

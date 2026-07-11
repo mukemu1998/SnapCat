@@ -51,6 +51,8 @@ public partial class MainWindow
         {
             ApiProfiles = ApiProfilesEditor.ToModels(),
             SelectedApiProfileId = ApiProfilesEditor.SelectedProfileId,
+            AiProviderProfiles = AiProviderProfile.CloneAll(_visualPromptProfiles),
+            SelectedAiProviderProfileId = _defaultVisualPromptProfileId,
             TargetLanguage = GetSelectedTargetLanguage(),
             TranslationProviderPreference = GetSelectedTranslationProvider(),
             TesseractExecutablePath = TesseractPathTextBox.Text.Trim(),
@@ -63,6 +65,7 @@ public partial class MainWindow
             HotkeyCaptureAndSave = FormatHotkeySetting(HotkeyCaptureAndSaveTextBox.Text),
             HotkeyCaptureAndCopy = FormatHotkeySetting(HotkeyCaptureAndCopyTextBox.Text),
             HotkeyCaptureAndAnnotate = FormatHotkeySetting(HotkeyCaptureAndAnnotateTextBox.Text),
+            HotkeyCaptureAndVisualPrompt = FormatHotkeySetting(HotkeyCaptureAndVisualPromptTextBox.Text),
             HotkeyFullScreenCanvasEdit = FormatHotkeySetting(HotkeyFullScreenCanvasTextBox.Text),
             PinnedCloseShortcut = FormatHotkeySetting(PinnedCloseShortcutTextBox.Text),
             PinnedHideShortcut = FormatHotkeySetting(PinnedHideShortcutTextBox.Text),
@@ -86,6 +89,7 @@ public partial class MainWindow
         };
 
         settings.NormalizeApiProfiles();
+        settings.NormalizeAiProviderProfiles();
         return settings;
     }
 
@@ -107,6 +111,7 @@ public partial class MainWindow
         HotkeyCaptureAndSaveTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndSave);
         HotkeyCaptureAndCopyTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndCopy);
         HotkeyCaptureAndAnnotateTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndAnnotate);
+        HotkeyCaptureAndVisualPromptTextBox.Text = FormatHotkeySetting(settings.HotkeyCaptureAndVisualPrompt);
         HotkeyFullScreenCanvasTextBox.Text = FormatHotkeySetting(settings.HotkeyFullScreenCanvasEdit);
         PinnedCloseShortcutTextBox.Text = FormatHotkeySetting(settings.PinnedCloseShortcut);
         PinnedHideShortcutTextBox.Text = FormatHotkeySetting(settings.PinnedHideShortcut);
@@ -132,6 +137,7 @@ public partial class MainWindow
                 ? TranslationProviderPreference.Api
                 : TranslationProviderPreference.Local)
             : settings.TranslationProviderPreference);
+        LoadVisualPromptProfiles(settings);
         _suppressTranslationProviderEvents = false;
         _isApplyingSettings = false;
         MarkSettingsClean();
@@ -330,7 +336,9 @@ public partial class MainWindow
             return;
         }
 
-        _hasUnsavedSettings = true;
+        // Controls can raise change notifications while the window is being arranged or a
+        // section is switched. Only expose the save action for a real settings difference.
+        _hasUnsavedSettings = !SettingsComparer.AreEquivalent(BuildCurrentSettings(), _settings);
         UpdateSaveButtonVisibility();
     }
 

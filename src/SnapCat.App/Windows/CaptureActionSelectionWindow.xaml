@@ -269,6 +269,16 @@
                 </Button>
 
                 <Button Style="{StaticResource ToolbarButtonStyle}"
+                        Tag="VisualPromptAnalysis"
+                        ToolTip="图片提示词分析"
+                        Click="ActionButton_OnClick">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ToolbarGlyphStyle}" Text="&#xE8B9;" />
+                        <TextBlock Style="{StaticResource ToolbarLabelStyle}" Text="提示词" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
                         Tag="QrCode"
                         ToolTip="二维码识别"
                         Click="ActionButton_OnClick">

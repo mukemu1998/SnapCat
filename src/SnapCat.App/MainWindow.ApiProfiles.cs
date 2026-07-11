@@ -103,7 +103,8 @@ public partial class MainWindow
             {
                 ApiProfileManagerGrid.Visibility = Visibility.Collapsed;
                 EmptyApiProfileStatePanel.Visibility = Visibility.Visible;
-                DeleteApiProfileButton.Visibility = Visibility.Collapsed;
+                DeleteApiProfileButton.Visibility = Visibility.Visible;
+                DeleteApiProfileButton.IsEnabled = false;
                 SetApiEditorVisibility(Visibility.Collapsed);
                 ClearApiProfileEditor();
                 UpdateApiKeyVisibility(false);
@@ -114,9 +115,13 @@ public partial class MainWindow
             ApiProfileManagerGrid.Visibility = Visibility.Visible;
             EmptyApiProfileStatePanel.Visibility = Visibility.Collapsed;
             DeleteApiProfileButton.Visibility = Visibility.Visible;
-            SetApiEditorVisibility(Visibility.Visible);
+            DeleteApiProfileButton.IsEnabled = !string.IsNullOrWhiteSpace(state.SelectedProfileId);
             ApplyApiProfileDraftToEditor(state.Draft);
             UpdateApiKeyVisibility(false);
+            ApiProfileEditorHeaderTextBlock.Text = string.IsNullOrWhiteSpace(state.Draft.Name)
+                ? "编辑当前翻译 API 配置"
+                : $"编辑翻译 API 配置：{state.Draft.Name}";
+            SetApiEditorVisibility(ApiProfileEditorExpander.IsExpanded ? Visibility.Visible : Visibility.Collapsed);
         }
         finally
         {
@@ -175,6 +180,8 @@ public partial class MainWindow
 
     private IEnumerable<UIElement> GetApiEditorElements()
     {
+        yield return ApiProfileNameLabelTextBlock;
+        yield return ApiProfileNameTextBox;
         yield return BaseUrlLabelTextBlock;
         yield return BaseUrlTextBox;
         yield return ApiKeyLabelTextBlock;
@@ -183,6 +190,8 @@ public partial class MainWindow
         yield return ModelTextBox;
         yield return SystemPromptLabelTextBlock;
         yield return SystemPromptTextBox;
+        yield return ApiProfileEnableContextLabelTextBlock;
+        yield return ApiProfileEnableContextCheckBox;
     }
 
     private string GetCurrentApiKey()
@@ -216,7 +225,7 @@ public partial class MainWindow
         ApiKeyPasswordBox.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
         ApiKeyTextBox.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
         ToggleApiKeyVisibilityButton.ToolTip = isVisible ? "隐藏 API Key" : "显示 API Key";
-        ApiKeyVisibilityIconTextBlock.Text = isVisible ? "🙈" : "👁";
+        ApiKeyVisibilityIconTextBlock.Text = "\uE890";
     }
 
     private void ToggleApiKeyVisibilityButton_OnClick(object sender, RoutedEventArgs e)
@@ -293,6 +302,7 @@ public partial class MainWindow
     {
         var profile = ApiProfilesEditor.AddNewProfileAfterEditingDraft(BuildApiProfileEditorDraft());
         ApplyApiProfileState();
+        ApiProfileEditorExpander.IsExpanded = true;
         MarkSettingsDirty();
         StatusTextBlock.Text = $"已添加新的 API 配置：{profile.Name}";
     }
@@ -334,6 +344,24 @@ public partial class MainWindow
             ApiProfileCardsListBox.SelectedValue?.ToString() ?? string.Empty,
             BuildApiProfileEditorDraft());
         ApplyApiProfileDraftToEditor(draft);
+        ApiProfileEditorHeaderTextBlock.Text = string.IsNullOrWhiteSpace(draft.Name)
+            ? "编辑当前翻译 API 配置"
+            : $"编辑翻译 API 配置：{draft.Name}";
+        ApiProfileEditorExpander.IsExpanded = true;
+        DeleteApiProfileButton.IsEnabled = !string.IsNullOrWhiteSpace(ApiProfileCardsListBox.SelectedValue?.ToString());
         MarkSettingsDirty();
+    }
+
+    private void ApiProfileEditorExpander_OnExpanded(object sender, RoutedEventArgs e)
+    {
+        if (ApiProfilesEditor.HasProfiles)
+        {
+            SetApiEditorVisibility(Visibility.Visible);
+        }
+    }
+
+    private void ApiProfileEditorExpander_OnCollapsed(object sender, RoutedEventArgs e)
+    {
+        SetApiEditorVisibility(Visibility.Collapsed);
     }
 }

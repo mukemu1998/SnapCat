@@ -107,6 +107,73 @@
             <Setter Property="Padding" Value="12,0" />
         </Style>
 
+        <Style x:Key="VisualProfileExpanderStyle" TargetType="Expander">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <StackPanel>
+                            <ToggleButton x:Name="HeaderToggle"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                          Content="{TemplateBinding Header}"
+                                          IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="HeaderBorder"
+                                                Padding="0"
+                                                Background="Transparent"
+                                                CornerRadius="8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="24" />
+                                                </Grid.ColumnDefinitions>
+                                                <ContentPresenter VerticalAlignment="Center"
+                                                                  Content="{TemplateBinding Content}"
+                                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                  TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                                <Path x:Name="Chevron"
+                                                      Grid.Column="1"
+                                                      Width="9"
+                                                      Height="6"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Data="M0 0 L4.5 5 L9 0"
+                                                      Stroke="{DynamicResource Theme.Brush.TextSecondary}"
+                                                      StrokeThickness="1.5"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="HeaderBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonHoverBackground}" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Chevron" Property="RenderTransform">
+                                                    <Setter.Value><RotateTransform Angle="180" CenterX="4.5" CenterY="2.5" /></Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ExpandSite"
+                                              Margin="0,0,0,2"
+                                              ContentSource="Content"
+                                              Visibility="Collapsed" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="TitleBarButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
             <Setter Property="Width" Value="34" />
             <Setter Property="Height" Value="30" />
@@ -886,6 +953,16 @@
                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="翻译设置" />
                                 </StackPanel>
                             </Button>
+                            <Button x:Name="VisualPromptNavButton"
+                                    Style="{StaticResource SidebarButtonStyle}"
+                                    Tag="VisualPromptSettings"
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M4 7 H8 L10 4 L14 7 H20 V19 H4 Z M9 12 A3 3 0 1 0 15 12 A3 3 0 1 0 9 12" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="提示词分析" />
+                                </StackPanel>
+                            </Button>
                             <Button x:Name="HistoryNavButton"
                                     Style="{StaticResource SidebarButtonStyle}"
                                     Tag="History"
@@ -1317,6 +1394,7 @@
                                                     Click="AddApiProfileButton_OnClick">+ 添加配置</Button>
                                             <Button x:Name="DeleteApiProfileButton"
                                                     Style="{StaticResource SectionActionButtonStyle}"
+                                                    IsEnabled="False"
                                                     Click="DeleteApiProfileButton_OnClick">删除当前</Button>
                                         </WrapPanel>
                                     </Grid>
@@ -1332,6 +1410,7 @@
                                           Margin="0,14,0,0"
                                           Visibility="Collapsed">
                                         <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
@@ -1407,35 +1486,51 @@
                                             </ListBox.ItemTemplate>
                                         </ListBox>
 
-                                        <TextBlock Grid.Row="1"
+                                        <Expander x:Name="ApiProfileEditorExpander"
+                                                  Grid.Row="1"
+                                                  Grid.ColumnSpan="2"
+                                                  Margin="0,0,0,12"
+                                                  IsExpanded="False"
+                                                  Expanded="ApiProfileEditorExpander_OnExpanded"
+                                                  Collapsed="ApiProfileEditorExpander_OnCollapsed">
+                                            <Expander.Header>
+                                                <TextBlock x:Name="ApiProfileEditorHeaderTextBlock"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                                           Text="编辑当前翻译 API 配置" />
+                                            </Expander.Header>
+                                        </Expander>
+
+                                        <TextBlock x:Name="ApiProfileNameLabelTextBlock"
+                                                   Grid.Row="2"
                                                    Grid.Column="0"
                                                    Margin="0,0,12,0"
                                                    VerticalAlignment="Center"
                                                    Text="配置名称" />
                                         <TextBox x:Name="ApiProfileNameTextBox"
-                                                 Grid.Row="1"
+                                                 Grid.Row="2"
                                                  Grid.Column="1"
                                                  Margin="0,0,0,12" />
 
                                         <TextBlock x:Name="BaseUrlLabelTextBlock"
-                                                   Grid.Row="2"
+                                                   Grid.Row="3"
                                                    Grid.Column="0"
                                                    Margin="0,0,12,12"
                                                    VerticalAlignment="Center"
                                                    Text="接口地址" />
                                         <TextBox x:Name="BaseUrlTextBox"
-                                                 Grid.Row="2"
+                                                 Grid.Row="3"
                                                  Grid.Column="1"
                                                  Margin="0,0,0,12" />
 
                                         <TextBlock x:Name="ApiKeyLabelTextBlock"
-                                                   Grid.Row="3"
+                                                   Grid.Row="4"
                                                    Grid.Column="0"
                                                    Margin="0,0,12,12"
                                                    VerticalAlignment="Center"
                                                    Text="API Key" />
                                         <Grid x:Name="ApiKeyEditorGrid"
-                                              Grid.Row="3"
+                                              Grid.Row="4"
                                               Grid.Column="1"
                                               Margin="0,0,0,12">
                                             <PasswordBox x:Name="ApiKeyPasswordBox"
@@ -1453,43 +1548,46 @@
                                                     Click="ToggleApiKeyVisibilityButton_OnClick"
                                                     ToolTip="显示 API Key">
                                                 <TextBlock x:Name="ApiKeyVisibilityIconTextBlock"
-                                                           FontSize="13"
-                                                           Text="👁" />
+                                                           FontFamily="Segoe MDL2 Assets"
+                                                           FontSize="14"
+                                                           Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                                           Text="&#xE890;" />
                                             </Button>
                                         </Grid>
 
                                         <TextBlock x:Name="ModelLabelTextBlock"
-                                                   Grid.Row="4"
+                                                   Grid.Row="5"
                                                    Grid.Column="0"
                                                    Margin="0,0,12,12"
                                                    VerticalAlignment="Center"
                                                    Text="模型" />
                                         <TextBox x:Name="ModelTextBox"
-                                                 Grid.Row="4"
+                                                 Grid.Row="5"
                                                  Grid.Column="1"
                                                  Margin="0,0,0,12" />
 
                                         <TextBlock x:Name="SystemPromptLabelTextBlock"
-                                                   Grid.Row="5"
+                                                   Grid.Row="6"
                                                    Grid.Column="0"
                                                    Margin="0,0,12,0"
                                                    VerticalAlignment="Top"
                                                    Text="System Prompt" />
                                         <TextBox x:Name="SystemPromptTextBox"
-                                                 Grid.Row="5"
+                                                 Grid.Row="6"
                                                  Grid.Column="1"
                                                  Height="100"
                                                  AcceptsReturn="True"
                                                  TextWrapping="Wrap"
                                                  VerticalScrollBarVisibility="Auto" />
 
-                                        <TextBlock Grid.Row="6"
+                                        <TextBlock x:Name="ApiProfileEnableContextLabelTextBlock"
+                                                   Grid.Row="7"
                                                    Grid.Column="0"
                                                    Margin="0,12,12,0"
                                                    VerticalAlignment="Center"
                                                    Text="上下文翻译" />
                                         <CheckBox x:Name="ApiProfileEnableContextCheckBox"
-                                                  Grid.Row="6"
+                                                  Grid.Row="7"
                                                   Grid.Column="1"
                                                   Margin="0,12,0,0"
                                                   VerticalAlignment="Center"
@@ -1530,6 +1628,354 @@
                                 </StackPanel>
                             </Border>
                         </Grid>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="VisualPromptSection"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Visibility="Collapsed">
+                        <StackPanel Margin="0,0,8,0">
+                            <Border Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="图片提示词分析" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="框选任意图片后，调用本地或云端视觉模型提取主体、构图、光线、风格和可编辑的中英文提示词。配置仅保存在当前 Windows 用户的本地加密配置中。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="视觉模型配置" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                       TextWrapping="Wrap"
+                                                       Text="首版支持 Ollama 本地视觉模型和 OpenAI 兼容视觉接口。每次分析默认只请求一张结果，避免意外消耗 API 配额。" />
+                                        </StackPanel>
+                                        <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                    Click="AddVisualPromptProfileButton_OnClick">+ 添加配置</Button>
+                                            <Button x:Name="DeleteVisualPromptProfileButton"
+                                                    Style="{StaticResource SectionActionButtonStyle}"
+                                                    IsEnabled="False"
+                                                    Click="DeleteVisualPromptProfileButton_OnClick">删除当前</Button>
+                                        </WrapPanel>
+                                    </Grid>
+
+                                    <TextBlock x:Name="EmptyVisualPromptProfileTextBlock"
+                                               Margin="0,14,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="还没有视觉模型配置。可添加本地 Ollama 配置，或填写兼容视觉 API 的地址、密钥和模型名称。" />
+
+                                    <TextBlock x:Name="VisualPromptDefaultProfileTextBlock"
+                                               Margin="0,14,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                               TextWrapping="Wrap" />
+
+                                    <ItemsControl x:Name="VisualPromptProfileExpandersItemsControl"
+                                                  Margin="0,10,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,8"
+                                                        Padding="12"
+                                                        Background="{DynamicResource Theme.Brush.CardBackground}"
+                                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="12">
+                                                    <Expander Style="{StaticResource VisualProfileExpanderStyle}"
+                                                              Expanded="VisualPromptProfileExpander_OnExpanded">
+                                                        <Expander.Header>
+                                                            <Grid MinWidth="360">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock FontWeight="SemiBold"
+                                                                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                                                               Text="{Binding Name}" />
+                                                                    <TextBlock Margin="0,4,0,0"
+                                                                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                                               Text="{Binding Model}" />
+                                                                </StackPanel>
+                                                                <TextBlock Grid.Column="1"
+                                                                           VerticalAlignment="Center"
+                                                                           Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                                                           Text="{Binding Protocol}" />
+                                                            </Grid>
+                                                        </Expander.Header>
+                                                        <StackPanel Margin="0,12,0,0">
+                                                            <TextBlock Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                                       TextWrapping="Wrap"
+                                                                       Text="填写项仅在展开时显示。选择本地模型会立即应用到当前这张配置卡片。" />
+                                                            <WrapPanel Margin="0,10,0,0">
+                                                                <CheckBox Margin="0,0,10,0"
+                                                                          IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                                          Checked="VisualPromptProfileEnabled_OnChanged"
+                                                                          Unchecked="VisualPromptProfileEnabled_OnChanged"
+                                                                          Content="允许用于分析" />
+                                                                <Button Style="{StaticResource CompactRoundedButtonStyle}"
+                                                                        Height="30"
+                                                                        Padding="12,0"
+                                                                        Click="SetDefaultVisualPromptProfileButton_OnClick">设为默认配置</Button>
+                                                                <Button Margin="8,0,0,0"
+                                                                        Style="{StaticResource CompactRoundedButtonStyle}"
+                                                                        Height="30"
+                                                                        Padding="12,0"
+                                                                        Click="TestVisualPromptProfileConnectionButton_OnClick">检测连接</Button>
+                                                            </WrapPanel>
+                                                            <Grid Margin="0,12,0,0">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="96" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="配置名称" />
+                                                                <TextBox Grid.Column="1" Tag="Name" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="VisualPromptProfileCardTextChanged" />
+                                                                <TextBlock Grid.Row="1" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="接口类型" />
+                                                                <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" Tag="Protocol" SelectedValue="{Binding Protocol, Mode=TwoWay}" SelectedValuePath="Tag" SelectionChanged="VisualPromptProfileCardProtocolChanged">
+                                                                    <ComboBoxItem Tag="ollama">Ollama 本地视觉模型</ComboBoxItem>
+                                                                    <ComboBoxItem Tag="openai-compatible">OpenAI 兼容视觉接口</ComboBoxItem>
+                                                                </ComboBox>
+                                                                <TextBlock Grid.Row="2" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="接口地址" />
+                                                                <TextBox Grid.Row="2" Grid.Column="1" Margin="0,10,0,0" Tag="BaseUrl" Text="{Binding BaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="VisualPromptProfileCardTextChanged" />
+                                                                <TextBlock Grid.Row="3" VerticalAlignment="Center" Margin="0,10,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="API Key" />
+                                                                <Grid Grid.Row="3" Grid.Column="1" Margin="0,10,0,0">
+                                                                    <PasswordBox Tag="ApiKey" Padding="14,9,42,9" PasswordChanged="VisualPromptProfileCardApiKeyChanged" />
+                                                                    <TextBox Padding="14,9,42,9"
+                                                                             Tag="ApiKey"
+                                                                             Text="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                             TextChanged="VisualPromptProfileCardVisibleApiKeyChanged"
+                                                                             Visibility="Collapsed" />
+                                                                    <Button Margin="0,0,10,0"
+                                                                            HorizontalAlignment="Right"
+                                                                            VerticalAlignment="Center"
+                                                                            Style="{StaticResource InlineIconButtonStyle}"
+                                                                            ToolTip="显示 API Key"
+                                                                            Click="ToggleVisualPromptApiKeyVisibilityButton_OnClick">
+                                                                        <TextBlock FontFamily="Segoe MDL2 Assets"
+                                                                                   FontSize="14"
+                                                                                   Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                                                                   Text="&#xE890;" />
+                                                                    </Button>
+                                                                </Grid>
+                                                                <TextBlock Grid.Row="4" VerticalAlignment="Top" Margin="0,12,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="视觉模型" />
+                                                                <Grid Grid.Row="4" Grid.Column="1" Margin="0,10,0,0">
+                                                                    <TextBox Tag="Model" Text="{Binding Model, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="VisualPromptProfileCardTextChanged">
+                                                                        <TextBox.Style>
+                                                                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Protocol}" Value="ollama"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBox.Style>
+                                                                    </TextBox>
+                                                                    <Expander>
+                                                                        <Expander.Style>
+                                                                            <Style TargetType="Expander" BasedOn="{StaticResource VisualProfileExpanderStyle}">
+                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Protocol}" Value="ollama"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Expander.Style>
+                                                                        <Expander.Header>
+                                                                            <Border Padding="14,9"
+                                                                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                                                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                                                    BorderThickness="1"
+                                                                                    CornerRadius="12">
+                                                                                <TextBlock Foreground="{DynamicResource Theme.Brush.TextPrimary}">
+                                                                                    <TextBlock.Style>
+                                                                                        <Style TargetType="TextBlock">
+                                                                                            <Setter Property="Text" Value="{Binding Model}" />
+                                                                                            <Style.Triggers>
+                                                                                                <DataTrigger Binding="{Binding Model}" Value=""><Setter Property="Text" Value="请选择已下载模型" /></DataTrigger>
+                                                                                            </Style.Triggers>
+                                                                                        </Style>
+                                                                                    </TextBlock.Style>
+                                                                                </TextBlock>
+                                                                            </Border>
+                                                                        </Expander.Header>
+                                                                        <StackPanel Margin="0,10,0,0">
+                                                                            <TextBlock Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="已下载的本地模型" />
+                                                                            <ItemsControl ItemsSource="{Binding InstalledVisualModelNames, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <Button Margin="0,6,0,0"
+                                                                                                HorizontalAlignment="Left"
+                                                                                                Style="{StaticResource CompactRoundedButtonStyle}"
+                                                                                                Tag="{Binding}"
+                                                                                                Click="ApplyInstalledVisualModelButton_OnClick"><TextBlock Text="{Binding}" /></Button>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                            <TextBlock Margin="0,10,0,0" Foreground="{DynamicResource Theme.Brush.TextMuted}" Text="未发现模型时，请先在下方准备模块下载。" />
+                                                                        </StackPanel>
+                                                                    </Expander>
+                                                                </Grid>
+                                                                <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="0,12,0,0" Foreground="{DynamicResource Theme.Brush.TextMuted}" TextWrapping="Wrap" Text="提示：本地模型需要先在下方“本地 Ollama 准备”下载；云端模型填写兼容接口地址、密钥与模型名称后即可使用。" />
+                                                            </Grid>
+                                                        </StackPanel>
+                                                    </Expander>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="本地 Ollama 准备" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                       TextWrapping="Wrap"
+                                                       Text="本地视觉分析需要先安装 Ollama 运行时，再下载视觉模型。推荐使用 Qwen3-VL 8B；模型文件约 6.1GB，请预留额外磁盘空间。" />
+                                        </StackPanel>
+                                        <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource SectionActionButtonStyle}" Click="RefreshOllamaStatusButton_OnClick">重新检测</Button>
+                                            <Button x:Name="OpenOllamaDownloadButton"
+                                                    Style="{StaticResource SectionActionButtonStyle}"
+                                                    IsEnabled="False"
+                                                    Click="OpenOllamaDownloadButton_OnClick">下载 Ollama</Button>
+                                        </WrapPanel>
+                                    </Grid>
+                                    <TextBlock x:Name="OllamaRuntimeStatusTextBlock"
+                                               Margin="0,14,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                               TextWrapping="Wrap" />
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Margin="0,0,12,0" VerticalAlignment="Center" Text="模型存放目录" />
+                                        <TextBox x:Name="OllamaModelsDirectoryTextBox" Grid.Column="1" Margin="0,0,10,0" Foreground="{DynamicResource Theme.Brush.TextPrimary}" />
+                                        <Button Grid.Column="2" Style="{StaticResource CompactRoundedButtonStyle}" Width="96" Height="32" Margin="0,0,8,0" Click="ChooseOllamaModelsDirectoryButton_OnClick">选择目录</Button>
+                                        <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="112" Height="32" Click="ApplyOllamaModelsDirectoryButton_OnClick">应用目录设置</Button>
+                                    </Grid>
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button x:Name="DownloadQwenVisionModelButton" Style="{StaticResource SectionActionButtonStyle}" Visibility="Collapsed" Click="DownloadQwenVisionModelButton_OnClick">下载选中模型</Button>
+                                    </WrapPanel>
+                                    <Border x:Name="OllamaDownloadProgressPanel"
+                                            Margin="0,12,0,0"
+                                            Padding="10"
+                                            Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Visibility="Collapsed">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="OllamaDownloadProgressTextBlock"
+                                                       Grid.Column="0"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                       TextWrapping="Wrap" />
+                                            <Button Grid.Column="1"
+                                                    Margin="12,0,0,0"
+                                                    Style="{StaticResource CompactRoundedButtonStyle}"
+                                                    Width="64"
+                                                    Height="28"
+                                                    Click="CancelOllamaDownloadButton_OnClick">取消</Button>
+                                            <Border Grid.Row="1"
+                                                    Grid.ColumnSpan="2"
+                                                    Height="6"
+                                                    Margin="0,10,0,0"
+                                                    Background="{DynamicResource Theme.Brush.ScrollTrack}"
+                                                    CornerRadius="3">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition x:Name="OllamaDownloadProgressFillColumn" Width="0*" />
+                                                        <ColumnDefinition x:Name="OllamaDownloadProgressRemainderColumn" Width="100*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0"
+                                                            Background="{DynamicResource Theme.Brush.Accent}"
+                                                            CornerRadius="3" />
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                    <Grid Margin="0,12,0,0">
+                                        <ComboBox x:Name="OllamaInstalledModelsComboBox"
+                                                  DisplayMemberPath="DisplayName"
+                                                  SelectedValuePath="ModelName"
+                                                  MinWidth="260"
+                                                  SelectionChanged="OllamaInstalledModelsComboBox_OnSelectionChanged">
+                                            <ComboBox.ItemContainerStyle>
+                                                <Style TargetType="ComboBoxItem">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsInstalled}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextMuted}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ComboBox.ItemContainerStyle>
+                                        </ComboBox>
+                                        <TextBlock x:Name="OllamaModelPlaceholderTextBlock"
+                                                   Margin="14,0,34,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                   IsHitTestVisible="False"
+                                                   Text="适用的本地模型" />
+                                    </Grid>
+                                    <TextBox x:Name="OllamaSetupLogTextBox"
+                                             Margin="0,12,0,0"
+                                             MinHeight="90"
+                                             MaxHeight="180"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             VerticalScrollBarVisibility="Auto"
+                                             Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                             BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
                     </ScrollViewer>
 
                     <ScrollViewer x:Name="ScreenshotManagementSection"
@@ -1643,7 +2089,9 @@
                                                 Click="RefreshDefaultCapturesButton_OnClick">刷新截图</Button>
                                         <Button Style="{StaticResource SectionActionButtonStyle}"
                                                 Click="SelectAllDefaultCapturesButton_OnClick">全选</Button>
-                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                        <Button x:Name="DeleteSelectedDefaultCapturesButton"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                IsEnabled="False"
                                                 Click="DeleteSelectedDefaultCapturesButton_OnClick">删除选中</Button>
                                     </WrapPanel>
 
@@ -1652,6 +2100,7 @@
                                              Style="{StaticResource HistoryListBoxStyle}"
                                              MaxHeight="360"
                                              SelectionMode="Extended"
+                                             SelectionChanged="DefaultCapturesListBox_OnSelectionChanged"
                                              PreviewMouseRightButtonDown="DefaultCapturesListBox_OnPreviewMouseRightButtonDown">
                                         <ListBox.ContextMenu>
                                             <ContextMenu Style="{StaticResource MainContextMenuStyle}">
@@ -1825,6 +2274,21 @@
                                             <TextBox x:Name="HotkeyCaptureAndAnnotateTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
                                             <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordAnnotateHotkeyButton_OnClick">录制</Button>
                                             <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearAnnotateHotkeyButton_OnClick">清空</Button>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220" />
+                                                <ColumnDefinition Width="100" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="自由框选图片提示词分析" />
+                                            <Button Grid.Column="1" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RunVisualPromptActionButton_OnClick">执行</Button>
+                                            <TextBox x:Name="HotkeyCaptureAndVisualPromptTextBox" Grid.Column="2" Margin="0,0,12,0" IsReadOnly="True" VerticalContentAlignment="Center" />
+                                            <Button Grid.Column="3" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Margin="0,0,12,0" Click="RecordVisualPromptHotkeyButton_OnClick">录制</Button>
+                                            <Button Grid.Column="4" Style="{StaticResource CompactRoundedButtonStyle}" Width="78" Height="32" Click="ClearVisualPromptHotkeyButton_OnClick">清空</Button>
                                         </Grid>
 
                                         <Grid>
@@ -2492,9 +2956,13 @@
                                     Click="OpenHistoryDetailButton_OnClick">查看详情</Button>
                             <Button Style="{StaticResource SectionActionButtonStyle}"
                                     Click="OpenImageLocationButton_OnClick">打开截图位置</Button>
-                            <Button Style="{StaticResource SectionActionButtonStyle}"
+                            <Button x:Name="DeleteHistoryButton"
+                                    Style="{StaticResource SectionActionButtonStyle}"
+                                    IsEnabled="False"
                                     Click="DeleteHistoryButton_OnClick">删除选中</Button>
-                            <Button Style="{StaticResource SectionActionButtonStyle}"
+                            <Button x:Name="ClearHistoryButton"
+                                    Style="{StaticResource SectionActionButtonStyle}"
+                                    IsEnabled="False"
                                     Click="ClearHistoryButton_OnClick">清空历史</Button>
                         </WrapPanel>
 
@@ -2721,9 +3189,13 @@
                                     Click="RefreshPinnedImagesButton_OnClick">刷新贴图</Button>
                             <Button Style="{StaticResource SectionActionButtonStyle}"
                                     Click="SelectAllPinnedImagesButton_OnClick">全选</Button>
-                            <Button Style="{StaticResource SectionActionButtonStyle}"
+                            <Button x:Name="DeleteSelectedPinnedImagesButton"
+                                    Style="{StaticResource SectionActionButtonStyle}"
+                                    IsEnabled="False"
                                     Click="DeleteSelectedPinnedImagesButton_OnClick">删除选中</Button>
-                            <Button Style="{StaticResource SectionActionButtonStyle}"
+                            <Button x:Name="DeleteAllPinnedImagesButton"
+                                    Style="{StaticResource SectionActionButtonStyle}"
+                                    IsEnabled="False"
                                     Click="DeleteAllPinnedImagesButton_OnClick">全部删除</Button>
                             <Button Style="{StaticResource SectionActionButtonStyle}"
                                     Click="ShowAllPinnedImagesButton_OnClick">显示全部</Button>
@@ -2743,6 +3215,7 @@
                             <ListBox x:Name="PinnedImagesListBox"
                                      Style="{StaticResource HistoryListBoxStyle}"
                                      SelectionMode="Extended"
+                                     SelectionChanged="PinnedImagesListBox_OnSelectionChanged"
                                      PreviewMouseRightButtonDown="PinnedImagesListBox_OnPreviewMouseRightButtonDown">
                                 <ListBox.ContextMenu>
                                     <ContextMenu Style="{StaticResource MainContextMenuStyle}">

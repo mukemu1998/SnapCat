@@ -5,6 +5,7 @@ public enum CaptureActionKind
     PinToScreen,
     OcrOnly,
     OcrAndTranslate,
+    VisualPromptAnalysis,
     QrCode,
     CanvasEdit,
     CopyImage,

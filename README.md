@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <strong>面向 Windows 的自由框选截图、OCR 与翻译工具</strong>
+  <strong>面向 Windows 的自由框选截图、OCR、翻译与图片提示词分析工具</strong>
 </p>
 
 <p align="center">
-  围绕“先框选，再识别，再翻译或固定”的工作流设计，强调清晰截图、快速操作和常驻托盘体验。
+  围绕“先框选，再识别，再翻译、分析或固定”的工作流设计，强调清晰截图、快速操作、本地隐私和常驻托盘体验。
 </p>
 
 <p align="center">
@@ -21,13 +21,13 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.3.5-preview" src="https://img.shields.io/badge/Version-0.3.5--preview-22c55e" />
+  <img alt="Version 0.4.0-preview" src="https://img.shields.io/badge/Version-0.4.0--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
 ## 项目简介
 
-SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本地 OCR、接口翻译和截图固定这几条高频链路。它不是以复杂编辑器为中心，而是围绕“截图后马上处理”这个动作来组织交互，尽量把常用操作压缩到更短的路径里。
+SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本地 OCR、接口翻译、图片提示词分析和截图固定等高频链路。它不是以复杂编辑器为中心，而是围绕“截图后马上处理”这个动作来组织交互，尽量把常用操作压缩到更短的路径里。
 
 ## 核心能力
 
@@ -38,6 +38,7 @@ SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本
 | OCR 文本提取 | 支持调用Windows高质量文本提取与本地轻量增强识别，适合截图文字复制和翻译。 |
 | 本地与 API 翻译 | 默认可用本地轻量翻译，也可添加多套兼容 OpenAI 的 API 配置。 |
 | 翻译浮窗 | 截图翻译后在框选附近显示小浮窗，支持语言选择、朗读、复制和再次框选。 |
+| 图片提示词分析 | 可框选图片并调用本地 Ollama 或 OpenAI 兼容视觉接口，输出可编辑、可复制、可重新分析的中英文提示词。 |
 | 截图固定与贴图管理 | 贴图支持拖动、缩放、翻转、旋转、阵列、隐藏、分组和启动后恢复。 |
 | 画布标注与马赛克 | 支持全屏画布、独立框选标注快捷键、文本、箭头、画笔、马克笔、橡皮擦和真实像素马赛克。 |
 | 二维码识别 | 支持框选二维码识别，并在选框附近显示结果和复制入口。 |
@@ -106,7 +107,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.3.5-preview`，属于 AI 基础架构准备版：新增本地安全 AI 配置、模型能力与任务状态底座；贴图阵列数量输入新增“执行”按钮，并修复高 DPI 贴图翻转、旋转和阵列渲染显示问题。视觉提示词分析和无限 AI 画布将在后续阶段逐步开放。
+当前版本为 `0.4.0-preview`，开放第一条图片提示词分析链路：可框选图片并调用本地 Ollama 或 OpenAI 兼容视觉接口，得到可编辑、可复制、可重新分析的中英文提示词。视觉模型配置继续仅保存于用户本地加密目录，不会写入源码或发布包。
 
 ## 许可
 

@@ -1,0 +1,148 @@
+<Window x:Class="SnapCat.App.Windows.VisualPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="图片提示词分析"
+        Width="460"
+        MinWidth="380"
+        Height="510"
+        MinHeight="340"
+        AllowsTransparency="True"
+        Background="Transparent"
+        WindowStyle="None"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        Topmost="True">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.ButtonBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="9">
+                            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonHoverBackground}" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.78" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="3" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Border Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton><RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" /></Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Margin="1" Background="{DynamicResource Theme.Brush.ScrollThumb}" CornerRadius="3" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton><RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" /></Track.IncreaseRepeatButton>
+                            </Track>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="12,0,34,0" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.ReadOnlyBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Brush.ButtonBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="ComboBorder" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}" BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ComboBox}}" CornerRadius="9">
+                                            <Grid>
+                                                <ContentPresenter Margin="{Binding Padding, RelativeSource={RelativeSource AncestorType=ComboBox}}" VerticalAlignment="Center" Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}" ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}" TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
+                                                <Path Width="8" Height="4" Margin="0,0,12,0" HorizontalAlignment="Right" VerticalAlignment="Center" Data="M 0 0 L 4 4 L 8 0" Stroke="{DynamicResource Theme.Brush.TextSecondary}" StrokeThickness="1.5" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" /></Trigger>
+                                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="ComboBorder" Property="BorderBrush" Value="{DynamicResource Theme.Brush.AccentBorder}" /><Setter TargetName="ComboBorder" Property="Background" Value="{DynamicResource Theme.Brush.SurfaceAltBackground}" /></Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="Popup" Placement="Bottom" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}">
+                                <Border MinWidth="{TemplateBinding ActualWidth}" Margin="0,6,0,0" Padding="5" Background="{DynamicResource Theme.Brush.SurfaceBackground}" BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}" BorderThickness="1" CornerRadius="10">
+                                    <ScrollViewer MaxHeight="220"><ItemsPresenter /></ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.TextPrimary}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder" Background="Transparent" CornerRadius="7"><ContentPresenter Margin="{TemplateBinding Padding}" TextElement.Foreground="{TemplateBinding Foreground}" /></Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Theme.Brush.ButtonHoverBackground}" /></Trigger>
+                            <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Theme.Brush.Accent}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Border Margin="1" Padding="14" Background="{DynamicResource Theme.Brush.WindowBackground}" BorderBrush="{DynamicResource Theme.Brush.WindowBorder}" BorderThickness="1" CornerRadius="18" MouseLeftButtonDown="WindowSurface_OnMouseLeftButtonDown">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0" MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Text="图片提示词分析" />
+                    <TextBlock x:Name="ProviderTextBlock" Margin="0,5,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" />
+                </StackPanel>
+                <Button Grid.Column="1" Width="38" Height="38" Padding="0" Click="CloseButton_OnClick">×</Button>
+            </Grid>
+            <Grid Grid.Row="1" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="分析配置" />
+                <ComboBox x:Name="ProfileComboBox" Grid.Column="1" Margin="10,0,0,0" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="ProfileComboBox_OnSelectionChanged" />
+            </Grid>
+            <TextBlock x:Name="StatusTextBlock" Grid.Row="2" Margin="0,12,0,10" Foreground="{DynamicResource Theme.Brush.Highlight}" TextWrapping="Wrap" />
+            <TextBox x:Name="ResultTextBox" Grid.Row="3" Padding="10" Background="{DynamicResource Theme.Brush.ReadOnlyBackground}" BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}" Foreground="{DynamicResource Theme.Brush.TextPrimary}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+            <WrapPanel Grid.Row="4" Margin="0,12,0,0" HorizontalAlignment="Right">
+                <Button Margin="0,0,8,0" Click="CopyButton_OnClick">复制提示词</Button>
+                <Button x:Name="ReanalyzeButton" Click="ReanalyzeButton_OnClick">重新分析</Button>
+            </WrapPanel>
+        </Grid>
+    </Border>
+</Window>

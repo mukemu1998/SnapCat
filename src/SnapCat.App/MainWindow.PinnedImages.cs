@@ -115,6 +115,11 @@ public partial class MainWindow
         }
     }
 
+    private void PinnedImagesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        DeleteSelectedPinnedImagesButton.IsEnabled = PinnedImagesListBox.SelectedItems.Count > 0;
+    }
+
     private void AssignPinnedImagesToGroupMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string groupName })
@@ -140,10 +145,13 @@ public partial class MainWindow
 
     private void RefreshPinnedImagesList()
     {
-        PinnedImagesListBox.ItemsSource = _app.PinnedWindowRegistryService
+        var items = _app.PinnedWindowRegistryService
             .GetActiveSnapshots()
             .Select(static snapshot => new PinnedImageListItem(snapshot))
             .ToList();
+        PinnedImagesListBox.ItemsSource = items;
+        DeleteSelectedPinnedImagesButton.IsEnabled = false;
+        DeleteAllPinnedImagesButton.IsEnabled = items.Count > 0;
     }
 
     private List<string> GetSelectedPinnedImageIds()

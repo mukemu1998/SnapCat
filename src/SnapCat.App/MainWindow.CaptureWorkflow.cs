@@ -130,6 +130,9 @@ public partial class MainWindow
                 case CaptureWorkflowKind.CaptureAndAnnotate:
                     action = CaptureActionKind.CanvasEdit;
                     break;
+                case CaptureWorkflowKind.CaptureAndVisualPrompt:
+                    action = CaptureActionKind.VisualPromptAnalysis;
+                    break;
                 case CaptureWorkflowKind.FullScreenCanvasEdit:
                     action = CaptureActionKind.CanvasEdit;
                     break;
@@ -329,6 +332,18 @@ public partial class MainWindow
             if (action == CaptureActionKind.PinToScreen)
             {
                 workingImagePath = _app.CapturedImageFileService.SaveToPinnedCacheDirectory(workingImagePath);
+            }
+
+            if (action == CaptureActionKind.VisualPromptAnalysis)
+            {
+                await ShowVisualPromptAnalysisAsync(workingImagePath, workingCaptureRegion);
+
+                if (shouldRestoreMainWindow && _visualPromptWindow is not { IsVisible: true })
+                {
+                    ShowMainWindow();
+                }
+
+                return;
             }
 
             var status = await _app.CaptureActionService.ExecuteAsync(

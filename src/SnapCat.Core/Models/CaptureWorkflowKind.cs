@@ -9,5 +9,6 @@ public enum CaptureWorkflowKind
     CaptureAndSave,
     CaptureAndCopy,
     CaptureAndAnnotate,
+    CaptureAndVisualPrompt,
     FullScreenCanvasEdit
 }

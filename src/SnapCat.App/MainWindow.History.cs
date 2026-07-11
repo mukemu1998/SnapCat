@@ -48,6 +48,7 @@ public partial class MainWindow
     private void HistoryListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         RenderHistoryPreview(HistoryListBox.SelectedItem as HistoryListItem);
+        DeleteHistoryButton.IsEnabled = HistoryListBox.SelectedItem is not null;
     }
 
     private void CopyHistoryPrimaryButton_OnClick(object sender, RoutedEventArgs e)
@@ -73,6 +74,8 @@ public partial class MainWindow
         {
             HistoryListBox.SelectedItem = null;
             RenderHistoryPreview(null);
+            DeleteHistoryButton.IsEnabled = false;
+            ClearHistoryButton.IsEnabled = false;
             return;
         }
 
@@ -81,6 +84,8 @@ public partial class MainWindow
 
         HistoryListBox.SelectedItem = selectedItem;
         RenderHistoryPreview(selectedItem);
+        DeleteHistoryButton.IsEnabled = true;
+        ClearHistoryButton.IsEnabled = true;
     }
 
     private void OpenSelectedHistoryDetail()

@@ -64,6 +64,8 @@ public sealed class AppSettings
 
     public string HotkeyCaptureAndAnnotate { get; set; } = string.Empty;
 
+    public string HotkeyCaptureAndVisualPrompt { get; set; } = string.Empty;
+
     public string HotkeyFullScreenCanvasEdit { get; set; } = string.Empty;
 
     public string PinnedCloseShortcut { get; set; } = "Esc";
@@ -182,10 +184,14 @@ public sealed class AppSettings
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(SelectedAiProviderProfileId)
-            || AiProviderProfiles.All(profile => !string.Equals(profile.Id, SelectedAiProviderProfileId, StringComparison.Ordinal)))
+        var selectedProfile = AiProviderProfiles.FirstOrDefault(profile =>
+            string.Equals(profile.Id, SelectedAiProviderProfileId, StringComparison.Ordinal));
+        if (selectedProfile is null || !selectedProfile.IsEnabled)
         {
-            SelectedAiProviderProfileId = AiProviderProfiles[0].Id;
+            SelectedAiProviderProfileId = AiProviderProfiles
+                .FirstOrDefault(profile => profile.IsEnabled && profile.Supports(AiModelCapabilities.VisionAnalysis))?.Id
+                ?? AiProviderProfiles.FirstOrDefault(profile => profile.IsEnabled)?.Id
+                ?? string.Empty;
         }
     }
 

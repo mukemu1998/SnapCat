@@ -194,6 +194,19 @@ public partial class TrayMenuWindow : Window
 
     private void ExitButton_OnClick(object sender, RoutedEventArgs e)
     {
-        ExecuteAndClose(_exitAction);
+        if (_closeRequested)
+        {
+            return;
+        }
+
+        _closeRequested = true;
+        Closed += ExitAfterTrayMenuClosed;
+        Close();
+    }
+
+    private void ExitAfterTrayMenuClosed(object? sender, EventArgs e)
+    {
+        Closed -= ExitAfterTrayMenuClosed;
+        Dispatcher.BeginInvoke(_exitAction, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 }

@@ -61,6 +61,11 @@ public partial class MainWindow
         }
     }
 
+    private void DefaultCapturesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        DeleteSelectedDefaultCapturesButton.IsEnabled = DefaultCapturesListBox.SelectedItems.Count > 0;
+    }
+
     private void OpenSelectedDefaultCaptureLocationMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         OpenSelectedDefaultCaptureLocation();
@@ -77,14 +82,17 @@ public partial class MainWindow
         if (!Directory.Exists(directory))
         {
             DefaultCapturesListBox.ItemsSource = Array.Empty<DefaultCaptureListItem>();
+            DeleteSelectedDefaultCapturesButton.IsEnabled = false;
             return;
         }
 
-        DefaultCapturesListBox.ItemsSource = Directory
+        var items = Directory
             .EnumerateFiles(directory, "*.png", SearchOption.TopDirectoryOnly)
             .OrderByDescending(File.GetLastWriteTime)
             .Select(static path => new DefaultCaptureListItem(path))
             .ToList();
+        DefaultCapturesListBox.ItemsSource = items;
+        DeleteSelectedDefaultCapturesButton.IsEnabled = false;
     }
 
     private void OpenSelectedDefaultCaptureLocation()
@@ -127,6 +135,7 @@ public partial class MainWindow
         }
 
         RefreshDefaultCapturesList();
+        DeleteSelectedDefaultCapturesButton.IsEnabled = false;
         StatusTextBlock.Text = selectedItems.Count == 0
             ? "请先选择要删除的截图。"
             : $"已删除 {deletedCount} 个默认保存截图。";

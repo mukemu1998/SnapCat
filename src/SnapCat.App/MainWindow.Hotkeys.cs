@@ -38,6 +38,7 @@ public partial class MainWindow
             new("保存到默认位置", _settings.HotkeyCaptureAndSave, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndSave, returnToMainWindow: false)),
             new("复制截图", _settings.HotkeyCaptureAndCopy, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndCopy, returnToMainWindow: false)),
             new("框选标注", _settings.HotkeyCaptureAndAnnotate, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndAnnotate, returnToMainWindow: false)),
+            new("图片提示词分析", _settings.HotkeyCaptureAndVisualPrompt, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.CaptureAndVisualPrompt, returnToMainWindow: false)),
             new("全屏画布编辑", _settings.HotkeyFullScreenCanvasEdit, () => _ = StartCaptureWorkflowAsync(CaptureWorkflowKind.FullScreenCanvasEdit, returnToMainWindow: false)),
             new("显示全部贴图", _settings.HotkeyShowAllPinned, ShowAllPinnedImages),
             new("隐藏全部贴图", _settings.HotkeyHideAllPinned, HideAllPinnedImages),
@@ -88,6 +89,11 @@ public partial class MainWindow
     private void RecordAnnotateHotkeyButton_OnClick(object sender, RoutedEventArgs e)
     {
         BeginHotkeyRecording(HotkeyCaptureAndAnnotateTextBox, "框选标注");
+    }
+
+    private void RecordVisualPromptHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        BeginHotkeyRecording(HotkeyCaptureAndVisualPromptTextBox, "图片提示词分析");
     }
 
     private void RecordPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
@@ -180,6 +186,11 @@ public partial class MainWindow
         ClearHotkeyTextBox(HotkeyCaptureAndAnnotateTextBox);
     }
 
+    private void ClearVisualPromptHotkeyButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        ClearHotkeyTextBox(HotkeyCaptureAndVisualPromptTextBox);
+    }
+
     private void ClearPinnedCloseShortcutButton_OnClick(object sender, RoutedEventArgs e)
     {
         ClearHotkeyTextBox(PinnedCloseShortcutTextBox);
@@ -247,6 +258,7 @@ public partial class MainWindow
         HotkeyCaptureAndSaveTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndSave);
         HotkeyCaptureAndCopyTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndCopy);
         HotkeyCaptureAndAnnotateTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndAnnotate);
+        HotkeyCaptureAndVisualPromptTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyCaptureAndVisualPrompt);
         HotkeyFullScreenCanvasTextBox.Text = HotkeyTextFormatter.FormatText(defaults.HotkeyFullScreenCanvasEdit);
         PinnedCloseShortcutTextBox.Text = HotkeyTextFormatter.FormatText(defaults.PinnedCloseShortcut);
         PinnedHideShortcutTextBox.Text = HotkeyTextFormatter.FormatText(defaults.PinnedHideShortcut);
@@ -333,6 +345,7 @@ public partial class MainWindow
             ["保存截图"] = HotkeyCaptureAndSaveTextBox.Text.Trim(),
             ["复制截图"] = HotkeyCaptureAndCopyTextBox.Text.Trim(),
             ["框选标注"] = HotkeyCaptureAndAnnotateTextBox.Text.Trim(),
+            ["图片提示词分析"] = HotkeyCaptureAndVisualPromptTextBox.Text.Trim(),
             ["全屏画布编辑"] = HotkeyFullScreenCanvasTextBox.Text.Trim(),
             ["关闭贴图"] = PinnedCloseShortcutTextBox.Text.Trim(),
             ["隐藏贴图"] = PinnedHideShortcutTextBox.Text.Trim(),
