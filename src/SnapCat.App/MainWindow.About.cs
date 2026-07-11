@@ -120,14 +120,6 @@ public partial class MainWindow
             return;
         }
 
-        var updaterSourceDirectory = Path.Combine(applicationDirectory, "Updater");
-        var updaterSourceExecutable = Path.Combine(updaterSourceDirectory, "SnapCat.Updater.exe");
-        if (!File.Exists(updaterSourceExecutable))
-        {
-            AboutUpdateStatusTextBlock.Text = "当前安装包缺少更新助手，请下载最新完整包后再使用自动升级。";
-            return;
-        }
-
         var workingDirectory = Path.Combine(parentDirectory, $".SnapCat-update-{Guid.NewGuid():N}");
         try
         {
@@ -143,8 +135,17 @@ public partial class MainWindow
                 workingDirectory,
                 progress);
 
-            var updaterDirectory = Path.Combine(workingDirectory, "Updater");
-            CopyDirectory(updaterSourceDirectory, updaterDirectory);
+            // Run the updater from outside the staged payload. Otherwise its own EXE would lock
+            // the staged directory while it tries to move that directory into the app location.
+            var stagedUpdaterSourceDirectory = Path.Combine(staged.StagingDirectory, "Updater");
+            var stagedUpdaterSourceExecutable = Path.Combine(stagedUpdaterSourceDirectory, "SnapCat.Updater.exe");
+            if (!File.Exists(stagedUpdaterSourceExecutable))
+            {
+                throw new InvalidDataException("更新包缺少 Updater 更新助手，已取消自动升级。");
+            }
+
+            var updaterDirectory = Path.Combine(workingDirectory, "updater-runner");
+            CopyDirectory(stagedUpdaterSourceDirectory, updaterDirectory);
             var updaterExecutable = Path.Combine(updaterDirectory, "SnapCat.Updater.exe");
             var processInfo = new ProcessStartInfo
             {

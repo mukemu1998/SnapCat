@@ -9,6 +9,8 @@ internal static class Program
     private const int MainProcessTimeout = 3;
     private const int ReplacementFailed = 4;
     private const int RestartFailed = 5;
+    private const int ReplacementRetryCount = 40;
+    private static readonly TimeSpan ReplacementRetryDelay = TimeSpan.FromMilliseconds(400);
 
     [STAThread]
     private static async Task<int> Main(string[] args)
@@ -47,16 +49,10 @@ internal static class Program
 
         try
         {
-            Directory.Move(targetDirectory, backupDirectory);
-            try
-            {
-                Directory.Move(stagedDirectory, targetDirectory);
-            }
-            catch
-            {
-                Directory.Move(backupDirectory, targetDirectory);
-                throw;
-            }
+            // Explorer, the tray shell, or security software can keep a file handle briefly after
+            // the main process exits. Retrying here avoids failing an otherwise valid update.
+            await Task.Delay(TimeSpan.FromMilliseconds(600));
+            await ReplaceApplicationDirectoryAsync(targetDirectory, stagedDirectory, backupDirectory, logPath);
         }
         catch (Exception exception)
         {
@@ -116,6 +112,51 @@ internal static class Program
         {
             // The process has already exited.
         }
+    }
+
+    private static async Task ReplaceApplicationDirectoryAsync(
+        string targetDirectory,
+        string stagedDirectory,
+        string backupDirectory,
+        string logPath)
+    {
+        Exception? lastFailure = null;
+        for (var attempt = 1; attempt <= ReplacementRetryCount; attempt++)
+        {
+            var targetMoved = false;
+            try
+            {
+                Directory.Move(targetDirectory, backupDirectory);
+                targetMoved = true;
+                Directory.Move(stagedDirectory, targetDirectory);
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                lastFailure = exception;
+                if (targetMoved && !Directory.Exists(targetDirectory) && Directory.Exists(backupDirectory))
+                {
+                    try
+                    {
+                        Directory.Move(backupDirectory, targetDirectory);
+                    }
+                    catch (Exception rollbackException)
+                    {
+                        throw new IOException("替换失败且无法恢复原程序目录。", rollbackException);
+                    }
+                }
+
+                if (attempt == ReplacementRetryCount)
+                {
+                    break;
+                }
+
+                AppendLog(logPath, $"应用目录暂时被占用，正在重试（{attempt}/{ReplacementRetryCount}）。");
+                await Task.Delay(ReplacementRetryDelay);
+            }
+        }
+
+        throw new IOException("应用文件在主程序退出后仍被占用，请关闭可能正在访问 SnapCat 目录的程序后重试。", lastFailure);
     }
 
     private static bool IsNestedDirectory(string childDirectory, string parentDirectory)
