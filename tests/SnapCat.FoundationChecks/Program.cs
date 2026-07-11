@@ -54,7 +54,7 @@ static async Task VerifyAiProfilePersistenceAsync(string directory)
                 MaxReferenceImageCount = 4,
                 MaxOutputCount = 6,
                 SupportsCostEstimate = true
-            }
+            },
         ]
     };
     settings.NormalizeAiProviderProfiles();
@@ -115,11 +115,19 @@ static void VerifySettingsSnapshotAndComparison()
                 MaxReferenceImageCount = 3,
                 MaxOutputCount = 2,
                 SupportsCostEstimate = false
+            },
+            new AiProviderProfile
+            {
+                Id = "vision-profile-secondary",
+                Name = "Local vision secondary",
+                Protocol = AiProviderProtocol.Ollama,
+                BaseUrl = "http://127.0.0.1:11434",
+                Model = "qwen3-vl:8b-alt",
+                Capabilities = AiModelCapabilities.VisionAnalysis
             }
         ]
     };
     original.NormalizeAiProviderProfiles();
-
     var snapshot = AppSettingsCloneService.Clone(original);
     Assert(AppSettingsComparer.AreEquivalent(original, snapshot), "A detached settings snapshot should initially match its source.");
     Assert(HotkeyTextNormalizer.Normalize(snapshot.HotkeyCaptureAndCopy) == "Ctrl+Shift+`", "Persisted OEM hotkeys should use readable keyboard symbols.");

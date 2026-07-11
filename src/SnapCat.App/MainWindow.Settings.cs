@@ -234,6 +234,9 @@ public partial class MainWindow
 
         return value switch
         {
+            // v0.4.3 removed the experimental local vision OCR route after real-device validation.
+            // Existing user-local settings safely return to the recommended Windows OCR path.
+            "local-ai-ocr" => "windows-text-extractor",
             "windows-snipping-clipboard" => "windows-text-extractor",
             "enhanced-tesseract" => "windows-text-extractor",
             "tesseract-cli" => "windows-text-extractor",

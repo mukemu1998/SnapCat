@@ -88,7 +88,7 @@ public partial class MainWindow
             return;
         }
 
-        profile.Capabilities = AiModelCapabilities.VisionAnalysis;
+        profile.Capabilities |= AiModelCapabilities.VisionAnalysis;
         profile.MaxReferenceImageCount = 1;
         profile.MaxOutputCount = 1;
         profile.Normalize(_visualPromptProfiles.IndexOf(profile));
@@ -161,7 +161,7 @@ public partial class MainWindow
             return;
         }
 
-        profile.Capabilities = AiModelCapabilities.VisionAnalysis;
+        profile.Capabilities |= AiModelCapabilities.VisionAnalysis;
         EnsureDefaultVisualPromptProfile();
         RefreshVisualPromptProfileEditor();
         MarkSettingsDirty();

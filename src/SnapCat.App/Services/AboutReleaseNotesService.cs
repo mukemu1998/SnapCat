@@ -12,6 +12,14 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.4.3-preview" => new AboutReleaseNotes(
+                "本版更新：识别体验整理",
+                "Windows 高质量文本提取继续作为推荐 OCR；本地视觉模型用于图片提示词分析。",
+                [
+                    "OCR、翻译、二维码、贴图和画布标注保持原有操作方式。",
+                    "本地 Ollama 模型继续支持图片提示词分析。",
+                    "旧的实验识别设置会自动切回推荐 OCR，无需手动调整。"
+                ]),
             "0.4.2-preview" => new AboutReleaseNotes(
                 "本版更新：工程稳定性与配置保护",
                 "这一版专注于让后续 AI 能力在更稳定的基础上继续扩展，不改变既有截屏、OCR、翻译、贴图和画布的使用方式。",

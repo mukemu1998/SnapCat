@@ -195,6 +195,7 @@ public sealed class AppSettings
                 ?? AiProviderProfiles.FirstOrDefault(profile => profile.IsEnabled)?.Id
                 ?? string.Empty;
         }
+
     }
 
     public AiProviderProfile? GetSelectedAiProviderProfile()

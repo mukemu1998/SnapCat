@@ -43,11 +43,10 @@ public partial class MainWindow
         try
         {
             tempFile = CreateOcrTestImage();
-            var result = await _app.OcrService.RecognizeAsync(tempFile, settings);
-
-            OcrTestResultTextBox.Text = result.Success
-                ? $"OCR 测试成功。\n\n识别结果：\n{result.Text}\n\n调试信息：\n{result.DebugSummary}"
-                : $"OCR 测试失败。\n\n错误信息：\n{result.ErrorMessage}\n\n调试信息：\n{result.DebugSummary}";
+            var ocrResult = await _app.OcrService.RecognizeAsync(tempFile, settings);
+            OcrTestResultTextBox.Text = ocrResult.Success
+                ? $"OCR 测试成功。\n\n识别结果：\n{ocrResult.Text}\n\n调试信息：\n{ocrResult.DebugSummary}"
+                : $"OCR 测试失败。\n\n错误信息：\n{ocrResult.ErrorMessage}\n\n调试信息：\n{ocrResult.DebugSummary}";
         }
         catch (Exception ex)
         {

@@ -16,7 +16,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.2-preview"
+    $version = "0.4.3-preview"
 }
 
 $releaseRoot = Join-Path $repoRoot "artifacts\releases\v$version"
@@ -143,17 +143,15 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     ""
     "## 版本定位"
     ""
-    "v$version 是 SnapCat 的工程稳定性与配置保护预览版：在既有截图、OCR、翻译、贴图、画布和图片提示词分析能力之上，重点加固设置保存、配置恢复、画布标注与后续功能的回归基础。"
+    "v$version 是 SnapCat 的识别体验整理预览版：保持 Windows 高质量文本提取作为推荐 OCR，并保留本地 Ollama 模型用于图片提示词分析。"
     ""
     "## 重点更新"
     ""
-    "- 设置保存加固：设置快照、差异比较和快捷键文本规范化已统一处理；AI 配置、更新策略、托盘摘要和快捷键的修改都会正确提示保存。"
-    "- 配置恢复保护：主设置文件异常损坏时会尝试从最后一次已验证的本地备份恢复；API Key 等敏感信息继续不写入源码或发布包。"
-    "- 画布标注优化：画笔与马赛克画笔提供跟随鼠标的尺寸指示；橡皮擦可按当前粗细局部擦除马赛克和普通笔迹。"
-    "- 浮窗与贴图修复：关闭或复用翻译浮窗会立即停止语音朗读；隐藏贴图在应用重启恢复时不再闪现。"
-    "- 自动升级可靠性：更新助手从新包外部副本运行，并在主程序退出后重试短暂被占用的目录替换，失败时仍保留原程序目录。"
-    "- 工程回归保护：基础检查覆盖设置深拷贝、配置备份恢复、密钥不明文、快捷键显示、更新包安全和任务状态机。"
-    "- 发布包整理：portable 和 runtime-dependent 包都会携带 Updater 更新助手、VERSION 文件、README、LICENSE 和 SHA256 校验文件。"
+    "- Windows 高质量文本提取继续作为推荐 OCR；轻量 OCR、翻译、二维码、贴图和画布标注保持原有操作方式。"
+    "- 本地 Ollama 视觉模型继续用于图片提示词分析，为后续多参考图分析和外部生图工作流提供基础。"
+    "- 已移除不适合即时截图场景的实验性本地 AI OCR；旧设置会自动回落到推荐 OCR，无需手动调整。"
+    "- 用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存在用户本地目录。"
+    "- portable 和 runtime-dependent 包均携带 Updater、VERSION、README、LICENSE 和 SHA256 校验文件。"
     ""
     "## 使用建议"
     ""
@@ -173,7 +171,7 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     "- 原生托盘提示受 Windows 长度限制，SnapCat 会按整行展示，放不下的摘要会自动省略。"
     "- 画布标注仍处于预览增强阶段，复杂文本框编辑、极长路径马赛克和局部标注细节后续还会继续打磨。"
     "- 本地轻量翻译适合短文本和基础翻译，长文本、上下文或更高质量翻译建议配置 DeepSeek 等兼容 OpenAI 的 API。"
-    "- 此版本是后续本地 AI 增强识别、外部生图服务与 AI 画布能力的稳定预览基线。"
+    "- 此版本为后续 ComfyUI 本地连接、外部生图服务与 AI 画布能力提供稳定基线。"
     ""
     "## 校验"
     ""
