@@ -57,11 +57,18 @@ public sealed class PinnedWindowRegistryService
                 snapshot.ImagePath,
                 TranslationLanguageHelper.CloneSettings(settings),
                 persistedSnapshot: snapshot);
-            window.Show();
-
-            if (!snapshot.IsVisible)
+            if (snapshot.IsVisible)
             {
+                window.Show();
+            }
+            else
+            {
+                // A hidden pinned image still needs one layout pass to restore its bounds,
+                // but must never flash on the desktop while SnapCat starts.
+                window.Opacity = 0d;
+                window.Show();
                 window.Hide();
+                window.Opacity = 1d;
             }
 
             restoredCount++;

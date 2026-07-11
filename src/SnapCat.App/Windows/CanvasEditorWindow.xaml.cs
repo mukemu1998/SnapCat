@@ -79,6 +79,12 @@ public partial class CanvasEditorWindow : Window
         Heavy
     }
 
+    private enum MosaicApplicationMode
+    {
+        Rectangle,
+        Brush
+    }
+
     private enum ColorSourceKind
     {
         Theme,
@@ -99,15 +105,18 @@ public partial class CanvasEditorWindow : Window
     private SelectionShapeKind _selectionShapeKind = SelectionShapeKind.Rectangle;
     private LineArrowKind _lineArrowKind = LineArrowKind.Line;
     private MosaicKind _mosaicKind = MosaicKind.Block;
+    private MosaicApplicationMode _mosaicApplicationMode = MosaicApplicationMode.Rectangle;
     private ColorSourceKind _colorSourceKind = ColorSourceKind.Theme;
     private string _fontFamilyName = "Microsoft YaHei UI";
     private FontWeight _fontWeight = FontWeights.Normal;
     private WpfPoint _dragStart;
+    private WpfPoint _lastEraserPoint;
     private Rect _targetRectInWindow;
     private WpfPoint _toolbarDragStart;
     private Thickness _toolbarDragOriginMargin;
     private FrameworkElement? _previewElement;
     private bool _isDrawingShape;
+    private bool _isErasingVisuals;
     private bool _isToolbarDragging;
     private Window? _colorPaletteWindow;
     private Canvas? _activeTextObject;
@@ -525,6 +534,7 @@ public partial class CanvasEditorWindow : Window
     private void ApplyTool(EditorTool tool)
     {
         _currentTool = tool;
+        HideBrushCursor();
         InkLayer.EditingMode = tool switch
         {
             EditorTool.Pen or EditorTool.Marker => InkCanvasEditingMode.Ink,
@@ -535,7 +545,7 @@ public partial class CanvasEditorWindow : Window
         InkLayer.Cursor = tool switch
         {
             EditorTool.Text => WpfCursors.IBeam,
-            EditorTool.Eraser => WpfCursors.Hand,
+            EditorTool.Eraser => WpfCursors.None,
             _ => WpfCursors.Cross
         };
 
@@ -564,12 +574,25 @@ public partial class CanvasEditorWindow : Window
             IsHighlighter = _currentTool == EditorTool.Marker
         };
         InkLayer.DefaultDrawingAttributes = attributes;
+
+        // InkCanvas keeps a separate eraser shape, so the thickness slider must update it too.
+        InkLayer.EraserShape = new EllipseStylusShape(thickness, thickness);
     }
 
     private void InkLayer_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (_currentTool is EditorTool.Pen or EditorTool.Marker or EditorTool.Eraser)
+        if (_currentTool == EditorTool.Eraser)
         {
+            HideBrushCursor();
+            _lastEraserPoint = e.GetPosition(EditorSurface);
+            _isErasingVisuals = true;
+            EraseVisualElementsAt(_lastEraserPoint);
+            return;
+        }
+
+        if (_currentTool is EditorTool.Pen or EditorTool.Marker)
+        {
+            HideBrushCursor();
             return;
         }
 
@@ -606,17 +629,97 @@ public partial class CanvasEditorWindow : Window
 
     private void InkLayer_OnPreviewMouseMove(object sender, WpfMouseEventArgs e)
     {
-        if (!_isDrawingShape || _previewElement is null)
+        if (_currentTool == EditorTool.Eraser
+            && _isErasingVisuals
+            && e.LeftButton == MouseButtonState.Pressed)
         {
+            EraseVisualElementsAlongPath(e.GetPosition(EditorSurface));
             return;
         }
 
+        if (!_isDrawingShape || _previewElement is null)
+        {
+            UpdateBrushCursor(e);
+            return;
+        }
+
+        HideBrushCursor();
         UpdatePreviewElement(_previewElement, _dragStart, e.GetPosition(EditorSurface));
         e.Handled = true;
     }
 
+    private void InkLayer_OnMouseLeave(object sender, WpfMouseEventArgs e)
+    {
+        HideBrushCursor();
+    }
+
+    private void UpdateBrushCursor(WpfMouseEventArgs e)
+    {
+        var isBrushTool = _currentTool is EditorTool.Pen or EditorTool.Marker or EditorTool.Eraser
+            || (_currentTool == EditorTool.Mosaic && _mosaicApplicationMode == MosaicApplicationMode.Brush);
+        if (!isBrushTool
+            || e.LeftButton == MouseButtonState.Pressed)
+        {
+            HideBrushCursor();
+            return;
+        }
+
+        var point = e.GetPosition(EditorSurface);
+        var diameter = _currentTool == EditorTool.Mosaic
+            ? Math.Clamp(ThicknessSlider.Value, 8d, 96d)
+            : _currentTool == EditorTool.Eraser
+                ? Math.Clamp(ThicknessSlider.Value, 2d, 36d)
+            : Math.Clamp(Math.Max(4d, InkLayer.DefaultDrawingAttributes.Width), 4d, 48d);
+        var gap = diameter / 2d + 2d;
+        var outerLength = 7d;
+        var halfSize = gap + outerLength;
+        var size = halfSize * 2d;
+
+        BrushCursorOverlay.Width = size;
+        BrushCursorOverlay.Height = size;
+        BrushCursorRing.Width = diameter;
+        BrushCursorRing.Height = diameter;
+        Canvas.SetLeft(BrushCursorRing, halfSize - diameter / 2d);
+        Canvas.SetTop(BrushCursorRing, halfSize - diameter / 2d);
+
+        BrushCursorLeftLine.X1 = 0;
+        BrushCursorLeftLine.Y1 = halfSize;
+        BrushCursorLeftLine.X2 = halfSize - gap;
+        BrushCursorLeftLine.Y2 = halfSize;
+        BrushCursorRightLine.X1 = halfSize + gap;
+        BrushCursorRightLine.Y1 = halfSize;
+        BrushCursorRightLine.X2 = size;
+        BrushCursorRightLine.Y2 = halfSize;
+        BrushCursorTopLine.X1 = halfSize;
+        BrushCursorTopLine.Y1 = 0;
+        BrushCursorTopLine.X2 = halfSize;
+        BrushCursorTopLine.Y2 = halfSize - gap;
+        BrushCursorBottomLine.X1 = halfSize;
+        BrushCursorBottomLine.Y1 = halfSize + gap;
+        BrushCursorBottomLine.X2 = halfSize;
+        BrushCursorBottomLine.Y2 = size;
+
+        Canvas.SetLeft(BrushCursorOverlay, point.X - halfSize);
+        Canvas.SetTop(BrushCursorOverlay, point.Y - halfSize);
+        BrushCursorOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void HideBrushCursor()
+    {
+        if (BrushCursorOverlay is not null)
+        {
+            BrushCursorOverlay.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void InkLayer_OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_currentTool == EditorTool.Eraser)
+        {
+            _isErasingVisuals = false;
+            return;
+        }
+
         if (!_isDrawingShape || _previewElement is null)
         {
             return;
@@ -637,6 +740,7 @@ public partial class CanvasEditorWindow : Window
             EditorTool.Select => CreateSelectionShape(start, end),
             EditorTool.Line => CreateLineOrArrow(start, end),
             EditorTool.Arrow => CreateArrow(start, end),
+            EditorTool.Mosaic when _mosaicApplicationMode == MosaicApplicationMode.Brush => CreateMosaicBrush(start),
             EditorTool.Mosaic => CreateMosaicImage(start, end),
             _ => null
         };
@@ -659,9 +763,15 @@ public partial class CanvasEditorWindow : Window
             return;
         }
 
-        if (element is WpfImage mosaicImage && mosaicImage.Tag as string == "Mosaic")
+        if (element is Canvas { Tag: MosaicBrushStroke mosaicBrush })
         {
-            UpdateMosaicImage(mosaicImage, start, end);
+            AddMosaicBrushDab(mosaicBrush, end);
+            return;
+        }
+
+        if (element is WpfImage mosaicImage && mosaicImage.Tag is MosaicImageState mosaicState)
+        {
+            UpdateMosaicImage(mosaicImage, mosaicState, start, end);
             return;
         }
 
@@ -678,19 +788,83 @@ public partial class CanvasEditorWindow : Window
 
     private WpfImage CreateMosaicImage(WpfPoint start, WpfPoint end)
     {
+        var mosaicState = new MosaicImageState();
         var image = new WpfImage
         {
-            Tag = "Mosaic",
+            Tag = mosaicState,
             Stretch = Stretch.Fill,
             SnapsToDevicePixels = true,
             UseLayoutRounding = true
         };
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
-        UpdateMosaicImage(image, start, end);
+        UpdateMosaicImage(image, mosaicState, start, end);
         return image;
     }
 
-    private void UpdateMosaicImage(WpfImage image, WpfPoint start, WpfPoint end)
+    private Canvas CreateMosaicBrush(WpfPoint start)
+    {
+        var surfaceWidth = Math.Max(1d, EditorSurface.ActualWidth > 0 ? EditorSurface.ActualWidth : EditorSurface.Width);
+        var surfaceHeight = Math.Max(1d, EditorSurface.ActualHeight > 0 ? EditorSurface.ActualHeight : EditorSurface.Height);
+        var brushStroke = new MosaicBrushStroke();
+        var brush = new Canvas
+        {
+            Width = surfaceWidth,
+            Height = surfaceHeight,
+            Tag = brushStroke,
+            IsHitTestVisible = false
+        };
+        var image = new WpfImage
+        {
+            Width = surfaceWidth,
+            Height = surfaceHeight,
+            Stretch = Stretch.Fill,
+            IsHitTestVisible = false,
+            Source = CreatePixelatedMosaicSource(0, 0, surfaceWidth, surfaceHeight),
+            Clip = brushStroke.Mask
+        };
+        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
+        brushStroke.Image = image;
+        brush.Children.Add(image);
+        AddMosaicBrushDab(brushStroke, start, force: true);
+        return brush;
+    }
+
+    private void AddMosaicBrushDab(MosaicBrushStroke brushStroke, WpfPoint point, bool force = false)
+    {
+        var diameter = Math.Clamp(ThicknessSlider.Value, 8d, 96d);
+        if (!force && brushStroke.HasLastPoint)
+        {
+            var delta = point - brushStroke.LastPoint;
+            var stepSize = Math.Max(2d, diameter * 0.28d);
+            var stepCount = Math.Max(1, (int)Math.Ceiling(delta.Length / stepSize));
+            for (var step = 1; step <= stepCount; step++)
+            {
+                var progress = step / (double)stepCount;
+                AddMosaicBrushCircle(
+                    brushStroke,
+                    new WpfPoint(
+                        brushStroke.LastPoint.X + delta.X * progress,
+                        brushStroke.LastPoint.Y + delta.Y * progress),
+                    diameter / 2d);
+            }
+
+            brushStroke.LastPoint = point;
+            RefreshMosaicBrushClip(brushStroke);
+            return;
+        }
+
+        AddMosaicBrushCircle(brushStroke, point, diameter / 2d);
+        brushStroke.LastPoint = point;
+        brushStroke.HasLastPoint = true;
+        RefreshMosaicBrushClip(brushStroke);
+    }
+
+    private static void AddMosaicBrushCircle(MosaicBrushStroke brushStroke, WpfPoint point, double radius)
+    {
+        brushStroke.Mask.Children.Add(new EllipseGeometry(point, radius, radius));
+    }
+
+    private void UpdateMosaicImage(WpfImage image, MosaicImageState mosaicState, WpfPoint start, WpfPoint end)
     {
         var left = Math.Min(start.X, end.X);
         var top = Math.Min(start.Y, end.Y);
@@ -702,6 +876,110 @@ public partial class CanvasEditorWindow : Window
         image.Source = CreatePixelatedMosaicSource(left, top, width, height);
         Canvas.SetLeft(image, left);
         Canvas.SetTop(image, top);
+        mosaicState.Bounds = new Rect(0d, 0d, width, height);
+        if (mosaicState.EraseMask.Children.Count == 0)
+        {
+            image.Clip = null;
+        }
+    }
+
+    private void EraseVisualElementsAlongPath(WpfPoint currentPoint)
+    {
+        var radius = GetEraserRadius();
+        var delta = currentPoint - _lastEraserPoint;
+        var stepSize = Math.Max(5d, radius * 0.9d);
+        var stepCount = Math.Max(1, (int)Math.Ceiling(delta.Length / stepSize));
+        for (var step = 1; step <= stepCount; step++)
+        {
+            var progress = step / (double)stepCount;
+            EraseVisualElementsAt(new WpfPoint(
+                _lastEraserPoint.X + delta.X * progress,
+                _lastEraserPoint.Y + delta.Y * progress));
+        }
+
+        _lastEraserPoint = currentPoint;
+    }
+
+    private void EraseVisualElementsAt(WpfPoint point)
+    {
+        var radius = GetEraserRadius();
+        foreach (var element in ShapeCanvas.Children.OfType<FrameworkElement>().ToList())
+        {
+            if (element is WpfImage { Tag: MosaicImageState mosaicState } mosaicImage)
+            {
+                EraseMosaicImageAt(mosaicImage, mosaicState, point, radius);
+                continue;
+            }
+
+            if (element is Canvas { Tag: MosaicBrushStroke brushStroke })
+            {
+                EraseMosaicBrushAt(brushStroke, point, radius);
+                continue;
+            }
+
+            if (IntersectsEraser(element, point, radius))
+            {
+                ShapeCanvas.Children.Remove(element);
+            }
+        }
+    }
+
+    private double GetEraserRadius()
+    {
+        return Math.Max(2d, ThicknessSlider.Value / 2d);
+    }
+
+    private static bool IntersectsEraser(FrameworkElement element, WpfPoint point, double radius)
+    {
+        var left = Canvas.GetLeft(element);
+        var top = Canvas.GetTop(element);
+        left = double.IsNaN(left) ? 0d : left;
+        top = double.IsNaN(top) ? 0d : top;
+        var width = element.ActualWidth > 0 ? element.ActualWidth : element.Width;
+        var height = element.ActualHeight > 0 ? element.ActualHeight : element.Height;
+        return new Rect(left - radius, top - radius, width + radius * 2d, height + radius * 2d).Contains(point);
+    }
+
+    private static void EraseMosaicImageAt(WpfImage mosaicImage, MosaicImageState mosaicState, WpfPoint point, double radius)
+    {
+        var left = Canvas.GetLeft(mosaicImage);
+        var top = Canvas.GetTop(mosaicImage);
+        left = double.IsNaN(left) ? 0d : left;
+        top = double.IsNaN(top) ? 0d : top;
+        var localPoint = new WpfPoint(point.X - left, point.Y - top);
+        if (!mosaicState.Bounds.Contains(localPoint))
+        {
+            return;
+        }
+
+        mosaicState.EraseMask.Children.Add(new EllipseGeometry(localPoint, radius, radius));
+        mosaicImage.Clip = new CombinedGeometry(
+            GeometryCombineMode.Exclude,
+            new RectangleGeometry(mosaicState.Bounds),
+            mosaicState.EraseMask);
+    }
+
+    private static void EraseMosaicBrushAt(MosaicBrushStroke brushStroke, WpfPoint point, double radius)
+    {
+        if (!brushStroke.Mask.FillContains(point))
+        {
+            return;
+        }
+
+        brushStroke.EraseMask.Children.Add(new EllipseGeometry(point, radius, radius));
+        RefreshMosaicBrushClip(brushStroke);
+    }
+
+    private static void RefreshMosaicBrushClip(MosaicBrushStroke brushStroke)
+    {
+        if (brushStroke.Image is null)
+        {
+            return;
+        }
+
+        brushStroke.Image.Clip = brushStroke.EraseMask.Children.Count == 0
+            ? brushStroke.Mask
+            : new CombinedGeometry(GeometryCombineMode.Exclude, brushStroke.Mask, brushStroke.EraseMask);
     }
 
     private BitmapSource CreatePixelatedMosaicSource(double left, double top, double width, double height)
@@ -1182,6 +1460,7 @@ public partial class CanvasEditorWindow : Window
             container.Children.Add(handle);
         }
 
+        container.Children.Add(CreateTextMoveHint(source.Foreground));
         PositionTextHandles(container);
         SetTextObjectChromeVisible(container, false);
         container.ContextMenu = CreateDeleteTextMenu(container);
@@ -1280,6 +1559,28 @@ public partial class CanvasEditorWindow : Window
         return handle;
     }
 
+    private Border CreateTextMoveHint(WpfBrush brush)
+    {
+        return new Border
+        {
+            Tag = "TextMoveHint",
+            Visibility = Visibility.Collapsed,
+            IsHitTestVisible = false,
+            Padding = new Thickness(7, 2, 7, 2),
+            Background = (WpfBrush)(TryFindResource("Theme.Brush.SurfaceAltBackground")
+                ?? new SolidColorBrush(WpfColor.FromArgb(225, 28, 30, 38))),
+            BorderBrush = brush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(7),
+            Child = new TextBlock
+            {
+                Text = "按住 Ctrl 拖拽移动  ·  点击编辑  ·  拖拽四角缩放  ·  右键删除",
+                FontSize = 11,
+                Foreground = (WpfBrush)(TryFindResource("Theme.Brush.TextPrimary") ?? WpfBrushes.White)
+            }
+        };
+    }
+
     private static Border? GetTextObjectFrame(Canvas textObject)
     {
         return textObject.Children.OfType<Border>().FirstOrDefault();
@@ -1288,6 +1589,12 @@ public partial class CanvasEditorWindow : Window
     private static IEnumerable<WpfRectangle> GetTextObjectHandles(Canvas textObject)
     {
         return textObject.Children.OfType<WpfRectangle>();
+    }
+
+    private static Border? GetTextObjectMoveHint(Canvas textObject)
+    {
+        return textObject.Children.OfType<Border>()
+            .FirstOrDefault(border => string.Equals(border.Tag as string, "TextMoveHint", StringComparison.Ordinal));
     }
 
     private static double MeasureTextObjectHeight(TextBlock block, double width, Thickness padding)
@@ -1320,6 +1627,11 @@ public partial class CanvasEditorWindow : Window
         {
             handle.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        if (GetTextObjectMoveHint(textObject) is { } hint)
+        {
+            hint.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     private static void PositionTextHandles(Canvas textObject)
@@ -1347,6 +1659,13 @@ public partial class CanvasEditorWindow : Window
                     Canvas.SetTop(handle, height - 4);
                     break;
             }
+        }
+
+        if (GetTextObjectMoveHint(textObject) is { } hint)
+        {
+            hint.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(hint, 0);
+            Canvas.SetTop(hint, -Math.Max(26d, hint.DesiredSize.Height + 4d));
         }
     }
 
@@ -1947,6 +2266,15 @@ public partial class CanvasEditorWindow : Window
         _currentColor = color;
         _currentBrush = new SolidColorBrush(_currentColor);
         _currentBrush.Freeze();
+
+        if (BrushCursorRing is not null)
+        {
+            BrushCursorLeftLine.Stroke = _currentBrush;
+            BrushCursorRightLine.Stroke = _currentBrush;
+            BrushCursorTopLine.Stroke = _currentBrush;
+            BrushCursorBottomLine.Stroke = _currentBrush;
+            BrushCursorRing.Stroke = _currentBrush;
+        }
     }
 
     private void ThicknessSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -1963,6 +2291,7 @@ public partial class CanvasEditorWindow : Window
             || ShapeKindComboBox is null
             || ArrowKindComboBox is null
             || MosaicKindComboBox is null
+            || MosaicApplicationModeComboBox is null
             || FontFamilyComboBox is null
             || FontWeightComboBox is null)
         {
@@ -1973,10 +2302,14 @@ public partial class CanvasEditorWindow : Window
         _selectionShapeKind = ReadEnumOption(ShapeKindComboBox, SelectionShapeKind.Rectangle);
         _lineArrowKind = ReadEnumOption(ArrowKindComboBox, LineArrowKind.Line);
         _mosaicKind = ReadEnumOption(MosaicKindComboBox, MosaicKind.Block);
+        _mosaicApplicationMode = ReadEnumOption(MosaicApplicationModeComboBox, MosaicApplicationMode.Rectangle);
         _fontFamilyName = ReadTagOption(FontFamilyComboBox, "Microsoft YaHei UI");
         _fontWeight = string.Equals(ReadTagOption(FontWeightComboBox, "Normal"), "Bold", StringComparison.Ordinal)
             ? FontWeights.Bold
             : FontWeights.Normal;
+        UpdateDrawingAttributes();
+        UpdateToolOptionsVisibility();
+        HideBrushCursor();
     }
 
     private static T ReadEnumOption<T>(WpfComboBox comboBox, T fallback)
@@ -2034,7 +2367,16 @@ public partial class CanvasEditorWindow : Window
         }
 
         var showColor = UsesColor(_currentTool);
-        var showThickness = UsesThickness(_currentTool);
+        var showThickness = UsesThickness(_currentTool)
+            || (_currentTool == EditorTool.Mosaic && _mosaicApplicationMode == MosaicApplicationMode.Brush);
+        var isMosaicBrush = _currentTool == EditorTool.Mosaic
+            && _mosaicApplicationMode == MosaicApplicationMode.Brush;
+        ThicknessLabel.Text = isMosaicBrush ? "画笔直径" : "粗细";
+        var minimumThickness = isMosaicBrush ? 8d : 2d;
+        var maximumThickness = isMosaicBrush ? 96d : 36d;
+        ThicknessSlider.Minimum = minimumThickness;
+        ThicknessSlider.Maximum = maximumThickness;
+        ThicknessSlider.Value = Math.Clamp(ThicknessSlider.Value, minimumThickness, maximumThickness);
         ColorLabel.Visibility = showColor ? Visibility.Visible : Visibility.Collapsed;
         ThicknessLabel.Visibility = showThickness ? Visibility.Visible : Visibility.Collapsed;
         ThicknessSlider.Visibility = showThickness ? Visibility.Visible : Visibility.Collapsed;
@@ -2308,5 +2650,25 @@ public partial class CanvasEditorWindow : Window
                 inkCanvas.Strokes.Remove(Stroke);
             }
         }
+    }
+
+    private sealed class MosaicBrushStroke
+    {
+        public GeometryGroup Mask { get; } = new() { FillRule = FillRule.Nonzero };
+
+        public GeometryGroup EraseMask { get; } = new() { FillRule = FillRule.Nonzero };
+
+        public WpfImage? Image { get; set; }
+
+        public WpfPoint LastPoint { get; set; }
+
+        public bool HasLastPoint { get; set; }
+    }
+
+    private sealed class MosaicImageState
+    {
+        public Rect Bounds { get; set; }
+
+        public GeometryGroup EraseMask { get; } = new() { FillRule = FillRule.Nonzero };
     }
 }

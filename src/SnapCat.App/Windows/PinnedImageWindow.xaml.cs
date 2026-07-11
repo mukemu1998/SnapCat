@@ -78,6 +78,12 @@ public partial class PinnedImageWindow : Window
                 _persistedSnapshot.Top,
                 _persistedSnapshot.Width,
                 _persistedSnapshot.Height);
+
+            if (!_persistedSnapshot.IsVisible)
+            {
+                return;
+            }
+
             Focus();
             _app.PinnedWindowRegistryService.SaveActiveWindows();
             return;

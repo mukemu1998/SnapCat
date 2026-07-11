@@ -68,6 +68,14 @@ public partial class TranslationPopupWindow : Window
         ConfigureApiProfiles();
         SetTranslationProvider(_settings.TranslationProviderPreference);
         Loaded += TranslationPopupWindow_OnLoaded;
+        Closed += (_, _) => _app.TranslationSpeechService.Stop();
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible)
+            {
+                _app.TranslationSpeechService.Stop();
+            }
+        };
         ApplyOcrTooltipText();
     }
 

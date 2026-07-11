@@ -41,42 +41,26 @@ public partial class App : WpfApplication
             return;
         }
 
-        HistoryStore = new JsonHistoryStore(_appDataDirectory);
-        PinnedWindowLayoutStore = new PinnedWindowLayoutStore(_appDataDirectory);
-        var tesseractCliOcrService = new TesseractCliOcrService();
-        var enhancedTesseractOcrService = new EnhancedTesseractOcrService(tesseractCliOcrService);
-        var windowsMediaOcrService = new WindowsMediaOcrService();
-        OcrService = new SmartOcrService(
-            windowsMediaOcrService,
-            enhancedTesseractOcrService,
-            tesseractCliOcrService);
-        QrCodeService = new ZxingQrCodeService();
-        var translationHttpClient = new HttpClient();
-        var openAiCompatibleTranslationService = new OpenAiCompatibleTranslationService(translationHttpClient);
-        var lightweightWebTranslationService = new LightweightWebTranslationService(translationHttpClient);
-        TranslationService = new SmartTranslationService(
-            openAiCompatibleTranslationService,
-            lightweightWebTranslationService);
-        TranslationSpeechService = new TranslationSpeechService();
-        ScreenCaptureService = new ScreenCaptureService();
-        CapturedImageFileService = new CapturedImageFileService();
-        GlobalHotkeyService = new GlobalHotkeyService();
-        TrayIconService = new TrayIconService();
-        PinnedWindowRegistryService = new PinnedWindowRegistryService(PinnedWindowLayoutStore);
-        StartupRegistrationService = new StartupRegistrationService();
-        StartupDiagnosticsService = new StartupDiagnosticsService();
-        AiTaskCoordinator = new AiTaskCoordinator();
-        VisualPromptService = new SmartVisualPromptService(new HttpClient(), AiTaskCoordinator);
-        OllamaRuntimeService = new OllamaRuntimeService(new HttpClient());
-        GitHubReleaseUpdateService = new GitHubReleaseUpdateService(new HttpClient());
-        ReleaseUpdatePackageService = new ReleaseUpdatePackageService(new HttpClient());
-        CaptureActionService = new CaptureActionService(
-            OcrService,
-            TranslationService,
-            QrCodeService,
-            HistoryStore,
-            CapturedImageFileService,
-            ScreenCaptureService);
+        var services = AppRuntimeServices.Create(_appDataDirectory);
+        HistoryStore = services.HistoryStore;
+        PinnedWindowLayoutStore = services.PinnedWindowLayoutStore;
+        OcrService = services.OcrService;
+        QrCodeService = services.QrCodeService;
+        TranslationService = services.TranslationService;
+        TranslationSpeechService = services.TranslationSpeechService;
+        ScreenCaptureService = services.ScreenCaptureService;
+        CapturedImageFileService = services.CapturedImageFileService;
+        GlobalHotkeyService = services.GlobalHotkeyService;
+        TrayIconService = services.TrayIconService;
+        PinnedWindowRegistryService = services.PinnedWindowRegistryService;
+        StartupRegistrationService = services.StartupRegistrationService;
+        StartupDiagnosticsService = services.StartupDiagnosticsService;
+        AiTaskCoordinator = services.AiTaskCoordinator;
+        VisualPromptService = services.VisualPromptService;
+        OllamaRuntimeService = services.OllamaRuntimeService;
+        GitHubReleaseUpdateService = services.GitHubReleaseUpdateService;
+        ReleaseUpdatePackageService = services.ReleaseUpdatePackageService;
+        CaptureActionService = services.CaptureActionService;
 
         _runtimeServicesInitialized = true;
     }

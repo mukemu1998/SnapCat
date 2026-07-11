@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using SnapCat.App.Services;
+using SnapCat.Core.Services;
 using DrawingBitmap = System.Drawing.Bitmap;
 using WpfApplication = System.Windows.Application;
 
@@ -126,7 +127,7 @@ public partial class MainWindow
         }
 
         var currentSettings = BuildCurrentSettings();
-        if (SettingsComparer.AreEquivalent(currentSettings, _settings))
+        if (AppSettingsComparer.AreEquivalent(currentSettings, _settings))
         {
             MarkSettingsClean();
             return;

@@ -447,7 +447,7 @@
 
                         <TextBlock Margin="0,8,0,0"
                                    Style="{StaticResource ToolbarMetaTextStyle}"
-                                   Text="方向键微调位置，Ctrl+方向键大步移动，Shift+方向键改尺寸。" />
+                                   Text="快捷键：方向键微调位置 · Ctrl+方向键大步移动 · Shift+方向键调整尺寸 · 拖动时按住 Shift 锁定水平或垂直方向" />
                     </StackPanel>
                 </Border>
             </StackPanel>

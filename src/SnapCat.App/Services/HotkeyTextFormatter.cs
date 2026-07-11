@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using SnapCat.Core.Services;
 
 namespace SnapCat.App.Services;
 
@@ -40,30 +41,7 @@ public static class HotkeyTextFormatter
         return string.Join("+", parts);
     }
 
-    public static string FormatText(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return string.Empty;
-        }
-
-        var parts = text.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-        {
-            return text.Trim();
-        }
-
-        var formatted = new List<string>();
-        for (var index = 0; index < parts.Length; index++)
-        {
-            var part = parts[index];
-            formatted.Add(index == parts.Length - 1
-                ? FormatPrimaryKeyText(part)
-                : FormatModifierText(part));
-        }
-
-        return string.Join("+", formatted);
-    }
+    public static string FormatText(string? text) => HotkeyTextNormalizer.Normalize(text);
 
     public static bool TryGetPrimaryKeyFromText(string text, out Key key)
     {
@@ -182,24 +160,4 @@ public static class HotkeyTextFormatter
         };
     }
 
-    private static string FormatPrimaryKeyText(string text)
-    {
-        return TryGetPrimaryKeyFromText(text, out var key)
-            ? FormatPrimaryKey(key)
-            : text.Trim();
-    }
-
-    private static string FormatModifierText(string text)
-    {
-        return text.Trim().ToLowerInvariant() switch
-        {
-            "control" => "Ctrl",
-            "ctrl" => "Ctrl",
-            "alt" => "Alt",
-            "shift" => "Shift",
-            "windows" => "Win",
-            "win" => "Win",
-            _ => text.Trim()
-        };
-    }
 }

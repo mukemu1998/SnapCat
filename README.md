@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.4.1-preview" src="https://img.shields.io/badge/Version-0.4.1--preview-22c55e" />
+  <img alt="Version 0.4.2-preview" src="https://img.shields.io/badge/Version-0.4.2--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -107,7 +107,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.4.1-preview`，补齐检查更新、下载校验、独立更新助手和自动覆盖升级链路；同时保持图片提示词分析、OCR、翻译、贴图、画布标注等核心功能。用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存于用户本地目录，不会写入源码或发布包。
+当前版本为 `0.4.2-preview`，完成设置快照、保存状态判断、备份恢复和基础检查加固；同时保持图片提示词分析、OCR、翻译、贴图、画布标注和更新链路等核心功能。用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存于用户本地目录，不会写入源码或发布包。
 
 ## 许可
 

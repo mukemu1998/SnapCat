@@ -7,6 +7,23 @@ public sealed class TranslationSpeechService
     private const int SpeakAsyncAndPurge = 3;
     private object? _voice;
 
+    public void Stop()
+    {
+        if (_voice is null)
+        {
+            return;
+        }
+
+        try
+        {
+            ((dynamic)_voice).Speak(string.Empty, SpeakAsyncAndPurge);
+        }
+        catch
+        {
+            // Closing a popup must remain reliable even when SAPI has already stopped.
+        }
+    }
+
     public string Speak(string? text, string languageCode)
     {
         var content = text?.Trim();

@@ -266,7 +266,26 @@
                            PreviewMouseLeftButtonDown="InkLayer_OnPreviewMouseLeftButtonDown"
                            PreviewMouseMove="InkLayer_OnPreviewMouseMove"
                            PreviewMouseLeftButtonUp="InkLayer_OnPreviewMouseLeftButtonUp"
+                           MouseLeave="InkLayer_OnMouseLeave"
                            StrokeCollected="InkLayer_OnStrokeCollected" />
+                <Canvas x:Name="BrushCursorHost"
+                        IsHitTestVisible="False">
+                    <Canvas x:Name="BrushCursorOverlay"
+                            Width="24"
+                            Height="24"
+                            Visibility="Collapsed">
+                        <Line x:Name="BrushCursorLeftLine"
+                              StrokeThickness="1.25" />
+                        <Line x:Name="BrushCursorRightLine"
+                              StrokeThickness="1.25" />
+                        <Line x:Name="BrushCursorTopLine"
+                              StrokeThickness="1.25" />
+                        <Line x:Name="BrushCursorBottomLine"
+                              StrokeThickness="1.25" />
+                        <Ellipse x:Name="BrushCursorRing"
+                                 StrokeThickness="1.25" />
+                    </Canvas>
+                </Canvas>
             </Grid>
         </Border>
 
@@ -418,7 +437,19 @@
                                 Margin="18,0,0,0">
                         <TextBlock VerticalAlignment="Center"
                                    Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                   Text="马赛克" />
+                                   Text="方式" />
+                        <ComboBox x:Name="MosaicApplicationModeComboBox"
+                                  Width="86"
+                                  Height="30"
+                                  Margin="8,0,12,0"
+                                  SelectedIndex="0"
+                                  SelectionChanged="ToolOption_OnSelectionChanged">
+                            <ComboBoxItem Tag="Rectangle" Content="框选" />
+                            <ComboBoxItem Tag="Brush" Content="画笔" />
+                        </ComboBox>
+                        <TextBlock VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                   Text="类型" />
                         <ComboBox x:Name="MosaicKindComboBox"
                                   Width="104"
                                   Height="30"

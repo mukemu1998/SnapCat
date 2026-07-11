@@ -29,14 +29,16 @@ public partial class MainWindow
             && ShowInTaskbar;
         // A shortcut invoked while the settings window is open should not dismiss it for good.
         // The window still hides only during capture so it cannot leak into the screenshot.
-        var shouldRestoreMainWindow = hideMainWindowForCapture
+        var shouldKeepMainWindowVisible = workflow == CaptureWorkflowKind.FullScreenCanvasEdit;
+        var shouldHideMainWindow = hideMainWindowForCapture && !shouldKeepMainWindowVisible;
+        var shouldRestoreMainWindow = shouldHideMainWindow
             && (returnToMainWindow || mainWindowWasOpen);
 
         SelectionOverlayWindow? overlay = null;
 
         try
         {
-            if (hideMainWindowForCapture && !wasMinimizedToTaskbar)
+            if (shouldHideMainWindow && !wasMinimizedToTaskbar)
             {
                 HideMainWindow();
                 await Task.Delay(180);

@@ -1,6 +1,7 @@
 using System.Windows;
 using SnapCat.App.Services;
 using SnapCat.Core.Models;
+using SnapCat.Core.Services;
 using SnapCat.Infrastructure.Services;
 using WpfApplication = System.Windows.Application;
 using WpfMessageBox = System.Windows.MessageBox;
@@ -340,7 +341,7 @@ public partial class MainWindow
 
         // Controls can raise change notifications while the window is being arranged or a
         // section is switched. Only expose the save action for a real settings difference.
-        _hasUnsavedSettings = !SettingsComparer.AreEquivalent(BuildCurrentSettings(), _settings);
+        _hasUnsavedSettings = !AppSettingsComparer.AreEquivalent(BuildCurrentSettings(), _settings);
         UpdateSaveButtonVisibility();
     }
 

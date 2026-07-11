@@ -11,6 +11,8 @@ var temporaryDirectory = Path.Combine(
 try
 {
     await VerifyAiProfilePersistenceAsync(temporaryDirectory);
+    await VerifySettingsBackupRecoveryAsync(temporaryDirectory);
+    VerifySettingsSnapshotAndComparison();
     VerifyReleaseUpdateManifest();
     await VerifyUpdatePackageStagingAsync(temporaryDirectory);
     VerifyTaskStateMachine();
@@ -68,6 +70,67 @@ static async Task VerifyAiProfilePersistenceAsync(string directory)
     Assert(profile.Supports(AiModelCapabilities.VisionAnalysis | AiModelCapabilities.TextToImage), "Saved AI capabilities should be restored.");
     Assert(profile.MaxReferenceImageCount == 4 && profile.MaxOutputCount == 6, "Saved AI limits should be restored.");
     Assert(!loaded.AutoCheckUpdates, "The automatic update preference should be restored.");
+}
+
+static async Task VerifySettingsBackupRecoveryAsync(string directory)
+{
+    var settingsDirectory = Path.Combine(directory, "settings-backup");
+    var store = new JsonSettingsStore(settingsDirectory);
+    var baseline = new AppSettings
+    {
+        ThemeId = "ocean-blue",
+        TargetLanguage = "zh-CN",
+        AutoCheckUpdates = true
+    };
+    await store.SaveAsync(baseline);
+
+    var replacement = AppSettingsCloneService.Clone(baseline);
+    replacement.ThemeId = "forest-green";
+    replacement.AutoCheckUpdates = false;
+    await store.SaveAsync(replacement);
+
+    await File.WriteAllTextAsync(Path.Combine(settingsDirectory, "settings.json"), "{ this is not valid json }");
+    var restored = await store.LoadAsync();
+    Assert(restored.ThemeId == "ocean-blue", "A corrupted primary settings file should recover from the last verified backup.");
+    Assert(restored.AutoCheckUpdates, "The recovered backup should preserve user update preferences.");
+}
+
+static void VerifySettingsSnapshotAndComparison()
+{
+    var original = new AppSettings
+    {
+        HotkeyCaptureAndCopy = "Control+Shift+Oem3",
+        TrayTooltipWorkflowOne = "CaptureAndVisualPrompt",
+        AutoCheckUpdates = false,
+        AiProviderProfiles =
+        [
+            new AiProviderProfile
+            {
+                Id = "vision-profile",
+                Name = "Local vision",
+                Protocol = AiProviderProtocol.Ollama,
+                BaseUrl = "http://127.0.0.1:11434",
+                Model = "qwen3-vl:8b",
+                Capabilities = AiModelCapabilities.VisionAnalysis,
+                MaxReferenceImageCount = 3,
+                MaxOutputCount = 2,
+                SupportsCostEstimate = false
+            }
+        ]
+    };
+    original.NormalizeAiProviderProfiles();
+
+    var snapshot = AppSettingsCloneService.Clone(original);
+    Assert(AppSettingsComparer.AreEquivalent(original, snapshot), "A detached settings snapshot should initially match its source.");
+    Assert(HotkeyTextNormalizer.Normalize(snapshot.HotkeyCaptureAndCopy) == "Ctrl+Shift+`", "Persisted OEM hotkeys should use readable keyboard symbols.");
+
+    snapshot.AiProviderProfiles[0].MaxOutputCount = 4;
+    Assert(!AppSettingsComparer.AreEquivalent(original, snapshot), "AI output limits must participate in the unsaved-settings comparison.");
+    Assert(original.AiProviderProfiles[0].MaxOutputCount == 2, "Changing a settings snapshot must not mutate the live profile collection.");
+
+    snapshot = AppSettingsCloneService.Clone(original);
+    snapshot.AutoCheckUpdates = true;
+    Assert(!AppSettingsComparer.AreEquivalent(original, snapshot), "Automatic update changes must participate in the unsaved-settings comparison.");
 }
 
 static void VerifyTaskStateMachine()
