@@ -245,6 +245,7 @@ public sealed class PinnedWindowRegistryService
 
         if (!_isClosingForExit)
         {
+            CapturedImageFileService.DeletePinnedCacheFile(window.CreateSnapshot().ImagePath);
             SaveActiveWindows();
         }
     }

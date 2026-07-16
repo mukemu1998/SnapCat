@@ -39,6 +39,12 @@ public partial class MainWindow
             "生成管理",
             "这里集中浏览和管理 SnapCat 保存在当前用户目录中的生成图片，不与生图配置和参数混排。");
 
+        _sections[MainSection.ProjectWorkspace] = new NavigationSectionMetadata(
+            ProjectWorkspaceNavButton,
+            ProjectWorkspaceSection,
+            "项目与素材库",
+            "这里新建或打开本地项目，集中导入、分类和安全管理素材。项目目录可整体备份或移动，不包含 API Key 等隐私配置。");
+
         _sections[MainSection.History] = new NavigationSectionMetadata(
             HistoryNavButton,
             HistorySection,
@@ -152,6 +158,11 @@ public partial class MainWindow
             RefreshGeneratedImagesList();
         }
 
+        if (section == MainSection.ProjectWorkspace)
+        {
+            RefreshProjectWorkspaceView();
+        }
+
         if (section == MainSection.ImageGenerationSettings)
         {
             _ = RefreshImageGenerationModelsAsync();
@@ -185,6 +196,7 @@ public partial class MainWindow
         VisualPromptSettings,
         ImageGenerationSettings,
         GeneratedImagesManagement,
+        ProjectWorkspace,
         History,
         ScreenshotManagement,
         PinnedImages,

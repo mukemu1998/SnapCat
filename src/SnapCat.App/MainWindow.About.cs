@@ -246,7 +246,7 @@ public partial class MainWindow
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.4.6-preview";
+            ?? "0.5.0-preview";
 
         return TrimVersionMetadata(version);
     }

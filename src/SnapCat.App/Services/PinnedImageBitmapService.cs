@@ -108,10 +108,14 @@ internal static class PinnedImageBitmapService
 
     public static string WriteBitmapToTempFile(BitmapSource bitmapSource, string prefix)
     {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), "SnapCat");
-        Directory.CreateDirectory(tempDirectory);
+        // Derived images are still active pinned-image assets, not disposable OCR temp files.
+        var pinnedCacheDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnapCat",
+            "pinned-cache");
+        Directory.CreateDirectory(pinnedCacheDirectory);
 
-        var filePath = Path.Combine(tempDirectory, $"{prefix}-{DateTime.Now:yyyyMMdd-HHmmssfff}.png");
+        var filePath = Path.Combine(pinnedCacheDirectory, $"{prefix}-{DateTime.Now:yyyyMMdd-HHmmssfff}-{Guid.NewGuid():N}.png");
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
 

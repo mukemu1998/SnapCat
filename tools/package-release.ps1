@@ -16,7 +16,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.6-preview"
+    $version = "0.5.0-preview"
 }
 
 $releaseRoot = Join-Path $repoRoot "artifacts\releases\v$version"
@@ -143,14 +143,15 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
     ""
     "## 更新内容"
     ""
-    "- 自动更新下载时新增实时进度条，已知包体大小会显示下载百分比。"
-    "- 下载完成后会依次显示文件校验、安全解压和启动升级状态。"
-    "- 更新阶段状态已加入基础检查，保持下载、校验、解压和就绪状态可验证。"
+    "- 新增本地项目与素材库：可新建、打开、保存、备份和移动项目。"
+    "- 图片会复制进入项目目录，可分类、创建素材集合并保存为稳定资产引用。"
+    "- 截图管理与生图结果可保存到当前项目；派生版本不会覆盖原素材。"
+    "- 项目素材删除会先移入项目回收站，恢复时会回到原素材集合。"
     ""
     "## 使用说明"
     ""
-    "- `portable`：解压后直接双击 `SnapCat.exe` 使用，适合普通用户。"
-    "- `runtime-dependent`：体积更小，需要系统已安装 .NET 8 Desktop Runtime。"
+    '- `portable`：解压后直接双击 `SnapCat.exe` 使用，适合普通用户。'
+    '- `runtime-dependent`：体积更小，需要系统已安装 .NET 8 Desktop Runtime。'
     ""
     "## 安装与升级"
     ""

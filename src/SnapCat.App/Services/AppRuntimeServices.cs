@@ -20,6 +20,7 @@ internal sealed class AppRuntimeServices
         ScreenCaptureService screenCaptureService,
         CapturedImageFileService capturedImageFileService,
         GeneratedImageFileService generatedImageFileService,
+        IProjectWorkspaceService projectWorkspaceService,
         GlobalHotkeyService globalHotkeyService,
         TrayIconService trayIconService,
         PinnedWindowRegistryService pinnedWindowRegistryService,
@@ -42,6 +43,7 @@ internal sealed class AppRuntimeServices
         ScreenCaptureService = screenCaptureService;
         CapturedImageFileService = capturedImageFileService;
         GeneratedImageFileService = generatedImageFileService;
+        ProjectWorkspaceService = projectWorkspaceService;
         GlobalHotkeyService = globalHotkeyService;
         TrayIconService = trayIconService;
         PinnedWindowRegistryService = pinnedWindowRegistryService;
@@ -73,6 +75,8 @@ internal sealed class AppRuntimeServices
     public CapturedImageFileService CapturedImageFileService { get; }
 
     public GeneratedImageFileService GeneratedImageFileService { get; }
+
+    public IProjectWorkspaceService ProjectWorkspaceService { get; }
 
     public GlobalHotkeyService GlobalHotkeyService { get; }
 
@@ -130,6 +134,7 @@ internal sealed class AppRuntimeServices
             screenCaptureService,
             capturedImageFileService,
             generatedImageFileService,
+            new ProjectWorkspaceService(appDataDirectory),
             new GlobalHotkeyService(),
             new TrayIconService(),
             new PinnedWindowRegistryService(pinnedWindowLayoutStore),

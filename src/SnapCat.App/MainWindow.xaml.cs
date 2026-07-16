@@ -140,6 +140,7 @@ public partial class MainWindow : Window
         _settings.LaunchAtStartup = _app.StartupRegistrationService.IsEnabled();
 
         ApplySettingsToControls(_settings);
+        _ = RestoreLastProjectWorkspaceAsync();
         RefreshWindowThemeIcon();
         _hasLoadedSettings = true;
         MarkSettingsClean();

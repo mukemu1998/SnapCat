@@ -15,7 +15,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.6-preview"
+    $version = "0.5.0-preview"
 }
 
 $safeLabel = ($Label -replace "[^0-9A-Za-z\-_]+", "-").Trim("-")
@@ -50,7 +50,9 @@ $runningTestProcess = Get-Process -Name "SnapCat" -ErrorAction SilentlyContinue 
     Select-Object -First 1
 if ($null -ne $runningTestProcess)
 {
-    throw "The fixed SnapCat test package is running (PID $($runningTestProcess.Id)). Exit SnapCat from the tray before packaging."
+    Write-Host "[SnapCat] Stopping fixed test package (PID $($runningTestProcess.Id))..."
+    Stop-Process -Id $runningTestProcess.Id -Force
+    $runningTestProcess.WaitForExit(5000) | Out-Null
 }
 
 if (Test-Path -LiteralPath $buildRoot)

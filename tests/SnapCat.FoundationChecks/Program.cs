@@ -13,6 +13,7 @@ try
     await VerifyAiProfilePersistenceAsync(temporaryDirectory);
     await VerifyImageGenerationProfilePersistenceAsync(temporaryDirectory);
     await VerifySettingsBackupRecoveryAsync(temporaryDirectory);
+    await VerifyProjectWorkspaceAsync(temporaryDirectory);
     VerifySettingsSnapshotAndComparison();
     VerifyReleaseUpdateManifest();
     await VerifyDownloadedUpdatePackageStagingAsync(temporaryDirectory);
@@ -136,6 +137,78 @@ static async Task VerifyImageGenerationProfilePersistenceAsync(string directory)
     Assert(profile.DefaultCheckpoint == "sdxl-base.safetensors", "The selected checkpoint should be restored.");
     Assert(profile.DefaultWidth == 1216 && profile.DefaultHeight == 832, "Image generation dimensions should be restored.");
     Assert(profile.DefaultSteps == 28 && Math.Abs(profile.DefaultCfgScale - 6.5d) < 0.001d, "Image generation sampling parameters should be restored.");
+}
+
+static async Task VerifyProjectWorkspaceAsync(string directory)
+{
+    var userDataDirectory = Path.Combine(directory, "project-workspace-user-data");
+    var sourceDirectory = Path.Combine(directory, "source-images");
+    Directory.CreateDirectory(sourceDirectory);
+    var sourcePath = Path.Combine(sourceDirectory, "reference.png");
+    await File.WriteAllBytesAsync(
+        sourcePath,
+        Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jd4UAAAAASUVORK5CYII="));
+
+    var service = new ProjectWorkspaceService(userDataDirectory);
+    var workspace = await service.CreateAsync(service.DefaultProjectsDirectory, "基础项目");
+    Assert(File.Exists(Path.Combine(workspace.DirectoryPath, "project.json")), "New projects should write project.json.");
+    Assert(Directory.Exists(Path.Combine(workspace.DirectoryPath, "originals")), "New projects should initialize the originals directory.");
+    Assert(Directory.Exists(Path.Combine(workspace.DirectoryPath, "thumbnails")), "New projects should initialize the thumbnails directory.");
+
+    var asset = await service.ImportImageAsync(
+        workspace,
+        sourcePath,
+        ProjectAssetKind.Reference,
+        ProjectAssetCategory.StyleReference);
+    Assert(!string.IsNullOrWhiteSpace(asset.Id), "Imported project assets need a stable ID.");
+    Assert(!Path.IsPathRooted(asset.RelativePath), "Project asset paths must stay relative for portable projects.");
+    Assert(File.Exists(Path.Combine(workspace.DirectoryPath, asset.RelativePath)), "Importing should copy the source into the project.");
+    Assert(File.Exists(sourcePath), "Importing must not move or delete the source image.");
+    var references = ProjectAssetReferenceResolver.Resolve(workspace.Project, "使用 @reference 与 @{reference.png} 作为参考。");
+    Assert(references.Count == 1 && references[0].Asset.Id == asset.Id, "Project prompt references should resolve explicit material names without filesystem paths.");
+
+    var derivedAsset = await service.CreateDerivedAssetAsync(workspace, asset.Id, sourcePath);
+    Assert(derivedAsset.ParentAssetId == asset.Id && derivedAsset.Version == asset.Version + 1, "Derived project assets should retain a stable parent reference and increment version.");
+
+    var collection = await service.CreateCollectionAsync(workspace, "角色参考", [asset.Id, derivedAsset.Id]);
+    Assert(collection.AssetIds.SequenceEqual([asset.Id, derivedAsset.Id]), "New project collections should retain stable asset IDs.");
+
+    var backupDirectory = Path.Combine(directory, "project-backups");
+    var backupPath = await service.CreateBackupAsync(workspace, backupDirectory);
+    Assert(File.Exists(backupPath), "Project backups should create a ZIP file.");
+    using (var backup = ZipFile.OpenRead(backupPath))
+    {
+        Assert(backup.Entries.Any(entry => entry.FullName == "project.json"), "Project backups must include project metadata.");
+        Assert(
+            backup.Entries.Any(entry => string.Equals(
+                entry.FullName.Replace('\\', '/'),
+                asset.RelativePath.Replace('\\', '/'),
+                StringComparison.OrdinalIgnoreCase)),
+            "Project backups must include imported assets.");
+    }
+
+    var movedProjectDirectory = Path.Combine(directory, "moved-project");
+    Directory.Move(workspace.DirectoryPath, movedProjectDirectory);
+    var reopened = await service.OpenAsync(movedProjectDirectory);
+    Assert(reopened.Project.Assets.Any(item => item.Id == asset.Id), "Reopening a project should preserve imported asset IDs.");
+    Assert(reopened.Project.Assets.Single(item => item.Id == derivedAsset.Id).ParentAssetId == asset.Id, "Reopening a project should preserve derived asset relationships.");
+    Assert(reopened.Project.Collections.Single().AssetIds.Count == 2, "Reopening a project should preserve collection asset references.");
+    Assert(File.Exists(Path.Combine(reopened.DirectoryPath, asset.RelativePath)), "Moving a project directory should preserve relative asset references.");
+    Assert(await service.GetLastOpenedProjectDirectoryAsync() == movedProjectDirectory, "The last opened project should be stored in user-local state.");
+
+    var recycledCount = await service.MoveToRecycleBinAsync(reopened, [asset.Id]);
+    Assert(recycledCount == 1, "Deleting a project asset should move exactly the selected asset to the project recycle bin.");
+    Assert(reopened.Project.Assets.Single().Id == derivedAsset.Id, "Recycling one asset should preserve unrelated derived assets.");
+    Assert(reopened.Project.Collections.Single().AssetIds.Single() == derivedAsset.Id, "Recycled assets must be removed from project collection references.");
+    Assert(Directory.EnumerateFiles(Path.Combine(reopened.DirectoryPath, "recycle-bin")).Any(), "The project recycle bin should retain moved asset data.");
+    Assert((await service.GetRecycledAssetsAsync(reopened)).Single().Id == asset.Id, "Recycle-bin metadata should be readable for restore UI.");
+
+    var restoredCount = await service.RestoreFromRecycleBinAsync(reopened, [asset.Id]);
+    Assert(restoredCount == 1, "Project recycle-bin assets should restore by their stable ID.");
+    Assert(reopened.Project.Assets.Any(item => item.Id == asset.Id), "Restored project assets should retain their original stable ID.");
+    Assert(reopened.Project.Collections.Single().AssetIds.SequenceEqual([derivedAsset.Id, asset.Id]), "Restoring an asset should restore its previous project collection membership.");
+    Assert(File.Exists(Path.Combine(reopened.DirectoryPath, asset.RelativePath)), "Restoring an asset should recover its original project-relative file.");
+
 }
 
 static void VerifySettingsSnapshotAndComparison()

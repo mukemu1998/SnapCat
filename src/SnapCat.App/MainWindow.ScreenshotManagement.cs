@@ -64,6 +64,7 @@ public partial class MainWindow
     private void DefaultCapturesListBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         DeleteSelectedDefaultCapturesButton.IsEnabled = DefaultCapturesListBox.SelectedItems.Count > 0;
+        UpdateProjectImportActions();
     }
 
     private void OpenSelectedDefaultCaptureLocationMenuItem_OnClick(object sender, RoutedEventArgs e)
@@ -83,6 +84,7 @@ public partial class MainWindow
         {
             DefaultCapturesListBox.ItemsSource = Array.Empty<DefaultCaptureListItem>();
             DeleteSelectedDefaultCapturesButton.IsEnabled = false;
+            UpdateProjectImportActions();
             return;
         }
 
@@ -93,6 +95,7 @@ public partial class MainWindow
             .ToList();
         DefaultCapturesListBox.ItemsSource = items;
         DeleteSelectedDefaultCapturesButton.IsEnabled = false;
+        UpdateProjectImportActions();
     }
 
     private void OpenSelectedDefaultCaptureLocation()

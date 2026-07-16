@@ -559,6 +559,7 @@ public partial class MainWindow
     {
         var selectedCount = GeneratedImagesListBox.SelectedItems.Count;
         DeleteSelectedGeneratedImagesButton.IsEnabled = selectedCount > 0;
+        UpdateProjectImportActions();
         ToggleSelectAllGeneratedImagesButton.Content = GeneratedImagesListBox.Items.Count > 0
                                                       && selectedCount == GeneratedImagesListBox.Items.Count
             ? "取消全选"
@@ -611,6 +612,7 @@ public partial class MainWindow
         DeleteAllGeneratedImagesButton.IsEnabled = items.Count > 0;
         ToggleSelectAllGeneratedImagesButton.IsEnabled = items.Count > 0;
         ToggleSelectAllGeneratedImagesButton.Content = "全选";
+        UpdateProjectImportActions();
     }
 
     private void DeleteSelectedGeneratedImages()

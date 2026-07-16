@@ -12,6 +12,15 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.5.0-preview" => new AboutReleaseNotes(
+                "本版更新：项目与素材库",
+                "新增本地项目与素材库底座，图片可复制进独立项目目录并安全分类管理。",
+                [
+                    "可新建、打开和保存本地项目；项目目录可独立备份或移动，不包含 API Key。",
+                    "支持导入图片、生成缩略图并标记为角色、场景、道具或风格参考。",
+                    "支持素材集合、派生版本和稳定素材引用；项目移动后仍可继续定位素材。",
+                    "移除项目素材会先进入项目回收站，不会直接永久删除；恢复时会自动回到原素材集合。"
+                ]),
             "0.4.6-preview" => new AboutReleaseNotes(
                 "本版更新：自动更新进度",
                 "下载更新时会显示进度和当前阶段，升级过程更容易确认。",

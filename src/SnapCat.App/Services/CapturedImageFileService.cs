@@ -18,6 +18,40 @@ public sealed class CapturedImageFileService
             "pinned-cache");
     }
 
+    public static bool IsPinnedCacheFile(string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return false;
+        }
+
+        var cacheDirectory = Path.GetFullPath(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SnapCat",
+            "pinned-cache"))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var candidate = Path.GetFullPath(filePath);
+        return candidate.StartsWith(cacheDirectory, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static void DeletePinnedCacheFile(string? filePath)
+    {
+        if (!IsPinnedCacheFile(filePath) || !File.Exists(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            File.Delete(filePath);
+        }
+        catch
+        {
+            // A file can briefly remain locked while a WPF image is releasing its source stream.
+        }
+    }
+
     public string GetDefaultDirectoryPath()
     {
         return Path.Combine(
