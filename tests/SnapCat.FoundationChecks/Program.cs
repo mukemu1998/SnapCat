@@ -312,9 +312,17 @@ static async Task VerifyDownloadedUpdatePackageStagingAsync(string directory)
         SizeBytes = packageBytes.Length
     };
 
-    var staged = await service.DownloadAndStageAsync(package, workingDirectory);
+    var stages = new List<ReleaseUpdateProgressStage>();
+    var staged = await service.DownloadAndStageAsync(
+        package,
+        workingDirectory,
+        stageProgress: new InlineProgress<ReleaseUpdateProgress>(progress => stages.Add(progress.Stage)));
     Assert(File.Exists(staged.ArchivePath), "Downloaded update archives should be moved after their write stream is released.");
     Assert(File.Exists(Path.Combine(staged.StagingDirectory, "SnapCat.exe")), "Downloaded updates should stage a runnable application payload.");
+    Assert(stages.Contains(ReleaseUpdateProgressStage.Downloading), "Update downloads should report the download stage.");
+    Assert(stages.Contains(ReleaseUpdateProgressStage.Verifying), "Update downloads should report the verification stage.");
+    Assert(stages.Contains(ReleaseUpdateProgressStage.Extracting), "Update downloads should report the extraction stage.");
+    Assert(stages.LastOrDefault() == ReleaseUpdateProgressStage.Ready, "A staged update should report the ready stage last.");
 }
 
 static byte[] CreateUpdateArchive()
@@ -402,6 +410,11 @@ sealed class UpdatePackageHttpMessageHandler(byte[] packageBytes) : HttpMessageH
             Content = new ByteArrayContent(packageBytes)
         });
     }
+}
+
+sealed class InlineProgress<T>(Action<T> report) : IProgress<T>
+{
+    public void Report(T value) => report(value);
 }
 
 sealed class ComfyUiHttpMessageHandler : HttpMessageHandler

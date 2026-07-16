@@ -15,7 +15,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.5-preview"
+    $version = "0.4.6-preview"
 }
 
 $safeLabel = ($Label -replace "[^0-9A-Za-z\-_]+", "-").Trim("-")

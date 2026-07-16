@@ -12,6 +12,14 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.4.6-preview" => new AboutReleaseNotes(
+                "本版更新：自动更新进度",
+                "下载更新时会显示进度和当前阶段，升级过程更容易确认。",
+                [
+                    "下载阶段会显示实时百分比；未知包体大小时会显示持续下载状态。",
+                    "文件校验、安全解压和启动升级会分别显示明确的执行阶段。",
+                    "更新进度状态已加入基础检查，确保后续更新链路继续可观察。"
+                ]),
             "0.4.5-preview" => new AboutReleaseNotes(
                 "本版更新：本地 ComfyUI 生图",
                 "新增本地 ComfyUI 单图文生图和独立生成管理，配置与生成结果继续保存在用户本地。",

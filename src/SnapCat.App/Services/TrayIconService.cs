@@ -105,7 +105,7 @@ public sealed class TrayIconService : IDisposable
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.4.5-preview";
+            ?? "0.4.6-preview";
         return version.Split('+', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? version;
     }
 

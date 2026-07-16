@@ -11,6 +11,27 @@ public sealed record UpdateDownloadProgress(long ReceivedBytes, long? TotalBytes
         : null;
 }
 
+public enum ReleaseUpdateProgressStage
+{
+    Downloading,
+    Verifying,
+    Extracting,
+    Ready
+}
+
+public sealed record ReleaseUpdateProgress(
+    ReleaseUpdateProgressStage Stage,
+    long? ReceivedBytes = null,
+    long? TotalBytes = null)
+{
+    public double? Percent => TotalBytes is > 0 && ReceivedBytes is not null
+        ? Math.Clamp(ReceivedBytes.Value * 100d / TotalBytes.Value, 0d, 100d)
+        : null;
+
+    public bool IsIndeterminate => Stage is ReleaseUpdateProgressStage.Verifying or ReleaseUpdateProgressStage.Extracting
+        || Stage == ReleaseUpdateProgressStage.Downloading && Percent is null;
+}
+
 public sealed record ReleasePackageStagingResult(
     string ArchivePath,
     string StagingDirectory,
@@ -30,6 +51,7 @@ public sealed class ReleaseUpdatePackageService
         ReleasePackageManifest package,
         string workingDirectory,
         IProgress<UpdateDownloadProgress>? progress = null,
+        IProgress<ReleaseUpdateProgress>? stageProgress = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
@@ -51,6 +73,7 @@ public sealed class ReleaseUpdatePackageService
                 cancellationToken);
             response.EnsureSuccessStatusCode();
             var expectedLength = package.SizeBytes > 0 ? package.SizeBytes : response.Content.Headers.ContentLength;
+            stageProgress?.Report(new ReleaseUpdateProgress(ReleaseUpdateProgressStage.Downloading, 0, expectedLength));
             await using var source = await response.Content.ReadAsStreamAsync(cancellationToken);
             var receivedBytes = 0L;
             await using (var destination = File.Create(temporaryArchivePath))
@@ -62,6 +85,7 @@ public sealed class ReleaseUpdatePackageService
                     await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                     receivedBytes += read;
                     progress?.Report(new UpdateDownloadProgress(receivedBytes, expectedLength));
+                    stageProgress?.Report(new ReleaseUpdateProgress(ReleaseUpdateProgressStage.Downloading, receivedBytes, expectedLength));
                 }
             }
 
@@ -72,7 +96,7 @@ public sealed class ReleaseUpdatePackageService
 
             TryDeleteFile(archivePath);
             File.Move(temporaryArchivePath, archivePath);
-            return await StageArchiveAsync(archivePath, package, workingDirectory, cancellationToken);
+            return await StageArchiveAsync(archivePath, package, workingDirectory, stageProgress, cancellationToken);
         }
         catch
         {
@@ -85,6 +109,7 @@ public sealed class ReleaseUpdatePackageService
         string archivePath,
         ReleasePackageManifest package,
         string workingDirectory,
+        IProgress<ReleaseUpdateProgress>? stageProgress = null,
         CancellationToken cancellationToken = default)
     {
         if (!File.Exists(archivePath))
@@ -101,6 +126,7 @@ public sealed class ReleaseUpdatePackageService
             throw new InvalidDataException("更新包大小与发布清单不一致。");
         }
 
+        stageProgress?.Report(new ReleaseUpdateProgress(ReleaseUpdateProgressStage.Verifying));
         var actualHash = await ComputeSha256Async(archivePath, cancellationToken);
         if (!string.Equals(actualHash, package.Sha256, StringComparison.OrdinalIgnoreCase))
         {
@@ -110,6 +136,7 @@ public sealed class ReleaseUpdatePackageService
         var stagingDirectory = Path.Combine(workingDirectory, $"staged-{Guid.NewGuid():N}");
         try
         {
+            stageProgress?.Report(new ReleaseUpdateProgress(ReleaseUpdateProgressStage.Extracting));
             Directory.CreateDirectory(stagingDirectory);
             using var archive = ZipFile.OpenRead(archivePath);
             foreach (var entry in archive.Entries)
@@ -133,6 +160,7 @@ public sealed class ReleaseUpdatePackageService
                 throw new InvalidDataException("更新包内容无效：未找到 SnapCat.exe。");
             }
 
+            stageProgress?.Report(new ReleaseUpdateProgress(ReleaseUpdateProgressStage.Ready, archiveSize, archiveSize));
             return new ReleasePackageStagingResult(archivePath, stagingDirectory, archiveSize, actualHash);
         }
         catch

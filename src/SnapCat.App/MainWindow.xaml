@@ -101,6 +101,32 @@
             <Setter Property="Margin" Value="0,0,10,10" />
         </Style>
 
+        <Style x:Key="UpdateProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="100" />
+            <Setter Property="Background" Value="{DynamicResource Theme.Brush.SurfaceAltBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Brush.Highlight}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                            <Grid ClipToBounds="True">
+                                <Border x:Name="PART_Indicator"
+                                        HorizontalAlignment="Left"
+                                        Background="{TemplateBinding Foreground}"
+                                        CornerRadius="3" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="CompactRoundedButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonStyle}">
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="78" />
@@ -2242,7 +2268,8 @@
                                                TextWrapping="Wrap"
                                                Text="正在读取本地 generated 目录。" />
                                     <WrapPanel Margin="0,12,0,0">
-                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                        <Button x:Name="CheckUpdatesButton"
+                                                Style="{StaticResource SectionActionButtonStyle}"
                                                 Click="OpenGeneratedImagesDirectoryButton_OnClick">打开目录</Button>
                                         <Button Style="{StaticResource SectionActionButtonStyle}"
                                                 Click="RefreshGeneratedImagesButton_OnClick">刷新</Button>
@@ -3282,6 +3309,32 @@
                                             </StackPanel>
                                         </Button>
                                     </WrapPanel>
+                                    <Border x:Name="AboutUpdateProgressPanel"
+                                            Margin="0,4,0,0"
+                                            Padding="12"
+                                            Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Visibility="Collapsed">
+                                        <StackPanel>
+                                            <Grid>
+                                                <TextBlock FontWeight="SemiBold"
+                                                           Text="升级进度" />
+                                                <TextBlock x:Name="AboutUpdateProgressPercentTextBlock"
+                                                           HorizontalAlignment="Right"
+                                                           Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                                           Text="" />
+                                            </Grid>
+                                            <ProgressBar x:Name="AboutUpdateProgressBar"
+                                                         Margin="0,10,0,0"
+                                                         Style="{StaticResource UpdateProgressBarStyle}" />
+                                            <TextBlock x:Name="AboutUpdateProgressTextBlock"
+                                                       Margin="0,8,0,0"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
                                     <TextBlock x:Name="AboutUpdateStatusTextBlock"
                                                Margin="0,10,0,0"
                                                Foreground="{DynamicResource Theme.Brush.TextSecondary}"

@@ -44,6 +44,8 @@ public partial class MainWindow
         }
 
         _isCheckingUpdates = true;
+        CheckUpdatesButton.IsEnabled = false;
+        HideUpdateProgress();
         if (!automatic)
         {
             AboutUpdateStatusTextBlock.Text = "正在检查 GitHub Releases...";
@@ -100,6 +102,7 @@ public partial class MainWindow
         finally
         {
             _isCheckingUpdates = false;
+            CheckUpdatesButton.IsEnabled = true;
         }
     }
 
@@ -123,17 +126,13 @@ public partial class MainWindow
         var workingDirectory = Path.Combine(parentDirectory, $".SnapCat-update-{Guid.NewGuid():N}");
         try
         {
-            AboutUpdateStatusTextBlock.Text = $"正在下载 SnapCat {manifest.Version}...";
-            var progress = new Progress<UpdateDownloadProgress>(value =>
-            {
-                AboutUpdateStatusTextBlock.Text = value.Percent is { } percent
-                    ? $"正在下载 SnapCat {manifest.Version}：{percent:F0}%"
-                    : $"正在下载 SnapCat {manifest.Version}...";
-            });
+            ShowUpdateProgress(ReleaseUpdateProgressStage.Downloading, manifest.Version, 0, null);
+            var progress = new Progress<ReleaseUpdateProgress>(value =>
+                ShowUpdateProgress(value.Stage, manifest.Version, value.Percent, value.IsIndeterminate));
             var staged = await _app.ReleaseUpdatePackageService.DownloadAndStageAsync(
                 package,
                 workingDirectory,
-                progress);
+                stageProgress: progress);
 
             // Run the updater from outside the staged payload. Otherwise its own EXE would lock
             // the staged directory while it tries to move that directory into the app location.
@@ -162,6 +161,7 @@ public partial class MainWindow
             processInfo.ArgumentList.Add(applicationDirectory);
             Process.Start(processInfo);
 
+            ShowUpdateProgress(ReleaseUpdateProgressStage.Ready, manifest.Version, 100, false);
             AboutUpdateStatusTextBlock.Text = "更新已校验完成，正在退出 SnapCat 并自动替换文件...";
             StatusTextBlock.Text = "正在启动自动升级。";
             AppendOperationLog($"已准备升级到 {manifest.Version}。\n");
@@ -169,10 +169,47 @@ public partial class MainWindow
         }
         catch (Exception exception)
         {
+            AboutUpdateProgressBar.IsIndeterminate = false;
             AboutUpdateStatusTextBlock.Text = $"自动升级准备失败：{exception.Message}";
+            AboutUpdateProgressTextBlock.Text = "自动升级准备失败，请查看下方状态信息后重试或手动下载。";
             StatusTextBlock.Text = "自动升级失败。";
             AppendOperationLog($"自动升级准备失败：{exception.Message}");
         }
+    }
+
+    private void ShowUpdateProgress(
+        ReleaseUpdateProgressStage stage,
+        string version,
+        double? percent,
+        bool? isIndeterminate = null)
+    {
+        AboutUpdateProgressPanel.Visibility = Visibility.Visible;
+        AboutUpdateProgressBar.IsIndeterminate = isIndeterminate ?? percent is null;
+        AboutUpdateProgressBar.Value = percent ?? 0;
+        AboutUpdateProgressPercentTextBlock.Text = percent is { } progressPercent ? $"{progressPercent:F0}%" : string.Empty;
+
+        var detail = stage switch
+        {
+            ReleaseUpdateProgressStage.Downloading => percent is { } downloadPercent
+                ? $"正在下载 SnapCat {version}：{downloadPercent:F0}%"
+                : $"正在下载 SnapCat {version}...",
+            ReleaseUpdateProgressStage.Verifying => "下载完成，正在校验文件完整性...",
+            ReleaseUpdateProgressStage.Extracting => "校验通过，正在安全解压更新文件...",
+            ReleaseUpdateProgressStage.Ready => "更新文件已准备完成，正在启动升级...",
+            _ => "正在准备更新..."
+        };
+
+        AboutUpdateProgressTextBlock.Text = detail;
+        AboutUpdateStatusTextBlock.Text = detail;
+    }
+
+    private void HideUpdateProgress()
+    {
+        AboutUpdateProgressPanel.Visibility = Visibility.Collapsed;
+        AboutUpdateProgressBar.IsIndeterminate = false;
+        AboutUpdateProgressBar.Value = 0;
+        AboutUpdateProgressPercentTextBlock.Text = string.Empty;
+        AboutUpdateProgressTextBlock.Text = string.Empty;
     }
 
     private static ReleasePackageKind GetCurrentPackageKind()
@@ -209,7 +246,7 @@ public partial class MainWindow
         var assembly = Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString(3)
-            ?? "0.4.5-preview";
+            ?? "0.4.6-preview";
 
         return TrimVersionMetadata(version);
     }
