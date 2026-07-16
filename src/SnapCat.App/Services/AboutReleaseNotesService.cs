@@ -12,6 +12,15 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.4.5-preview" => new AboutReleaseNotes(
+                "本版更新：本地 ComfyUI 生图",
+                "新增本地 ComfyUI 单图文生图和独立生成管理，配置与生成结果继续保存在用户本地。",
+                [
+                    "支持连接本机 ComfyUI、读取已安装 Checkpoint，并按提示词生成单张图片。",
+                    "新增独立生成管理，可查看缩略图、打开目录、选择删除或清空本地生成结果。",
+                    "生图模型、尺寸、步数和 CFG 等配置会随用户设置保存。",
+                    "修复配置名称输入空格时光标跳动，并让快捷键注册失败提示更明确。"
+                ]),
             "0.4.4-preview" => new AboutReleaseNotes(
                 "本版更新：自动升级修复",
                 "修复更新包下载后的文件占用问题，自动升级流程更稳定。",

@@ -19,6 +19,7 @@ internal sealed class AppRuntimeServices
         TranslationSpeechService translationSpeechService,
         ScreenCaptureService screenCaptureService,
         CapturedImageFileService capturedImageFileService,
+        GeneratedImageFileService generatedImageFileService,
         GlobalHotkeyService globalHotkeyService,
         TrayIconService trayIconService,
         PinnedWindowRegistryService pinnedWindowRegistryService,
@@ -26,6 +27,7 @@ internal sealed class AppRuntimeServices
         StartupDiagnosticsService startupDiagnosticsService,
         IAiTaskCoordinator aiTaskCoordinator,
         IVisualPromptService visualPromptService,
+        IImageGenerationService imageGenerationService,
         OllamaRuntimeService ollamaRuntimeService,
         GitHubReleaseUpdateService gitHubReleaseUpdateService,
         ReleaseUpdatePackageService releaseUpdatePackageService,
@@ -39,6 +41,7 @@ internal sealed class AppRuntimeServices
         TranslationSpeechService = translationSpeechService;
         ScreenCaptureService = screenCaptureService;
         CapturedImageFileService = capturedImageFileService;
+        GeneratedImageFileService = generatedImageFileService;
         GlobalHotkeyService = globalHotkeyService;
         TrayIconService = trayIconService;
         PinnedWindowRegistryService = pinnedWindowRegistryService;
@@ -46,6 +49,7 @@ internal sealed class AppRuntimeServices
         StartupDiagnosticsService = startupDiagnosticsService;
         AiTaskCoordinator = aiTaskCoordinator;
         VisualPromptService = visualPromptService;
+        ImageGenerationService = imageGenerationService;
         OllamaRuntimeService = ollamaRuntimeService;
         GitHubReleaseUpdateService = gitHubReleaseUpdateService;
         ReleaseUpdatePackageService = releaseUpdatePackageService;
@@ -68,6 +72,8 @@ internal sealed class AppRuntimeServices
 
     public CapturedImageFileService CapturedImageFileService { get; }
 
+    public GeneratedImageFileService GeneratedImageFileService { get; }
+
     public GlobalHotkeyService GlobalHotkeyService { get; }
 
     public TrayIconService TrayIconService { get; }
@@ -81,6 +87,8 @@ internal sealed class AppRuntimeServices
     public IAiTaskCoordinator AiTaskCoordinator { get; }
 
     public IVisualPromptService VisualPromptService { get; }
+
+    public IImageGenerationService ImageGenerationService { get; }
 
     public OllamaRuntimeService OllamaRuntimeService { get; }
 
@@ -106,6 +114,7 @@ internal sealed class AppRuntimeServices
         var qrCodeService = new ZxingQrCodeService();
         var screenCaptureService = new ScreenCaptureService();
         var capturedImageFileService = new CapturedImageFileService();
+        var generatedImageFileService = new GeneratedImageFileService(appDataDirectory);
         var translationService = new SmartTranslationService(
             new OpenAiCompatibleTranslationService(new HttpClient()),
             new LightweightWebTranslationService(new HttpClient()));
@@ -120,6 +129,7 @@ internal sealed class AppRuntimeServices
             new TranslationSpeechService(),
             screenCaptureService,
             capturedImageFileService,
+            generatedImageFileService,
             new GlobalHotkeyService(),
             new TrayIconService(),
             new PinnedWindowRegistryService(pinnedWindowLayoutStore),
@@ -127,6 +137,7 @@ internal sealed class AppRuntimeServices
             new StartupDiagnosticsService(),
             aiTaskCoordinator,
             new SmartVisualPromptService(new HttpClient(), aiTaskCoordinator),
+            new ComfyUiImageGenerationService(new HttpClient(), aiTaskCoordinator),
             new OllamaRuntimeService(new HttpClient()),
             new GitHubReleaseUpdateService(new HttpClient()),
             new ReleaseUpdatePackageService(new HttpClient()),

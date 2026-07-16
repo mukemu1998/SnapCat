@@ -21,7 +21,7 @@
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-2d7dff" />
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8-512bd4" />
   <img alt="WPF" src="https://img.shields.io/badge/UI-WPF-111827" />
-  <img alt="Version 0.4.4-preview" src="https://img.shields.io/badge/Version-0.4.4--preview-22c55e" />
+  <img alt="Version 0.4.5-preview" src="https://img.shields.io/badge/Version-0.4.5--preview-22c55e" />
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-f2c14e" />
 </p>
 
@@ -39,6 +39,7 @@ SnapCat 是一个面向 Windows 的开源截图工具，聚焦自由框选、本
 | 本地与 API 翻译 | 默认可用本地轻量翻译，也可添加多套兼容 OpenAI 的 API 配置。 |
 | 翻译浮窗 | 截图翻译后在框选附近显示小浮窗，支持语言选择、朗读、复制和再次框选。 |
 | 图片提示词分析 | 可框选图片并调用本地 Ollama 或 OpenAI 兼容视觉接口，输出可编辑、可复制、可重新分析的中英文提示词。 |
+| 本地 ComfyUI 生图 | 可连接用户自行安装的 ComfyUI，读取本地 Checkpoint 并完成单图文生图，生成结果可在独立目录集中管理。 |
 | 截图固定与贴图管理 | 贴图支持拖动、缩放、翻转、旋转、阵列、隐藏、分组和启动后恢复。 |
 | 画布标注与马赛克 | 支持全屏画布、独立框选标注快捷键、文本、箭头、画笔、马克笔、橡皮擦和真实像素马赛克。 |
 | 二维码识别 | 支持框选二维码识别，并在选框附近显示结果和复制入口。 |
@@ -107,7 +108,7 @@ SnapCat/
 
 ## 当前版本
 
-当前版本为 `0.4.4-preview`，修复自动升级下载完成后的临时文件占用问题。Windows 高质量文本提取继续作为推荐 OCR；本地 Ollama 视觉模型用于图片提示词分析。用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存于用户本地目录，不会写入源码或发布包。
+当前版本为 `0.4.5-preview`，新增本地 ComfyUI 单图文生图、Checkpoint 发现和独立生成管理，并修复配置名称输入空格时的编辑问题。Windows 高质量文本提取继续作为推荐 OCR；本地 Ollama 视觉模型用于图片提示词分析。用户主题、快捷键、API Key、视觉与生图配置继续仅保存于用户本地目录，不会写入源码或发布包。
 
 ## 许可
 

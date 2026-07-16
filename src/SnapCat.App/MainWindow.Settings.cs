@@ -54,6 +54,8 @@ public partial class MainWindow
             SelectedApiProfileId = ApiProfilesEditor.SelectedProfileId,
             AiProviderProfiles = AiProviderProfile.CloneAll(_visualPromptProfiles),
             SelectedAiProviderProfileId = _defaultVisualPromptProfileId,
+            ImageGenerationProfiles = ImageGenerationProfile.CloneAll(_imageGenerationProfiles),
+            SelectedImageGenerationProfileId = _selectedImageGenerationProfileId,
             TargetLanguage = GetSelectedTargetLanguage(),
             TranslationProviderPreference = GetSelectedTranslationProvider(),
             TesseractExecutablePath = TesseractPathTextBox.Text.Trim(),
@@ -92,6 +94,7 @@ public partial class MainWindow
 
         settings.NormalizeApiProfiles();
         settings.NormalizeAiProviderProfiles();
+        settings.NormalizeImageGenerationProfiles();
         return settings;
     }
 
@@ -101,6 +104,7 @@ public partial class MainWindow
         _suppressTranslationProviderEvents = true;
         _translationProviderSelectionTouched = false;
         settings.NormalizeApiProfiles();
+        settings.NormalizeImageGenerationProfiles();
         ApiProfilesEditor.LoadFromSettings(settings);
         ApplyApiProfileState();
         SetTargetLanguageSelection(settings.TargetLanguage);
@@ -141,6 +145,7 @@ public partial class MainWindow
                 : TranslationProviderPreference.Local)
             : settings.TranslationProviderPreference);
         LoadVisualPromptProfiles(settings);
+        LoadImageGenerationProfiles(settings);
         _suppressTranslationProviderEvents = false;
         _isApplyingSettings = false;
         MarkSettingsClean();

@@ -15,7 +15,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.4-preview"
+    $version = "0.4.5-preview"
 }
 
 $safeLabel = ($Label -replace "[^0-9A-Za-z\-_]+", "-").Trim("-")
@@ -33,6 +33,25 @@ $stagingUpdaterDir = Join-Path $stagingRoot "SnapCat.Updater"
 $zipPath = Join-Path $buildRoot "$packageName.zip"
 $shaPath = "$zipPath.sha256"
 $versionFile = Join-Path $publishDir "VERSION.txt"
+
+$resolvedPublishDir = [System.IO.Path]::GetFullPath($publishDir)
+$runningTestProcess = Get-Process -Name "SnapCat" -ErrorAction SilentlyContinue |
+    Where-Object {
+        try
+        {
+            -not [string]::IsNullOrWhiteSpace($_.Path) -and
+                [System.IO.Path]::GetFullPath($_.Path).StartsWith($resolvedPublishDir, [System.StringComparison]::OrdinalIgnoreCase)
+        }
+        catch
+        {
+            $false
+        }
+    } |
+    Select-Object -First 1
+if ($null -ne $runningTestProcess)
+{
+    throw "The fixed SnapCat test package is running (PID $($runningTestProcess.Id)). Exit SnapCat from the tray before packaging."
+}
 
 if (Test-Path -LiteralPath $buildRoot)
 {
@@ -116,7 +135,9 @@ try
     ) | Set-Content -LiteralPath (Join-Path $stagingPublishDir "VERSION.txt") -Encoding UTF8
 
     New-Item -ItemType Directory -Force -Path $publishDir | Out-Null
-    & robocopy $stagingPublishDir $publishDir /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
+    # A running test build may lock SnapCat.exe. Fail quickly instead of inheriting
+    # robocopy's very large default retry count and appearing to hang indefinitely.
+    & robocopy $stagingPublishDir $publishDir /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -gt 7)
     {
         throw "robocopy failed with exit code $LASTEXITCODE."
@@ -127,6 +148,12 @@ try
         Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $zipPath -Force
         $sha256 = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
         "$sha256 *$(Split-Path -Leaf $zipPath)" | Set-Content -LiteralPath $shaPath -Encoding ascii
+    }
+    else
+    {
+        # Do not leave a stale archive beside the refreshed fixed test directory.
+        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $shaPath -Force -ErrorAction SilentlyContinue
     }
 }
 finally

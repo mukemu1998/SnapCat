@@ -70,26 +70,24 @@ internal sealed class ApiProfileEditorItemViewModel : ObservableObject
 
     public void ApplyDraft(ApiProfileEditorDraft draft)
     {
-        Name = string.IsNullOrWhiteSpace(draft.Name)
-            ? Name
-            : draft.Name.Trim();
-        BaseUrl = draft.BaseUrl.Trim();
+        Name = draft.Name;
+        BaseUrl = draft.BaseUrl;
         ApiKey = draft.ApiKey;
-        Model = draft.Model.Trim();
-        SystemPrompt = string.IsNullOrWhiteSpace(draft.SystemPrompt)
-            ? AppSettings.DefaultSystemPrompt
-            : draft.SystemPrompt.Trim();
+        Model = draft.Model;
+        SystemPrompt = draft.SystemPrompt;
         EnableContext = draft.EnableContext;
     }
 
-    public ApiTranslationProfile ToModel() => new()
+    public ApiTranslationProfile ToModel(int index) => new()
     {
         Id = Id,
-        Name = Name,
-        BaseUrl = BaseUrl,
+        Name = string.IsNullOrWhiteSpace(Name) ? $"API 配置 {index + 1}" : Name.Trim(),
+        BaseUrl = BaseUrl.Trim(),
         ApiKey = ApiKey,
-        Model = Model,
-        SystemPrompt = SystemPrompt,
+        Model = Model.Trim(),
+        SystemPrompt = string.IsNullOrWhiteSpace(SystemPrompt)
+            ? AppSettings.DefaultSystemPrompt
+            : SystemPrompt.Trim(),
         EnableContext = EnableContext
     };
 }

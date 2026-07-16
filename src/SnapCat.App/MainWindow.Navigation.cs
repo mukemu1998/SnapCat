@@ -27,6 +27,18 @@ public partial class MainWindow
             "图片提示词分析",
             "这里管理本地或云端视觉模型配置，并用于框选图片后提取可编辑的生图提示词。");
 
+        _sections[MainSection.ImageGenerationSettings] = new NavigationSectionMetadata(
+            ImageGenerationNavButton,
+            ImageGenerationSection,
+            "图像生成",
+            "这里连接本地 ComfyUI、选择已安装的基础模型并执行单图文生图。ComfyUI 与模型均由用户自行安装和管理。");
+
+        _sections[MainSection.GeneratedImagesManagement] = new NavigationSectionMetadata(
+            GeneratedImagesManagementNavButton,
+            GeneratedImagesManagementSection,
+            "生成管理",
+            "这里集中浏览和管理 SnapCat 保存在当前用户目录中的生成图片，不与生图配置和参数混排。");
+
         _sections[MainSection.History] = new NavigationSectionMetadata(
             HistoryNavButton,
             HistorySection,
@@ -135,6 +147,16 @@ public partial class MainWindow
             _ = RefreshOllamaRuntimeStatusAsync();
         }
 
+        if (section == MainSection.GeneratedImagesManagement)
+        {
+            RefreshGeneratedImagesList();
+        }
+
+        if (section == MainSection.ImageGenerationSettings)
+        {
+            _ = RefreshImageGenerationModelsAsync();
+        }
+
     }
 
     private void ApplyNavigationStyle(WpfButton button, bool isSelected)
@@ -161,6 +183,8 @@ public partial class MainWindow
         OcrSettings,
         TranslationSettings,
         VisualPromptSettings,
+        ImageGenerationSettings,
+        GeneratedImagesManagement,
         History,
         ScreenshotManagement,
         PinnedImages,

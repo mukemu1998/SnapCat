@@ -221,6 +221,10 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string SelectedAiProviderProfileId { get; set; } = string.Empty;
 
+        public List<PersistedImageGenerationProfile> ImageGenerationProfiles { get; set; } = [];
+
+        public string SelectedImageGenerationProfileId { get; set; } = string.Empty;
+
         public string TargetLanguage { get; set; } = "zh-CN";
 
         public string TranslationProviderPreference { get; set; } = SnapCat.Core.Models.TranslationProviderPreference.Local;
@@ -302,6 +306,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 SelectedApiProfileId = SelectedApiProfileId,
                 AiProviderProfiles = AiProviderProfiles.Select(static profile => profile.ToModel()).ToList(),
                 SelectedAiProviderProfileId = SelectedAiProviderProfileId,
+                ImageGenerationProfiles = ImageGenerationProfiles.Select(static profile => profile.ToModel()).ToList(),
+                SelectedImageGenerationProfileId = SelectedImageGenerationProfileId,
                 TargetLanguage = TargetLanguage,
                 TranslationProviderPreference = TranslationProviderPreference,
                 OcrEngine = OcrEngine,
@@ -340,6 +346,7 @@ public sealed class JsonSettingsStore : ISettingsStore
 
             settings.NormalizeApiProfiles();
             settings.NormalizeAiProviderProfiles();
+            settings.NormalizeImageGenerationProfiles();
             return settings;
         }
 
@@ -356,6 +363,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 SelectedApiProfileId = settings.SelectedApiProfileId,
                 AiProviderProfiles = AiProviderProfile.CloneAll(settings.AiProviderProfiles),
                 SelectedAiProviderProfileId = settings.SelectedAiProviderProfileId,
+                ImageGenerationProfiles = ImageGenerationProfile.CloneAll(settings.ImageGenerationProfiles),
+                SelectedImageGenerationProfileId = settings.SelectedImageGenerationProfileId,
                 TargetLanguage = settings.TargetLanguage,
                 TranslationProviderPreference = settings.TranslationProviderPreference,
                 OcrEngine = settings.OcrEngine,
@@ -394,6 +403,7 @@ public sealed class JsonSettingsStore : ISettingsStore
 
             clone.NormalizeApiProfiles();
             clone.NormalizeAiProviderProfiles();
+            clone.NormalizeImageGenerationProfiles();
 
             return new PersistedAppSettings
             {
@@ -406,6 +416,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 SelectedApiProfileId = clone.SelectedApiProfileId,
                 AiProviderProfiles = clone.AiProviderProfiles.Select(static profile => PersistedAiProviderProfile.FromModel(profile)).ToList(),
                 SelectedAiProviderProfileId = clone.SelectedAiProviderProfileId,
+                ImageGenerationProfiles = clone.ImageGenerationProfiles.Select(static profile => PersistedImageGenerationProfile.FromModel(profile)).ToList(),
+                SelectedImageGenerationProfileId = clone.SelectedImageGenerationProfileId,
                 TargetLanguage = clone.TargetLanguage,
                 TranslationProviderPreference = clone.TranslationProviderPreference,
                 OcrEngine = clone.OcrEngine,
@@ -554,6 +566,71 @@ public sealed class JsonSettingsStore : ISettingsStore
             MaxReferenceImageCount = profile.MaxReferenceImageCount,
             MaxOutputCount = profile.MaxOutputCount,
             SupportsCostEstimate = profile.SupportsCostEstimate
+        };
+    }
+
+    private sealed class PersistedImageGenerationProfile
+    {
+        public string Id { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Protocol { get; set; } = ImageGenerationProtocol.ComfyUi;
+
+        public string BaseUrl { get; set; } = string.Empty;
+
+        public string ApiKey { get; set; } = string.Empty;
+
+        public string ProtectedBaseUrl { get; set; } = string.Empty;
+
+        public string ProtectedApiKey { get; set; } = string.Empty;
+
+        public string DefaultCheckpoint { get; set; } = string.Empty;
+
+        public string ProtectedDefaultCheckpoint { get; set; } = string.Empty;
+
+        public bool IsEnabled { get; set; } = true;
+
+        public bool IsDefault { get; set; }
+
+        public int DefaultWidth { get; set; } = 1024;
+
+        public int DefaultHeight { get; set; } = 1024;
+
+        public int DefaultSteps { get; set; } = 24;
+
+        public double DefaultCfgScale { get; set; } = 7d;
+
+        public ImageGenerationProfile ToModel() => new()
+        {
+            Id = Id,
+            Name = Name,
+            Protocol = Protocol,
+            BaseUrl = Unprotect(ProtectedBaseUrl, BaseUrl),
+            ApiKey = Unprotect(ProtectedApiKey, ApiKey),
+            DefaultCheckpoint = Unprotect(ProtectedDefaultCheckpoint, DefaultCheckpoint),
+            IsEnabled = IsEnabled,
+            IsDefault = IsDefault,
+            DefaultWidth = DefaultWidth,
+            DefaultHeight = DefaultHeight,
+            DefaultSteps = DefaultSteps,
+            DefaultCfgScale = DefaultCfgScale
+        };
+
+        public static PersistedImageGenerationProfile FromModel(ImageGenerationProfile profile) => new()
+        {
+            Id = profile.Id,
+            Name = profile.Name,
+            Protocol = ImageGenerationProtocol.Normalize(profile.Protocol),
+            ProtectedBaseUrl = Protect(profile.BaseUrl),
+            ProtectedApiKey = Protect(profile.ApiKey),
+            ProtectedDefaultCheckpoint = Protect(profile.DefaultCheckpoint),
+            IsEnabled = profile.IsEnabled,
+            IsDefault = profile.IsDefault,
+            DefaultWidth = profile.DefaultWidth,
+            DefaultHeight = profile.DefaultHeight,
+            DefaultSteps = profile.DefaultSteps,
+            DefaultCfgScale = profile.DefaultCfgScale
         };
     }
 

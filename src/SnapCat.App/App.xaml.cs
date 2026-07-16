@@ -50,6 +50,7 @@ public partial class App : WpfApplication
         TranslationSpeechService = services.TranslationSpeechService;
         ScreenCaptureService = services.ScreenCaptureService;
         CapturedImageFileService = services.CapturedImageFileService;
+        GeneratedImageFileService = services.GeneratedImageFileService;
         GlobalHotkeyService = services.GlobalHotkeyService;
         TrayIconService = services.TrayIconService;
         PinnedWindowRegistryService = services.PinnedWindowRegistryService;
@@ -57,6 +58,7 @@ public partial class App : WpfApplication
         StartupDiagnosticsService = services.StartupDiagnosticsService;
         AiTaskCoordinator = services.AiTaskCoordinator;
         VisualPromptService = services.VisualPromptService;
+        ImageGenerationService = services.ImageGenerationService;
         OllamaRuntimeService = services.OllamaRuntimeService;
         GitHubReleaseUpdateService = services.GitHubReleaseUpdateService;
         ReleaseUpdatePackageService = services.ReleaseUpdatePackageService;
@@ -87,6 +89,8 @@ public partial class App : WpfApplication
 
     public CapturedImageFileService CapturedImageFileService { get; private set; } = null!;
 
+    public GeneratedImageFileService GeneratedImageFileService { get; private set; } = null!;
+
     public GlobalHotkeyService GlobalHotkeyService { get; private set; } = null!;
 
     public TrayIconService TrayIconService { get; private set; } = null!;
@@ -100,6 +104,8 @@ public partial class App : WpfApplication
     public IAiTaskCoordinator AiTaskCoordinator { get; private set; } = null!;
 
     public IVisualPromptService VisualPromptService { get; private set; } = null!;
+
+    public IImageGenerationService ImageGenerationService { get; private set; } = null!;
 
     public OllamaRuntimeService OllamaRuntimeService { get; private set; } = null!;
 

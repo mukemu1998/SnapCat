@@ -334,7 +334,6 @@ public partial class MainWindow
             return;
         }
 
-        profile.Normalize(_visualPromptProfiles.IndexOf(profile));
         _selectedVisualPromptProfileId = profile.Id;
         DeleteVisualPromptProfileButton.IsEnabled = true;
         MarkSettingsDirty();
@@ -363,7 +362,6 @@ public partial class MainWindow
             profile.BaseUrl = "https://api.openai.com/v1";
         }
 
-        profile.Normalize(_visualPromptProfiles.IndexOf(profile));
         _selectedVisualPromptProfileId = profile.Id;
         DeleteVisualPromptProfileButton.IsEnabled = true;
         MarkSettingsDirty();
@@ -446,7 +444,6 @@ public partial class MainWindow
         profile.Capabilities = AiModelCapabilities.VisionAnalysis;
         profile.MaxReferenceImageCount = 1;
         profile.MaxOutputCount = 1;
-        profile.Normalize(_visualPromptProfiles.IndexOf(profile));
         _selectedVisualPromptProfileId = profile.Id;
         MarkSettingsDirty();
         StatusTextBlock.Text = $"已将 {modelName} 应用到视觉配置：{profile.Name}";

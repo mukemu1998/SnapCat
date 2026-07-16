@@ -47,7 +47,7 @@ internal sealed class ApiProfilesEditorViewModel : ObservableObject
     }
 
     public List<ApiTranslationProfile> ToModels() => Profiles
-        .Select(static profile => profile.ToModel())
+        .Select(static (profile, index) => profile.ToModel(index))
         .ToList();
 
     public ApiProfileEditorItemViewModel AddNewProfile()

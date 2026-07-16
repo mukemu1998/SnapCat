@@ -54,6 +54,7 @@ JSON 必须使用以下字段：
             return VisualPromptResult.FromError("请先在视觉分析设置中选择已启用的 AI 配置。");
         }
 
+        profile = AiProviderProfile.CloneAll([profile])[0];
         profile.Normalize(0);
         if (!profile.Supports(AiModelCapabilities.VisionAnalysis))
         {

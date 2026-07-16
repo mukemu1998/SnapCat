@@ -16,7 +16,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.4-preview"
+    $version = "0.4.5-preview"
 }
 
 $releaseRoot = Join-Path $repoRoot "artifacts\releases\v$version"
@@ -139,29 +139,15 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $
 ) | Set-Content -LiteralPath $versionFile -Encoding UTF8
 
 @(
-    "# SnapCat v$version 发布说明"
+    "# SnapCat v$version"
     ""
     "## 更新内容"
     ""
-    "- 修复自动升级下载完成后临时包文件仍被占用的问题，更新助手现在可正常接手后续校验、解压与替换。"
-    "- 增加下载、SHA256 校验和安全解压的回归测试，避免同类文件句柄问题再次影响自动升级。"
-    "- OCR、翻译、贴图、画布标注和图片提示词分析保持原有操作方式。"
-    "- 用户主题、快捷键、API Key、视觉模型配置和历史策略继续仅保存在用户本地目录。"
-    ""
-    "## 使用建议"
-    ""
-    "- 普通用户建议下载 portable 包，解压后直接运行 SnapCat.exe。"
-    "- 如果系统已经安装 .NET 8 Desktop Runtime，可以下载 runtime-dependent 包获得更小体积。"
-    "- API Key 等敏感配置只保存在本机用户配置中，不会写入源码目录。"
-    ""
-    "## 下载建议"
-    ""
-    "- portable：解压后可直接双击 SnapCat.exe 使用，适合普通用户。"
-    "- runtime-dependent：体积更小，但需要系统已安装 .NET 8 Desktop Runtime。"
-    ""
-    "## 校验"
-    ""
-    "发布目录内提供 .sha256 文件，可用于校验压缩包完整性。"
+    "- 新增本地 ComfyUI 单图文生图，可检测连接、读取已安装 Checkpoint，并取回生成结果。"
+    "- 新增独立生成管理，可查看缩略图、打开目录、全选、删除选中或清空本地生成图片。"
+    "- 生图配置、模型、尺寸、步数和 CFG 等参数仅保存在用户本地设置中。"
+    "- 修复 API、视觉与生图配置名称输入空格时光标跳动的问题。"
+    "- 优化快捷键注册失败提示，可直接查看冲突的命令和按键。"
 ) | Set-Content -LiteralPath $releaseNotesPath -Encoding UTF8
 
 if ($Zip)

@@ -23,6 +23,8 @@ public static class AppSettingsCloneService
             SelectedApiProfileId = settings.SelectedApiProfileId,
             AiProviderProfiles = AiProviderProfile.CloneAll(settings.AiProviderProfiles),
             SelectedAiProviderProfileId = settings.SelectedAiProviderProfileId,
+            ImageGenerationProfiles = ImageGenerationProfile.CloneAll(settings.ImageGenerationProfiles),
+            SelectedImageGenerationProfileId = settings.SelectedImageGenerationProfileId,
             TargetLanguage = settings.TargetLanguage,
             TranslationProviderPreference = settings.TranslationProviderPreference,
             OcrEngine = settings.OcrEngine,

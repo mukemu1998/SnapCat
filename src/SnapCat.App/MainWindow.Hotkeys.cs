@@ -20,10 +20,18 @@ public partial class MainWindow
 
         _hotkeyRegistrationResults = _app.GlobalHotkeyService.RegisterAll(CreateHotkeyRegistrationRequests());
 
-        var failedCount = _hotkeyRegistrationResults.Count(static result => !result.IsRegistered);
-        if (failedCount > 0)
+        var failures = _hotkeyRegistrationResults
+            .Where(static result => !result.IsRegistered)
+            .ToList();
+        if (failures.Count == 1)
         {
-            StatusTextBlock.Text = $"有 {failedCount} 组快捷键注册失败，请到“执行操作与快捷键”或“系统快捷键”查看原因。";
+            var failure = failures[0];
+            StatusTextBlock.Text = $"快捷键“{failure.Label}”（{HotkeyTextFormatter.FormatText(failure.HotkeyText)}）注册失败：{failure.Message}。请重新录制或关闭占用它的程序。";
+        }
+        else if (failures.Count > 1)
+        {
+            var labels = string.Join("、", failures.Select(static failure => failure.Label));
+            StatusTextBlock.Text = $"{failures.Count} 组快捷键注册失败：{labels}。请到对应快捷键设置中查看并重新录制。";
         }
     }
 

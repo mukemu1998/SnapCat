@@ -107,6 +107,14 @@
             <Setter Property="Padding" Value="12,0" />
         </Style>
 
+        <Style x:Key="ImageGenerationActionButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource RoundedButtonStyle}">
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinWidth" Value="108" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
         <Style x:Key="VisualProfileExpanderStyle" TargetType="Expander">
             <Setter Property="Template">
                 <Setter.Value>
@@ -400,6 +408,18 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style x:Key="ImageGenerationParameterTextBoxStyle"
+               TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Width" Value="86" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
         </Style>
 
         <Style TargetType="PasswordBox">
@@ -961,6 +981,26 @@
                                     <Path Style="{StaticResource SidebarNavIconStyle}"
                                           Data="M4 7 H8 L10 4 L14 7 H20 V19 H4 Z M9 12 A3 3 0 1 0 15 12 A3 3 0 1 0 9 12" />
                                     <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="提示词分析" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="ImageGenerationNavButton"
+                                    Style="{StaticResource SidebarButtonStyle}"
+                                    Tag="ImageGenerationSettings"
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M5 6 H19 V18 H5 Z M8 14 L11 11 L14 14 L16 12 L18 14 M9 9 A1.5 1.5 0 1 0 12 9 A1.5 1.5 0 1 0 9 9" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="图像生成" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="GeneratedImagesManagementNavButton"
+                                    Style="{StaticResource SidebarButtonStyle}"
+                                    Tag="GeneratedImagesManagement"
+                                    Click="NavigationButton_OnClick">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource SidebarNavIconStyle}"
+                                          Data="M5 6 H16 V15 H5 Z M8 9 H19 V18 H8 Z M10 16 L13 13 L15 15 L17 13 L19 15" />
+                                    <TextBlock Style="{StaticResource SidebarNavTextStyle}" Text="生成管理" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="HistoryNavButton"
@@ -1973,6 +2013,315 @@
                                              VerticalScrollBarVisibility="Auto"
                                              Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
                                              BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="ImageGenerationSection"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Visibility="Collapsed">
+                        <StackPanel Margin="0,0,8,12">
+                            <Border Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="本地 ComfyUI 图像生成" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="SnapCat 不会内置 ComfyUI 或任何生图模型。请先自行安装并启动 ComfyUI；此处只保存当前 Windows 用户的连接、模型与默认参数。" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="图像生成后端配置" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                       TextWrapping="Wrap"
+                                                       Text="首版仅支持 ComfyUI 本地 API。可保留多套配置；默认配置用于下方的单图文生图。" />
+                                        </StackPanel>
+                                        <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                    Click="AddImageGenerationProfileButton_OnClick">+ 添加配置</Button>
+                                            <Button x:Name="DeleteImageGenerationProfileButton"
+                                                    Style="{StaticResource SectionActionButtonStyle}"
+                                                    IsEnabled="False"
+                                                    Click="DeleteImageGenerationProfileButton_OnClick">删除当前</Button>
+                                        </WrapPanel>
+                                    </Grid>
+                                    <TextBlock x:Name="EmptyImageGenerationProfileTextBlock"
+                                               Margin="0,14,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="还没有图像生成配置。添加后填写本机 ComfyUI 地址，再读取已安装的 Checkpoint。" />
+                                    <TextBlock x:Name="ImageGenerationDefaultProfileTextBlock"
+                                               Margin="0,14,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.Highlight}"
+                                               TextWrapping="Wrap" />
+                                    <ItemsControl x:Name="ImageGenerationProfileExpandersItemsControl" Margin="0,10,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,8"
+                                                        Padding="12"
+                                                        Background="{DynamicResource Theme.Brush.CardBackground}"
+                                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="12">
+                                                    <Expander Style="{StaticResource VisualProfileExpanderStyle}"
+                                                              Expanded="ImageGenerationProfileExpander_OnExpanded">
+                                                        <Expander.Header>
+                                                            <Grid MinWidth="360">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Theme.Brush.TextPrimary}" Text="{Binding Name}" />
+                                                                    <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource Theme.Brush.TextMuted}" Text="{Binding DefaultCheckpoint}" />
+                                                                </StackPanel>
+                                                                <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource Theme.Brush.Highlight}" Text="ComfyUI" />
+                                                            </Grid>
+                                                        </Expander.Header>
+                                                        <StackPanel Margin="0,12,0,0">
+                                                            <WrapPanel Margin="0,0,0,10">
+                                                                <CheckBox Margin="0,0,10,0"
+                                                                          IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                                          Checked="ImageGenerationProfileEnabled_OnChanged"
+                                                                          Unchecked="ImageGenerationProfileEnabled_OnChanged"
+                                                                          Content="允许用于生图" />
+                                                                <Button Style="{StaticResource CompactRoundedButtonStyle}"
+                                                                        Height="30"
+                                                                        Padding="12,0"
+                                                                        Click="SetDefaultImageGenerationProfileButton_OnClick">设为默认配置</Button>
+                                                                <Button Margin="8,0,0,0"
+                                                                        Style="{StaticResource CompactRoundedButtonStyle}"
+                                                                        Height="30"
+                                                                        Padding="12,0"
+                                                                        Click="TestImageGenerationProfileConnectionButton_OnClick">检测连接</Button>
+                                                                <Button Margin="8,0,0,0"
+                                                                        Style="{StaticResource CompactRoundedButtonStyle}"
+                                                                        Height="30"
+                                                                        Padding="12,0"
+                                                                        Click="LoadImageGenerationModelsButton_OnClick">读取模型</Button>
+                                                            </WrapPanel>
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                    <RowDefinition Height="Auto" />
+                                                                </Grid.RowDefinitions>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="96" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="配置名称" />
+                                                                <TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="ImageGenerationProfileTextChanged" />
+                                                                <TextBlock Grid.Row="1" Margin="0,10,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="接口地址" />
+                                                                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,10,0,0" Text="{Binding BaseUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="ImageGenerationProfileTextChanged" />
+                                                                <TextBlock Grid.Row="2" Margin="0,10,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Theme.Brush.TextSecondary}" Text="基础模型" />
+                                                                <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,10,0,0"
+                                                                          ItemsSource="{Binding AvailableImageGenerationModelNames, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                                          SelectedItem="{Binding DefaultCheckpoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                          SelectionChanged="ImageGenerationProfileModelChanged" />
+                                                            </Grid>
+                                                        </StackPanel>
+                                                    </Expander>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Border x:Name="ImageGenerationProfileStatusBorder"
+                                            Margin="0,4,0,0"
+                                            Padding="12,10"
+                                            Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Visibility="Collapsed">
+                                        <TextBlock x:Name="ImageGenerationProfileStatusTextBlock"
+                                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                   TextWrapping="Wrap" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="单图文生图" />
+                                    <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" TextWrapping="Wrap" Text="使用当前默认且已启用的 ComfyUI 配置。首版默认只生成 1 张，结果会保存到用户本地数据目录的 generated 文件夹。" />
+                                    <TextBox x:Name="ImageGenerationPromptTextBox" Margin="0,12,0,0" MinHeight="84" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                                    <TextBox x:Name="ImageGenerationNegativePromptTextBox" Margin="0,10,0,0" MinHeight="52" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+                                    <WrapPanel Margin="0,12,0,0" VerticalAlignment="Center">
+                                        <StackPanel Margin="0,0,14,8" Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="宽" />
+                                            <TextBox x:Name="ImageGenerationWidthTextBox"
+                                                     Style="{StaticResource ImageGenerationParameterTextBoxStyle}"
+                                                     Text="1024"
+                                                     TextChanged="ImageGenerationParameters_OnTextChanged" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,14,8" Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="高" />
+                                            <TextBox x:Name="ImageGenerationHeightTextBox"
+                                                     Style="{StaticResource ImageGenerationParameterTextBoxStyle}"
+                                                     Text="1024"
+                                                     TextChanged="ImageGenerationParameters_OnTextChanged" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,14,8" Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="步数" />
+                                            <TextBox x:Name="ImageGenerationStepsTextBox"
+                                                     Style="{StaticResource ImageGenerationParameterTextBoxStyle}"
+                                                     Text="24"
+                                                     TextChanged="ImageGenerationParameters_OnTextChanged" />
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,14,8" Orientation="Horizontal">
+                                            <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" Text="CFG" />
+                                            <TextBox x:Name="ImageGenerationCfgScaleTextBox"
+                                                     Style="{StaticResource ImageGenerationParameterTextBoxStyle}"
+                                                     Text="7"
+                                                     TextChanged="ImageGenerationParameters_OnTextChanged" />
+                                        </StackPanel>
+                                        <WrapPanel Margin="0,0,0,8" VerticalAlignment="Center">
+                                            <Button x:Name="RunImageGenerationButton"
+                                                    Style="{StaticResource ImageGenerationActionButtonStyle}"
+                                                    IsEnabled="False"
+                                                    Click="RunImageGenerationButton_OnClick">生成 1 张</Button>
+                                            <Button x:Name="CancelImageGenerationButton"
+                                                    Margin="10,0,0,0"
+                                                    Style="{StaticResource ImageGenerationActionButtonStyle}"
+                                                    IsEnabled="False"
+                                                    Click="CancelImageGenerationButton_OnClick">取消等待</Button>
+                                        </WrapPanel>
+                                    </WrapPanel>
+                                    <TextBlock Margin="0,8,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                               TextWrapping="Wrap"
+                                               Text="取消等待不会调用 ComfyUI 的全局中断接口；已开始的本地任务可能仍会在 ComfyUI 后台完成。" />
+                                    <TextBlock x:Name="ImageGenerationStatusTextBlock" Margin="0,8,0,0" Foreground="{DynamicResource Theme.Brush.TextSecondary}" TextWrapping="Wrap" />
+                                    <Border Margin="0,12,0,0" Padding="10" Background="{DynamicResource Theme.Brush.ReadOnlyBackground}" BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}" BorderThickness="1" CornerRadius="10">
+                                        <Image x:Name="ImageGenerationPreviewImage" MaxHeight="420" Stretch="Uniform" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <ScrollViewer x:Name="GeneratedImagesManagementSection"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Visibility="Collapsed">
+                        <StackPanel Margin="0,0,8,12">
+                            <Border Padding="14"
+                                    Background="{DynamicResource Theme.Brush.SurfaceBackground}"
+                                    BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Text="本地生成结果" />
+                                    <TextBlock x:Name="GeneratedImagesSummaryTextBlock"
+                                               Margin="0,8,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap"
+                                               Text="正在读取本地 generated 目录。" />
+                                    <WrapPanel Margin="0,12,0,0">
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="OpenGeneratedImagesDirectoryButton_OnClick">打开目录</Button>
+                                        <Button Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="RefreshGeneratedImagesButton_OnClick">刷新</Button>
+                                        <Button x:Name="ToggleSelectAllGeneratedImagesButton"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                IsEnabled="False"
+                                                Click="ToggleSelectAllGeneratedImagesButton_OnClick">全选</Button>
+                                        <Button x:Name="DeleteSelectedGeneratedImagesButton"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                IsEnabled="False"
+                                                Click="DeleteSelectedGeneratedImagesButton_OnClick">删除选中</Button>
+                                        <Button x:Name="DeleteAllGeneratedImagesButton"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                IsEnabled="False"
+                                                Click="DeleteAllGeneratedImagesButton_OnClick">全部删除</Button>
+                                    </WrapPanel>
+
+                                    <TextBlock x:Name="EmptyGeneratedImagesTextBlock"
+                                               Margin="0,14,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                               Text="当前还没有生成图片。完成一次生图后会自动显示在这里。" />
+
+                                    <ListBox x:Name="GeneratedImagesListBox"
+                                             Margin="0,12,0,0"
+                                             Style="{StaticResource HistoryListBoxStyle}"
+                                             MaxHeight="380"
+                                             SelectionMode="Extended"
+                                             SelectionChanged="GeneratedImagesListBox_OnSelectionChanged"
+                                             PreviewMouseRightButtonDown="GeneratedImagesListBox_OnPreviewMouseRightButtonDown">
+                                        <ListBox.ContextMenu>
+                                            <ContextMenu Style="{StaticResource MainContextMenuStyle}">
+                                                <MenuItem Header="打开图片位置"
+                                                          Style="{StaticResource MainContextMenuItemStyle}"
+                                                          Click="OpenSelectedGeneratedImageLocationMenuItem_OnClick" />
+                                                <Separator Style="{StaticResource MainContextMenuSeparatorStyle}" />
+                                                <MenuItem Header="删除选中图片"
+                                                          Style="{StaticResource MainContextMenuItemStyle}"
+                                                          Click="DeleteSelectedGeneratedImagesMenuItem_OnClick" />
+                                            </ContextMenu>
+                                        </ListBox.ContextMenu>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,3,22,3">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="104" />
+                                                        <ColumnDefinition Width="14" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Width="96"
+                                                            Height="72"
+                                                            Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="8"
+                                                            ClipToBounds="True">
+                                                        <Image Source="{Binding Thumbnail}"
+                                                               Stretch="Uniform"
+                                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Title}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap" />
+                                                        <TextBlock Margin="0,5,0,0"
+                                                                   Text="{Binding Summary}"
+                                                                   Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="NoWrap" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <TextBlock x:Name="GeneratedImagesStatusTextBlock"
+                                               Margin="0,10,0,0"
+                                               Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                               TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>

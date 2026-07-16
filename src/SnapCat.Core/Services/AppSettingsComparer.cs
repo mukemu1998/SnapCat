@@ -18,11 +18,15 @@ public static class AppSettingsComparer
         normalizedRight.NormalizeApiProfiles();
         normalizedLeft.NormalizeAiProviderProfiles();
         normalizedRight.NormalizeAiProviderProfiles();
+        normalizedLeft.NormalizeImageGenerationProfiles();
+        normalizedRight.NormalizeImageGenerationProfiles();
 
         return AreApiProfilesEquivalent(normalizedLeft.ApiProfiles, normalizedRight.ApiProfiles)
             && AreAiProviderProfilesEquivalent(normalizedLeft.AiProviderProfiles, normalizedRight.AiProviderProfiles)
+            && AreImageGenerationProfilesEquivalent(normalizedLeft.ImageGenerationProfiles, normalizedRight.ImageGenerationProfiles)
             && Same(normalizedLeft.SelectedApiProfileId, normalizedRight.SelectedApiProfileId)
             && Same(normalizedLeft.SelectedAiProviderProfileId, normalizedRight.SelectedAiProviderProfileId)
+            && Same(normalizedLeft.SelectedImageGenerationProfileId, normalizedRight.SelectedImageGenerationProfileId)
             && Same(normalizedLeft.TargetLanguage, normalizedRight.TargetLanguage)
             && Same(normalizedLeft.TranslationProviderPreference, normalizedRight.TranslationProviderPreference)
             && normalizedLeft.EnableApiContext == normalizedRight.EnableApiContext
@@ -114,6 +118,37 @@ public static class AppSettingsComparer
                 || leftProfile.MaxReferenceImageCount != rightProfile.MaxReferenceImageCount
                 || leftProfile.MaxOutputCount != rightProfile.MaxOutputCount
                 || leftProfile.SupportsCostEstimate != rightProfile.SupportsCostEstimate)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool AreImageGenerationProfilesEquivalent(IReadOnlyList<ImageGenerationProfile> left, IReadOnlyList<ImageGenerationProfile> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < left.Count; index++)
+        {
+            var leftProfile = left[index];
+            var rightProfile = right[index];
+            if (!Same(leftProfile.Id, rightProfile.Id, StringComparison.Ordinal)
+                || !Same(leftProfile.Name, rightProfile.Name, StringComparison.Ordinal)
+                || !Same(leftProfile.Protocol, rightProfile.Protocol)
+                || !Same(leftProfile.BaseUrl, rightProfile.BaseUrl, StringComparison.Ordinal)
+                || !Same(leftProfile.ApiKey, rightProfile.ApiKey, StringComparison.Ordinal)
+                || !Same(leftProfile.DefaultCheckpoint, rightProfile.DefaultCheckpoint, StringComparison.Ordinal)
+                || leftProfile.IsEnabled != rightProfile.IsEnabled
+                || leftProfile.IsDefault != rightProfile.IsDefault
+                || leftProfile.DefaultWidth != rightProfile.DefaultWidth
+                || leftProfile.DefaultHeight != rightProfile.DefaultHeight
+                || leftProfile.DefaultSteps != rightProfile.DefaultSteps
+                || !leftProfile.DefaultCfgScale.Equals(rightProfile.DefaultCfgScale))
             {
                 return false;
             }

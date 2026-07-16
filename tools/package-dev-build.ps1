@@ -16,7 +16,7 @@ $projectXml = [xml](Get-Content -LiteralPath $projectPath)
 $version = $projectXml.Project.PropertyGroup.Version | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
 if ([string]::IsNullOrWhiteSpace($version))
 {
-    $version = "0.4.4-preview"
+    $version = "0.4.5-preview"
 }
 
 $publishDir = Join-Path $outputRoot "SnapCat-v$version-dev-$timestamp"

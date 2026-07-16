@@ -38,6 +38,11 @@ public sealed class AppSettings
 
     public string SelectedAiProviderProfileId { get; set; } = string.Empty;
 
+    // Image generation backends are independent from visual-analysis providers.
+    public List<ImageGenerationProfile> ImageGenerationProfiles { get; set; } = [];
+
+    public string SelectedImageGenerationProfileId { get; set; } = string.Empty;
+
     public string TargetLanguage { get; set; } = "zh-CN";
 
     public string TranslationProviderPreference { get; set; } = SnapCat.Core.Models.TranslationProviderPreference.Local;
@@ -196,6 +201,43 @@ public sealed class AppSettings
                 ?? string.Empty;
         }
 
+    }
+
+    public void NormalizeImageGenerationProfiles()
+    {
+        for (var index = 0; index < ImageGenerationProfiles.Count; index++)
+        {
+            ImageGenerationProfiles[index].Normalize(index);
+        }
+
+        if (ImageGenerationProfiles.Count == 0)
+        {
+            SelectedImageGenerationProfileId = string.Empty;
+            return;
+        }
+
+        var selected = ImageGenerationProfiles.FirstOrDefault(profile =>
+            string.Equals(profile.Id, SelectedImageGenerationProfileId, StringComparison.Ordinal));
+        if (selected is null || !selected.IsEnabled)
+        {
+            SelectedImageGenerationProfileId = ImageGenerationProfiles
+                .FirstOrDefault(profile => profile.IsEnabled && profile.IsDefault)?.Id
+                ?? ImageGenerationProfiles.FirstOrDefault(profile => profile.IsEnabled)?.Id
+                ?? string.Empty;
+        }
+
+        foreach (var profile in ImageGenerationProfiles)
+        {
+            profile.IsDefault = string.Equals(profile.Id, SelectedImageGenerationProfileId, StringComparison.Ordinal);
+        }
+    }
+
+    public ImageGenerationProfile? GetSelectedImageGenerationProfile()
+    {
+        return ImageGenerationProfiles.FirstOrDefault(profile =>
+            string.Equals(profile.Id, SelectedImageGenerationProfileId, StringComparison.Ordinal))
+            ?? ImageGenerationProfiles.FirstOrDefault(profile => profile.IsEnabled)
+            ?? ImageGenerationProfiles.FirstOrDefault();
     }
 
     public AiProviderProfile? GetSelectedAiProviderProfile()

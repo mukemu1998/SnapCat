@@ -11,12 +11,14 @@ var temporaryDirectory = Path.Combine(
 try
 {
     await VerifyAiProfilePersistenceAsync(temporaryDirectory);
+    await VerifyImageGenerationProfilePersistenceAsync(temporaryDirectory);
     await VerifySettingsBackupRecoveryAsync(temporaryDirectory);
     VerifySettingsSnapshotAndComparison();
     VerifyReleaseUpdateManifest();
     await VerifyDownloadedUpdatePackageStagingAsync(temporaryDirectory);
     await VerifyUpdatePackageStagingAsync(temporaryDirectory);
     VerifyTaskStateMachine();
+    await VerifyComfyUiGenerationAsync();
     Console.WriteLine("SnapCat AI foundation checks passed.");
     return 0;
 }
@@ -96,6 +98,46 @@ static async Task VerifySettingsBackupRecoveryAsync(string directory)
     Assert(restored.AutoCheckUpdates, "The recovered backup should preserve user update preferences.");
 }
 
+static async Task VerifyImageGenerationProfilePersistenceAsync(string directory)
+{
+    const string apiKey = "snapcat-comfy-secret";
+    var settingsDirectory = Path.Combine(directory, "image-generation-profile");
+    var store = new JsonSettingsStore(settingsDirectory);
+    var settings = new AppSettings
+    {
+        ImageGenerationProfiles =
+        [
+            new ImageGenerationProfile
+            {
+                Id = "comfy-local",
+                Name = "本地 ComfyUI",
+                BaseUrl = "http://127.0.0.1:8188",
+                ApiKey = apiKey,
+                DefaultCheckpoint = "sdxl-base.safetensors",
+                IsDefault = true,
+                DefaultWidth = 1216,
+                DefaultHeight = 832,
+                DefaultSteps = 28,
+                DefaultCfgScale = 6.5d
+            }
+        ],
+        SelectedImageGenerationProfileId = "comfy-local"
+    };
+    settings.NormalizeImageGenerationProfiles();
+
+    await store.SaveAsync(settings);
+    var persisted = await File.ReadAllTextAsync(Path.Combine(settingsDirectory, "settings.json"));
+    Assert(!persisted.Contains(apiKey, StringComparison.Ordinal), "Image generation credentials must not be persisted as plaintext.");
+
+    var loaded = await store.LoadAsync();
+    var profile = loaded.GetSelectedImageGenerationProfile()
+        ?? throw new InvalidOperationException("Image generation profile should be restored.");
+    Assert(profile.ApiKey == apiKey, "DPAPI-protected generation credentials should be restored.");
+    Assert(profile.DefaultCheckpoint == "sdxl-base.safetensors", "The selected checkpoint should be restored.");
+    Assert(profile.DefaultWidth == 1216 && profile.DefaultHeight == 832, "Image generation dimensions should be restored.");
+    Assert(profile.DefaultSteps == 28 && Math.Abs(profile.DefaultCfgScale - 6.5d) < 0.001d, "Image generation sampling parameters should be restored.");
+}
+
 static void VerifySettingsSnapshotAndComparison()
 {
     var original = new AppSettings
@@ -140,6 +182,16 @@ static void VerifySettingsSnapshotAndComparison()
     snapshot = AppSettingsCloneService.Clone(original);
     snapshot.AutoCheckUpdates = true;
     Assert(!AppSettingsComparer.AreEquivalent(original, snapshot), "Automatic update changes must participate in the unsaved-settings comparison.");
+
+    snapshot = AppSettingsCloneService.Clone(original);
+    snapshot.ImageGenerationProfiles.Add(new ImageGenerationProfile
+    {
+        Id = "comfy-local",
+        Name = "ComfyUI",
+        DefaultCheckpoint = "sdxl.safetensors"
+    });
+    snapshot.SelectedImageGenerationProfileId = "comfy-local";
+    Assert(!AppSettingsComparer.AreEquivalent(original, snapshot), "Image generation profiles must participate in the unsaved-settings comparison.");
 }
 
 static void VerifyTaskStateMachine()
@@ -165,6 +217,49 @@ static void VerifyTaskStateMachine()
     var interruptedCount = coordinator.InterruptActiveTasks("测试退出");
     Assert(interruptedCount == 1, "Only active tasks should be interrupted.");
     Assert(coordinator.Get(activeTask.Id)?.Status == AiTaskStatus.Interrupted, "Active tasks should be marked interrupted.");
+}
+
+static async Task VerifyComfyUiGenerationAsync()
+{
+    var handler = new ComfyUiHttpMessageHandler();
+    using var client = new HttpClient(handler);
+    var service = new ComfyUiImageGenerationService(client, new AiTaskCoordinator());
+    var profile = new ImageGenerationProfile
+    {
+        Id = "comfy-local",
+        Name = "ComfyUI",
+        BaseUrl = "http://127.0.0.1:8188",
+        DefaultCheckpoint = "sdxl-base.safetensors"
+    };
+
+    var connection = await service.TestConnectionAsync(profile);
+    Assert(connection.Success, "ComfyUI system stats should validate the backend connection.");
+
+    var models = await service.GetCheckpointModelsAsync(profile);
+    Assert(models.SequenceEqual(["sdxl-base.safetensors", "sdxl-refiner.safetensors"]), "ComfyUI checkpoint discovery should return stable sorted model names.");
+
+    var result = await service.GenerateAsync(new ImageGenerationRequest
+    {
+        Prompt = "a blue cat on a desk",
+        NegativePrompt = "low quality",
+        Width = 1025,
+        Height = 769,
+        Steps = 20,
+        CfgScale = 6d
+    }, profile);
+    Assert(result.Success && result.Outputs.Count == 1, "ComfyUI single-image generation should return its output artifact.");
+    Assert(result.Outputs[0].Content.SequenceEqual(new byte[] { 1, 2, 3 }), "ComfyUI output bytes should be downloaded through the view endpoint.");
+    Assert(handler.LastPromptPayload.Contains("CheckpointLoaderSimple", StringComparison.Ordinal), "The ComfyUI workflow should include a checkpoint loader.");
+    Assert(handler.LastPromptPayload.Contains("CLIPTextEncode", StringComparison.Ordinal), "The ComfyUI workflow should include prompt encoders.");
+    Assert(handler.LastPromptPayload.Contains("\"width\":1024", StringComparison.Ordinal), "Workflow dimensions should normalize to multiples of eight.");
+
+    using var cancellation = new CancellationTokenSource();
+    cancellation.Cancel();
+    var cancelled = await service.GenerateAsync(new ImageGenerationRequest
+    {
+        Prompt = "cancelled generation"
+    }, profile, cancellation.Token);
+    Assert(!cancelled.Success && cancelled.ErrorMessage.Contains("停止等待", StringComparison.Ordinal), "Cancelling generation should return an explicit local-wait status.");
 }
 
 static void VerifyReleaseUpdateManifest()
@@ -307,4 +402,49 @@ sealed class UpdatePackageHttpMessageHandler(byte[] packageBytes) : HttpMessageH
             Content = new ByteArrayContent(packageBytes)
         });
     }
+}
+
+sealed class ComfyUiHttpMessageHandler : HttpMessageHandler
+{
+    public string LastPromptPayload { get; private set; } = string.Empty;
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+        if (request.Method == HttpMethod.Get && path.EndsWith("/system_stats", StringComparison.Ordinal))
+        {
+            return Json("{\"system\":{\"os\":\"Windows\"}}");
+        }
+
+        if (request.Method == HttpMethod.Get && path.EndsWith("/object_info/CheckpointLoaderSimple", StringComparison.Ordinal))
+        {
+            return Json("{\"CheckpointLoaderSimple\":{\"input\":{\"required\":{\"ckpt_name\":[[\"sdxl-refiner.safetensors\",\"sdxl-base.safetensors\"]]}}}}");
+        }
+
+        if (request.Method == HttpMethod.Post && path.EndsWith("/prompt", StringComparison.Ordinal))
+        {
+            LastPromptPayload = await request.Content!.ReadAsStringAsync(cancellationToken);
+            return Json("{\"prompt_id\":\"prompt-1\"}");
+        }
+
+        if (request.Method == HttpMethod.Get && path.EndsWith("/history/prompt-1", StringComparison.Ordinal))
+        {
+            return Json("{\"prompt-1\":{\"outputs\":{\"7\":{\"images\":[{\"filename\":\"SnapCat_00001.png\",\"subfolder\":\"\",\"type\":\"output\"}]}}}}");
+        }
+
+        if (request.Method == HttpMethod.Get && path.EndsWith("/view", StringComparison.Ordinal))
+        {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent([1, 2, 3])
+            };
+        }
+
+        return new HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
+    }
+
+    private static HttpResponseMessage Json(string content) => new(System.Net.HttpStatusCode.OK)
+    {
+        Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json")
+    };
 }
