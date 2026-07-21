@@ -29,15 +29,44 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
     };
 
     private readonly string _stateFilePath;
+    private ProjectWorkspaceState _state;
 
     public ProjectWorkspaceService(string userDataDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userDataDirectory);
-        DefaultProjectsDirectory = Path.Combine(userDataDirectory, "projects");
+        BuiltInDefaultProjectsDirectory = Path.Combine(userDataDirectory, "项目");
         _stateFilePath = Path.Combine(userDataDirectory, StateFileName);
+        _state = ReadStateSafely();
+        DefaultProjectsDirectory = ResolveProjectsDirectory(_state.DefaultProjectsDirectory);
     }
 
-    public string DefaultProjectsDirectory { get; }
+    public string DefaultProjectsDirectory { get; private set; }
+
+    public string BuiltInDefaultProjectsDirectory { get; }
+
+    public async Task SetDefaultProjectsDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
+        var normalized = Path.GetFullPath(directoryPath.Trim());
+        if (string.Equals(normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                Path.GetPathRoot(normalized)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("请先选择一个具体文件夹，不要直接使用磁盘根目录。", nameof(directoryPath));
+        }
+
+        Directory.CreateDirectory(normalized);
+        _state.DefaultProjectsDirectory = normalized;
+        DefaultProjectsDirectory = normalized;
+        await SaveStateAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ResetDefaultProjectsDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        _state.DefaultProjectsDirectory = string.Empty;
+        DefaultProjectsDirectory = BuiltInDefaultProjectsDirectory;
+        await SaveStateAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     public async Task<string?> GetLastOpenedProjectDirectoryAsync(CancellationToken cancellationToken = default)
     {
@@ -59,6 +88,70 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         catch
         {
             return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<ProjectWorkspaceSummary>> ListLocalProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(DefaultProjectsDirectory);
+        var summaries = new List<ProjectWorkspaceSummary>();
+        foreach (var projectFilePath in Directory.EnumerateFiles(DefaultProjectsDirectory, ProjectFileName, SearchOption.AllDirectories))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                await using var stream = File.OpenRead(projectFilePath);
+                var project = await JsonSerializer.DeserializeAsync<SnapCatProject>(stream, SerializerOptions, cancellationToken)
+                    .ConfigureAwait(false);
+                if (project is null)
+                {
+                    continue;
+                }
+
+                NormalizeProject(project);
+                var directoryPath = Path.GetDirectoryName(projectFilePath)!;
+                summaries.Add(new ProjectWorkspaceSummary
+                {
+                    DirectoryPath = directoryPath,
+                    ProjectId = project.Id,
+                    Name = project.Name,
+                    UpdatedAt = project.UpdatedAt,
+                    AssetCount = project.Assets.Count,
+                    CoverImageRelativePath = FindCoverImageRelativePath(directoryPath, project.Assets)
+                });
+            }
+            catch (IOException)
+            {
+                // A project being written must not block the rest of the local project library.
+            }
+            catch (JsonException)
+            {
+                // Invalid project files are skipped; opening them manually will still show the detailed failure.
+            }
+        }
+
+        return summaries
+            .GroupBy(static summary => summary.DirectoryPath, StringComparer.OrdinalIgnoreCase)
+            .Select(static group => group.First())
+            .OrderByDescending(static summary => summary.UpdatedAt)
+            .ToList();
+    }
+
+    public async Task DeleteLocalProjectAsync(string projectDirectory, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectDirectory);
+        var root = Path.GetFullPath(projectDirectory);
+        if (!File.Exists(Path.Combine(root, ProjectFileName)))
+        {
+            throw new FileNotFoundException("未找到需要删除的项目文件。", Path.Combine(root, ProjectFileName));
+        }
+
+        var lastOpenedDirectory = await GetLastOpenedProjectDirectoryAsync(cancellationToken).ConfigureAwait(false);
+        await Task.Run(() => Directory.Delete(root, recursive: true), cancellationToken).ConfigureAwait(false);
+        if (string.Equals(lastOpenedDirectory, root, StringComparison.OrdinalIgnoreCase))
+        {
+            _state.LastOpenedProjectDirectory = string.Empty;
+            await SaveStateAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -111,6 +204,44 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         return workspace;
     }
 
+    public async Task<ProjectWorkspace> RenameAsync(
+        ProjectWorkspace workspace,
+        string projectName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+
+        var sourceDirectory = Path.GetFullPath(workspace.DirectoryPath);
+        var parentDirectory = Path.GetDirectoryName(sourceDirectory)
+            ?? throw new InvalidOperationException("项目目录缺少父级目录，无法重命名。");
+        var normalizedName = NormalizeProjectName(projectName);
+        var targetDirectory = Path.Combine(parentDirectory, normalizedName);
+
+        if (string.Equals(sourceDirectory, targetDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            workspace.Project.Name = normalizedName;
+            await SaveAsync(workspace, cancellationToken).ConfigureAwait(false);
+            return workspace;
+        }
+
+        if (Directory.Exists(targetDirectory) || File.Exists(targetDirectory))
+        {
+            throw new IOException($"同名项目目录已存在：{normalizedName}");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await Task.Run(() => Directory.Move(sourceDirectory, targetDirectory), cancellationToken).ConfigureAwait(false);
+
+        workspace.Project.Name = normalizedName;
+        var renamedWorkspace = new ProjectWorkspace
+        {
+            DirectoryPath = targetDirectory,
+            Project = workspace.Project
+        };
+        await SaveAsync(renamedWorkspace, cancellationToken).ConfigureAwait(false);
+        return renamedWorkspace;
+    }
+
     public async Task SaveAsync(ProjectWorkspace workspace, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
@@ -126,7 +257,8 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         string sourcePath,
         ProjectAssetKind kind = ProjectAssetKind.Imported,
         ProjectAssetCategory category = ProjectAssetCategory.Unclassified,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? customCategory = null)
     {
         ArgumentNullException.ThrowIfNull(workspace);
         if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
@@ -142,14 +274,14 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
 
         EnsureProjectDirectories(workspace.DirectoryPath);
         var assetId = Guid.NewGuid().ToString("N");
-        var storageDirectoryName = GetStorageDirectoryName(kind);
+        var storageDirectoryName = GetStorageDirectoryName(workspace.DirectoryPath, kind);
         var storedFileName = assetId + extension.ToLowerInvariant();
         var relativePath = Path.Combine(storageDirectoryName, storedFileName);
         var destinationPath = GetSafeProjectPath(workspace.DirectoryPath, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
         await CopyFileAsync(sourcePath, destinationPath, cancellationToken).ConfigureAwait(false);
 
-        var thumbnailRelativePath = Path.Combine("thumbnails", assetId + ".png");
+        var thumbnailRelativePath = Path.Combine(GetThumbnailDirectoryName(workspace.DirectoryPath), assetId + ".png");
         var thumbnailPath = GetSafeProjectPath(workspace.DirectoryPath, thumbnailRelativePath);
         TryCreateThumbnail(destinationPath, thumbnailPath);
 
@@ -159,6 +291,7 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
             DisplayName = Path.GetFileName(sourcePath),
             Kind = kind,
             Category = category,
+            CustomCategory = NormalizeCustomCategory(customCategory),
             RelativePath = relativePath,
             ThumbnailRelativePath = File.Exists(thumbnailPath) ? thumbnailRelativePath : string.Empty,
             CreatedAt = DateTimeOffset.Now,
@@ -191,11 +324,52 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
             sourcePath,
             kind,
             parent.Category,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            parent.CustomCategory).ConfigureAwait(false);
         asset.ParentAssetId = parent.Id;
         asset.Version = parent.Version + 1;
         await SaveAsync(workspace, cancellationToken).ConfigureAwait(false);
         return asset;
+    }
+
+    public async Task<int> UpdateAssetCategoriesAsync(
+        ProjectWorkspace workspace,
+        IEnumerable<string> assetIds,
+        ProjectAssetCategory category,
+        CancellationToken cancellationToken = default,
+        string? customCategory = null)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(assetIds);
+        var selectedIds = assetIds
+            .Where(static id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+        if (selectedIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var normalizedCustomCategory = NormalizeCustomCategory(customCategory);
+        var changedCount = 0;
+        foreach (var asset in workspace.Project.Assets.Where(asset => selectedIds.Contains(asset.Id)))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (asset.Category == category && string.Equals(asset.CustomCategory, normalizedCustomCategory, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            asset.Category = category;
+            asset.CustomCategory = normalizedCustomCategory;
+            changedCount++;
+        }
+
+        if (changedCount > 0)
+        {
+            await SaveAsync(workspace, cancellationToken).ConfigureAwait(false);
+        }
+
+        return changedCount;
     }
 
     public async Task<ProjectAssetCollection> CreateCollectionAsync(
@@ -250,7 +424,7 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
             return 0;
         }
 
-        var recycleDirectory = Path.Combine(workspace.DirectoryPath, "recycle-bin");
+        var recycleDirectory = GetRecycleDirectoryPath(workspace.DirectoryPath);
         Directory.CreateDirectory(recycleDirectory);
         var removedAssets = workspace.Project.Assets
             .Where(asset => selectedIds.Contains(asset.Id))
@@ -291,6 +465,47 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         return removedAssets.Count;
     }
 
+    public async Task<int> DeleteAssetsPermanentlyAsync(
+        ProjectWorkspace workspace,
+        IEnumerable<string> assetIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(assetIds);
+        var selectedIds = assetIds
+            .Where(static id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+        if (selectedIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var removedAssets = workspace.Project.Assets
+            .Where(asset => selectedIds.Contains(asset.Id))
+            .ToList();
+        foreach (var asset in removedAssets)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            DeleteProjectFileIfPresent(workspace.DirectoryPath, asset.RelativePath);
+            DeleteProjectFileIfPresent(workspace.DirectoryPath, asset.ThumbnailRelativePath);
+            workspace.Project.Assets.Remove(asset);
+        }
+
+        if (removedAssets.Count == 0)
+        {
+            return 0;
+        }
+
+        var removedIds = removedAssets.Select(static asset => asset.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var collection in workspace.Project.Collections)
+        {
+            collection.AssetIds.RemoveAll(removedIds.Contains);
+        }
+
+        await SaveAsync(workspace, cancellationToken).ConfigureAwait(false);
+        return removedAssets.Count;
+    }
+
     public async Task<int> RestoreFromRecycleBinAsync(
         ProjectWorkspace workspace,
         IEnumerable<string> assetIds,
@@ -305,7 +520,7 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
             return 0;
         }
 
-        var recycleDirectory = Path.Combine(workspace.DirectoryPath, "recycle-bin");
+        var recycleDirectory = GetRecycleDirectoryPath(workspace.DirectoryPath);
         if (!Directory.Exists(recycleDirectory))
         {
             return 0;
@@ -360,12 +575,54 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         return restoredCount;
     }
 
+    public Task<int> DeleteFromRecycleBinAsync(
+        ProjectWorkspace workspace,
+        IEnumerable<string> assetIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(assetIds);
+        var requestedIds = assetIds.Where(static id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.Ordinal);
+        if (requestedIds.Count == 0)
+        {
+            return Task.FromResult(0);
+        }
+
+        var recycleDirectory = GetRecycleDirectoryPath(workspace.DirectoryPath);
+        if (!Directory.Exists(recycleDirectory))
+        {
+            return Task.FromResult(0);
+        }
+
+        var deletedCount = 0;
+        foreach (var assetId in requestedIds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var metadataPath = Path.Combine(recycleDirectory, $"{assetId}.json");
+            if (!File.Exists(metadataPath))
+            {
+                continue;
+            }
+
+            foreach (var filePath in Directory.EnumerateFiles(recycleDirectory, $"{assetId}-*", SearchOption.TopDirectoryOnly))
+            {
+                File.Delete(filePath);
+            }
+
+            File.Delete(metadataPath);
+            deletedCount++;
+        }
+
+        return Task.FromResult(deletedCount);
+    }
+
     public async Task<IReadOnlyList<ProjectAsset>> GetRecycledAssetsAsync(
         ProjectWorkspace workspace,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        var recycleDirectory = Path.Combine(workspace.DirectoryPath, "recycle-bin");
+        var recycleDirectory = GetRecycleDirectoryPath(workspace.DirectoryPath);
         if (!Directory.Exists(recycleDirectory))
         {
             return [];
@@ -465,6 +722,7 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         asset.DisplayName = string.IsNullOrWhiteSpace(asset.DisplayName) ? "未命名素材" : asset.DisplayName.Trim();
         asset.RelativePath = NormalizeRelativePath(asset.RelativePath);
         asset.ThumbnailRelativePath = NormalizeRelativePath(asset.ThumbnailRelativePath);
+        asset.CustomCategory = NormalizeCustomCategory(asset.CustomCategory);
         asset.Version = Math.Max(1, asset.Version);
         asset.ParentAssetId = string.IsNullOrWhiteSpace(asset.ParentAssetId) ? null : asset.ParentAssetId.Trim();
         return asset;
@@ -492,6 +750,12 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
     {
         var normalized = string.Join(' ', (name ?? string.Empty).Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return string.IsNullOrWhiteSpace(normalized) ? "未命名素材集合" : normalized[..Math.Min(normalized.Length, 80)];
+    }
+
+    private static string NormalizeCustomCategory(string? category)
+    {
+        var compact = string.Join(' ', (category ?? string.Empty).Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return compact[..Math.Min(compact.Length, 40)];
     }
 
     private static string NormalizeProjectName(string? name)
@@ -523,22 +787,57 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
     private static void EnsureProjectDirectories(string root)
     {
         Directory.CreateDirectory(root);
-        foreach (var directory in new[] { "originals", "generated", "references", "thumbnails", "cache", "recycle-bin" })
+        foreach (var directory in UsesLegacyDirectoryLayout(root) ? LegacyProjectDirectories : LocalizedProjectDirectories)
         {
             Directory.CreateDirectory(Path.Combine(root, directory));
         }
     }
 
-    private static string GetStorageDirectoryName(ProjectAssetKind kind) => kind switch
+    private static string GetStorageDirectoryName(string projectRoot, ProjectAssetKind kind) => kind switch
     {
-        ProjectAssetKind.Generated => "generated",
-        ProjectAssetKind.Reference => "references",
-        _ => "originals"
+        ProjectAssetKind.Generated => GetProjectDirectoryName(projectRoot, "generated", "生成素材"),
+        ProjectAssetKind.Reference => GetProjectDirectoryName(projectRoot, "references", "参考素材"),
+        _ => GetProjectDirectoryName(projectRoot, "originals", "导入素材")
     };
 
-    private static bool IsCachePath(string relativePath) =>
-        relativePath.StartsWith($"cache{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-        || relativePath.StartsWith($"cache{Path.AltDirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
+    private static string GetThumbnailDirectoryName(string projectRoot) =>
+        GetProjectDirectoryName(projectRoot, "thumbnails", "缩略图");
+
+    private static string GetRecycleDirectoryPath(string projectRoot) =>
+        Path.Combine(projectRoot, GetProjectDirectoryName(projectRoot, "recycle-bin", "回收站"));
+
+    private static string GetProjectDirectoryName(string projectRoot, string legacyName, string localizedName) =>
+        UsesLegacyDirectoryLayout(projectRoot) ? legacyName : localizedName;
+
+    private static bool UsesLegacyDirectoryLayout(string projectRoot) =>
+        LegacyProjectDirectories.Any(directory => Directory.Exists(Path.Combine(projectRoot, directory)));
+
+    private static bool IsCachePath(string relativePath)
+    {
+        var normalizedPath = relativePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        return normalizedPath.StartsWith($"cache{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+               || normalizedPath.StartsWith($"缓存{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+    }
+
+    private static readonly string[] LocalizedProjectDirectories =
+    [
+        "导入素材",
+        "生成素材",
+        "参考素材",
+        "缩略图",
+        "缓存",
+        "回收站"
+    ];
+
+    private static readonly string[] LegacyProjectDirectories =
+    [
+        "originals",
+        "generated",
+        "references",
+        "thumbnails",
+        "cache",
+        "recycle-bin"
+    ];
 
     private static string NormalizeRelativePath(string? relativePath)
     {
@@ -569,6 +868,43 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         }
 
         return candidate;
+    }
+
+    private static string FindCoverImageRelativePath(string projectRoot, IEnumerable<ProjectAsset> assets)
+    {
+        // The first imported image becomes the stable automatic cover until a dedicated cover selector is added.
+        foreach (var asset in assets.OrderBy(static asset => asset.CreatedAt))
+        {
+            foreach (var relativePath in new[] { asset.ThumbnailRelativePath, asset.RelativePath })
+            {
+                if (string.IsNullOrWhiteSpace(relativePath))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (File.Exists(GetSafeProjectPath(projectRoot, relativePath)))
+                    {
+                        return relativePath;
+                    }
+                }
+                catch (InvalidDataException)
+                {
+                    // Invalid legacy paths are ignored when choosing an optional cover.
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static bool IsPathInsideDirectory(string candidatePath, string parentDirectory)
+    {
+        var parent = Path.GetFullPath(parentDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var candidate = Path.GetFullPath(candidatePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return candidate.StartsWith(parent, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<ProjectRecycleBinEntry?> ReadRecycleBinEntryAsync(
@@ -643,6 +979,20 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
         File.Move(sourcePath, targetPath);
     }
 
+    private static void DeleteProjectFileIfPresent(string root, string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return;
+        }
+
+        var filePath = GetSafeProjectPath(root, relativePath);
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+    }
+
     private static bool RestoreProjectFileFromRecycleBin(string root, string recycleDirectory, string relativePath, string assetId)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
@@ -671,9 +1021,51 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
 
     private async Task SaveLastOpenedProjectDirectoryAsync(string directoryPath, CancellationToken cancellationToken)
     {
-        var state = new ProjectWorkspaceState { LastOpenedProjectDirectory = Path.GetFullPath(directoryPath) };
-        await WriteJsonAtomicallyAsync(_stateFilePath, state, cancellationToken).ConfigureAwait(false);
+        _state.LastOpenedProjectDirectory = Path.GetFullPath(directoryPath);
+        await SaveStateAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    private ProjectWorkspaceState ReadStateSafely()
+    {
+        if (!File.Exists(_stateFilePath))
+        {
+            return new ProjectWorkspaceState();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<ProjectWorkspaceState>(File.ReadAllText(_stateFilePath), SerializerOptions)
+                   ?? new ProjectWorkspaceState();
+        }
+        catch (IOException)
+        {
+            return new ProjectWorkspaceState();
+        }
+        catch (JsonException)
+        {
+            return new ProjectWorkspaceState();
+        }
+    }
+
+    private string ResolveProjectsDirectory(string? configuredDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(configuredDirectory))
+        {
+            return BuiltInDefaultProjectsDirectory;
+        }
+
+        try
+        {
+            return Path.GetFullPath(configuredDirectory);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return BuiltInDefaultProjectsDirectory;
+        }
+    }
+
+    private Task SaveStateAsync(CancellationToken cancellationToken) =>
+        WriteJsonAtomicallyAsync(_stateFilePath, _state, cancellationToken);
 
     private static async Task WriteJsonAtomicallyAsync<T>(string path, T payload, CancellationToken cancellationToken)
     {
@@ -690,6 +1082,8 @@ public sealed class ProjectWorkspaceService : IProjectWorkspaceService
     private sealed class ProjectWorkspaceState
     {
         public string LastOpenedProjectDirectory { get; set; } = string.Empty;
+
+        public string DefaultProjectsDirectory { get; set; } = string.Empty;
     }
 
     private sealed class ProjectRecycleBinEntry

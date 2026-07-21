@@ -6,7 +6,17 @@ public interface IProjectWorkspaceService
 {
     string DefaultProjectsDirectory { get; }
 
+    string BuiltInDefaultProjectsDirectory { get; }
+
+    Task SetDefaultProjectsDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default);
+
+    Task ResetDefaultProjectsDirectoryAsync(CancellationToken cancellationToken = default);
+
     Task<string?> GetLastOpenedProjectDirectoryAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ProjectWorkspaceSummary>> ListLocalProjectsAsync(CancellationToken cancellationToken = default);
+
+    Task DeleteLocalProjectAsync(string projectDirectory, CancellationToken cancellationToken = default);
 
     Task<ProjectWorkspace> CreateAsync(
         string parentDirectory,
@@ -15,6 +25,11 @@ public interface IProjectWorkspaceService
 
     Task<ProjectWorkspace> OpenAsync(string projectDirectory, CancellationToken cancellationToken = default);
 
+    Task<ProjectWorkspace> RenameAsync(
+        ProjectWorkspace workspace,
+        string projectName,
+        CancellationToken cancellationToken = default);
+
     Task SaveAsync(ProjectWorkspace workspace, CancellationToken cancellationToken = default);
 
     Task<ProjectAsset> ImportImageAsync(
@@ -22,7 +37,8 @@ public interface IProjectWorkspaceService
         string sourcePath,
         ProjectAssetKind kind = ProjectAssetKind.Imported,
         ProjectAssetCategory category = ProjectAssetCategory.Unclassified,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? customCategory = null);
 
     Task<ProjectAsset> CreateDerivedAssetAsync(
         ProjectWorkspace workspace,
@@ -30,6 +46,13 @@ public interface IProjectWorkspaceService
         string sourcePath,
         ProjectAssetKind kind = ProjectAssetKind.Generated,
         CancellationToken cancellationToken = default);
+
+    Task<int> UpdateAssetCategoriesAsync(
+        ProjectWorkspace workspace,
+        IEnumerable<string> assetIds,
+        ProjectAssetCategory category,
+        CancellationToken cancellationToken = default,
+        string? customCategory = null);
 
     Task<ProjectAssetCollection> CreateCollectionAsync(
         ProjectWorkspace workspace,
@@ -48,7 +71,17 @@ public interface IProjectWorkspaceService
         IEnumerable<string> assetIds,
         CancellationToken cancellationToken = default);
 
+    Task<int> DeleteAssetsPermanentlyAsync(
+        ProjectWorkspace workspace,
+        IEnumerable<string> assetIds,
+        CancellationToken cancellationToken = default);
+
     Task<int> RestoreFromRecycleBinAsync(
+        ProjectWorkspace workspace,
+        IEnumerable<string> assetIds,
+        CancellationToken cancellationToken = default);
+
+    Task<int> DeleteFromRecycleBinAsync(
         ProjectWorkspace workspace,
         IEnumerable<string> assetIds,
         CancellationToken cancellationToken = default);

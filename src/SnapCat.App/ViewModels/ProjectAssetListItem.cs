@@ -5,7 +5,11 @@ using SnapCat.Core.Models;
 
 namespace SnapCat.App.ViewModels;
 
-internal sealed record ProjectAssetListItem(ProjectAsset Asset, string SourcePath, string ThumbnailPath)
+internal sealed record ProjectAssetListItem(
+    ProjectAsset Asset,
+    string SourcePath,
+    string ThumbnailPath,
+    int ReferenceOrder = 0)
 {
     public ImageSource? Thumbnail { get; } = ImageThumbnailLoader.Load(
         File.Exists(ThumbnailPath) ? ThumbnailPath : SourcePath,
@@ -13,7 +17,13 @@ internal sealed record ProjectAssetListItem(ProjectAsset Asset, string SourcePat
 
     public string Title => Asset.DisplayName;
 
-    public string Summary => $"{GetCategoryLabel(Asset.Category)} | {GetKindLabel(Asset.Kind)} | v{Asset.Version}{GetVersionSourceLabel()} | {Asset.CreatedAt:yyyy-MM-dd HH:mm}";
+    public string ReferenceOrderLabel => ReferenceOrder > 0 ? ReferenceOrder.ToString() : string.Empty;
+
+    public string Summary => $"{CategoryLabel} | {GetKindLabel(Asset.Kind)} | v{Asset.Version}{GetVersionSourceLabel()} | {Asset.CreatedAt:yyyy-MM-dd HH:mm}";
+
+    public string CategoryLabel => string.IsNullOrWhiteSpace(Asset.CustomCategory)
+        ? GetCategoryLabel(Asset.Category)
+        : Asset.CustomCategory;
 
     private string GetVersionSourceLabel() => string.IsNullOrWhiteSpace(Asset.ParentAssetId) ? string.Empty : " | 派生版本";
 

@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -11,6 +13,14 @@ namespace SnapCat.App.Windows;
 
 public partial class PinnedImageWindow : Window
 {
+    private const int GwlExStyle = -20;
+    private const long WsExToolWindow = 0x00000080L;
+    private const long WsExAppWindow = 0x00040000L;
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
+    private const uint SwpFrameChanged = 0x0020;
     private const double MinScale = 0.25d;
     private const double MaxScale = 4.0d;
     private const double ScaleStep = 0.10d;
@@ -57,12 +67,39 @@ public partial class PinnedImageWindow : Window
 
         PinnedImage.Source = _sourceBitmap;
         UpdateImageOrientation();
+        SourceInitialized += PinnedImageWindow_OnSourceInitialized;
         Loaded += PinnedImageWindow_OnLoaded;
     }
 
     public string PinnedId { get; }
 
     public string GroupName { get; set; } = string.Empty;
+
+    private void PinnedImageWindow_OnSourceInitialized(object? sender, EventArgs e)
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var currentStyle = GetWindowLongPtr(handle, GwlExStyle).ToInt64();
+        var toolWindowStyle = (currentStyle | WsExToolWindow) & ~WsExAppWindow;
+        if (toolWindowStyle == currentStyle)
+        {
+            return;
+        }
+
+        SetWindowLongPtr(handle, GwlExStyle, new IntPtr(toolWindowStyle));
+        SetWindowPos(
+            handle,
+            IntPtr.Zero,
+            0,
+            0,
+            0,
+            0,
+            SwpNoSize | SwpNoMove | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
+    }
 
     private void PinnedImageWindow_OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -115,5 +152,36 @@ public partial class PinnedImageWindow : Window
         Focus();
         _app.PinnedWindowRegistryService.SaveActiveWindows();
     }
+
+    private static IntPtr GetWindowLongPtr(IntPtr handle, int index) => IntPtr.Size == 8
+        ? GetWindowLongPtr64(handle, index)
+        : new IntPtr(GetWindowLong32(handle, index));
+
+    private static IntPtr SetWindowLongPtr(IntPtr handle, int index, IntPtr value) => IntPtr.Size == 8
+        ? SetWindowLongPtr64(handle, index, value)
+        : new IntPtr(SetWindowLong32(handle, index, value.ToInt32()));
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+    private static extern int GetWindowLong32(IntPtr handle, int index);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr")]
+    private static extern IntPtr GetWindowLongPtr64(IntPtr handle, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+    private static extern int SetWindowLong32(IntPtr handle, int index, int value);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+    private static extern IntPtr SetWindowLongPtr64(IntPtr handle, int index, IntPtr value);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr handle,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
 
 }

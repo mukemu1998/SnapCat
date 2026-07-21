@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using SnapCat.App.Services;
 using SnapCat.Core.Models;
@@ -262,12 +263,14 @@ public sealed class TranslationPopupViewModel : ObservableObject
                 sourceText,
                 TargetLanguageCode);
 
+            var stopwatch = Stopwatch.StartNew();
             var result = await _translationService.TranslateAsync(sourceText, effectiveSettings);
+            stopwatch.Stop();
             if (result.Success)
             {
                 UpdateTranslationResult(
                     result.Text,
-                    $"翻译完成，目标语言：{GetSelectedTargetLanguageLabel()}，来源：{SelectedProviderLabel}");
+                    $"翻译完成，目标语言：{GetSelectedTargetLanguageLabel()}，来源：{SelectedProviderLabel}，耗时：{stopwatch.Elapsed.TotalSeconds:0.0} 秒");
             }
             else
             {

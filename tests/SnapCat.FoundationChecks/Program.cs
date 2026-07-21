@@ -20,6 +20,7 @@ try
     await VerifyUpdatePackageStagingAsync(temporaryDirectory);
     VerifyTaskStateMachine();
     await VerifyComfyUiGenerationAsync();
+    await VerifyApiTranslationChunkingAsync();
     Console.WriteLine("SnapCat AI foundation checks passed.");
     return 0;
 }
@@ -150,10 +151,23 @@ static async Task VerifyProjectWorkspaceAsync(string directory)
         Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Jd4UAAAAASUVORK5CYII="));
 
     var service = new ProjectWorkspaceService(userDataDirectory);
+    var customProjectsDirectory = Path.Combine(directory, "自定义项目目录");
+    await service.SetDefaultProjectsDirectoryAsync(customProjectsDirectory);
+    Assert(service.DefaultProjectsDirectory == Path.GetFullPath(customProjectsDirectory), "A custom project library directory should apply immediately.");
+    service = new ProjectWorkspaceService(userDataDirectory);
+    Assert(service.DefaultProjectsDirectory == Path.GetFullPath(customProjectsDirectory), "The custom project library directory should persist after restart.");
     var workspace = await service.CreateAsync(service.DefaultProjectsDirectory, "基础项目");
     Assert(File.Exists(Path.Combine(workspace.DirectoryPath, "project.json")), "New projects should write project.json.");
-    Assert(Directory.Exists(Path.Combine(workspace.DirectoryPath, "originals")), "New projects should initialize the originals directory.");
-    Assert(Directory.Exists(Path.Combine(workspace.DirectoryPath, "thumbnails")), "New projects should initialize the thumbnails directory.");
+    Assert(Directory.Exists(Path.Combine(workspace.DirectoryPath, "导入素材")), "New projects should initialize the localized imports directory.");
+    Assert(Directory.Exists(Path.Combine(workspace.DirectoryPath, "缩略图")), "New projects should initialize the localized thumbnails directory.");
+
+    var originalWorkspaceDirectory = workspace.DirectoryPath;
+    workspace = await service.RenameAsync(workspace, "中文项目 重命名");
+    Assert(workspace.Project.Name == "中文项目 重命名", "Renaming a project should update its display name.");
+    Assert(Directory.Exists(workspace.DirectoryPath), "Renaming a project should move its project directory.");
+    Assert(!Directory.Exists(originalWorkspaceDirectory), "The previous project directory should not remain after a rename.");
+    Assert(Path.GetFileName(workspace.DirectoryPath) == "中文项目 重命名", "Chinese project names should be safe as project directory names.");
+    Assert(await service.GetLastOpenedProjectDirectoryAsync() == workspace.DirectoryPath, "Renaming a project should update the last opened project state.");
 
     var asset = await service.ImportImageAsync(
         workspace,
@@ -164,11 +178,35 @@ static async Task VerifyProjectWorkspaceAsync(string directory)
     Assert(!Path.IsPathRooted(asset.RelativePath), "Project asset paths must stay relative for portable projects.");
     Assert(File.Exists(Path.Combine(workspace.DirectoryPath, asset.RelativePath)), "Importing should copy the source into the project.");
     Assert(File.Exists(sourcePath), "Importing must not move or delete the source image.");
+    var lastOpenedBeforeLibraryRead = await service.GetLastOpenedProjectDirectoryAsync();
+    var localProjects = await service.ListLocalProjectsAsync();
+    var localSummary = localProjects.Single(summary => summary.DirectoryPath == workspace.DirectoryPath);
+    Assert(localSummary.Name == workspace.Project.Name && localSummary.AssetCount == 1, "The local project library should expose project metadata without opening the project.");
+    Assert(!string.IsNullOrWhiteSpace(localSummary.CoverImageRelativePath), "The local project library should choose an available project image as its cover.");
+    Assert(await service.GetLastOpenedProjectDirectoryAsync() == lastOpenedBeforeLibraryRead, "Reading project cards must not overwrite the last opened project state.");
+
+    var disposableWorkspace = await service.CreateAsync(service.DefaultProjectsDirectory, "待删除项目");
+    await service.DeleteLocalProjectAsync(disposableWorkspace.DirectoryPath);
+    Assert(!Directory.Exists(disposableWorkspace.DirectoryPath), "Deleting a local project should remove only the selected managed project directory.");
     var references = ProjectAssetReferenceResolver.Resolve(workspace.Project, "使用 @reference 与 @{reference.png} 作为参考。");
     Assert(references.Count == 1 && references[0].Asset.Id == asset.Id, "Project prompt references should resolve explicit material names without filesystem paths.");
 
     var derivedAsset = await service.CreateDerivedAssetAsync(workspace, asset.Id, sourcePath);
     Assert(derivedAsset.ParentAssetId == asset.Id && derivedAsset.Version == asset.Version + 1, "Derived project assets should retain a stable parent reference and increment version.");
+
+    var categoryChangedCount = await service.UpdateAssetCategoriesAsync(workspace, [asset.Id, derivedAsset.Id], ProjectAssetCategory.Character);
+    Assert(categoryChangedCount == 2, "Project assets should support batch category updates.");
+    Assert(workspace.Project.Assets.All(item => item.Category == ProjectAssetCategory.Character), "Batch category updates should persist on the workspace model.");
+
+    var customCategoryChangedCount = await service.UpdateAssetCategoriesAsync(
+        workspace,
+        [asset.Id, derivedAsset.Id],
+        ProjectAssetCategory.Unclassified,
+        customCategory: "服装设计");
+    Assert(customCategoryChangedCount == 2, "Project assets should support batch custom category updates.");
+    Assert(workspace.Project.Assets.All(item => item.CustomCategory == "服装设计"), "Custom asset categories should persist on the workspace model.");
+    var customCategoryReloadedWorkspace = await service.OpenAsync(workspace.DirectoryPath);
+    Assert(customCategoryReloadedWorkspace.Project.Assets.All(item => item.CustomCategory == "服装设计"), "Custom asset categories should survive reopening the project.");
 
     var collection = await service.CreateCollectionAsync(workspace, "角色参考", [asset.Id, derivedAsset.Id]);
     Assert(collection.AssetIds.SequenceEqual([asset.Id, derivedAsset.Id]), "New project collections should retain stable asset IDs.");
@@ -200,7 +238,7 @@ static async Task VerifyProjectWorkspaceAsync(string directory)
     Assert(recycledCount == 1, "Deleting a project asset should move exactly the selected asset to the project recycle bin.");
     Assert(reopened.Project.Assets.Single().Id == derivedAsset.Id, "Recycling one asset should preserve unrelated derived assets.");
     Assert(reopened.Project.Collections.Single().AssetIds.Single() == derivedAsset.Id, "Recycled assets must be removed from project collection references.");
-    Assert(Directory.EnumerateFiles(Path.Combine(reopened.DirectoryPath, "recycle-bin")).Any(), "The project recycle bin should retain moved asset data.");
+    Assert(Directory.EnumerateFiles(Path.Combine(reopened.DirectoryPath, "回收站")).Any(), "The project recycle bin should retain moved asset data.");
     Assert((await service.GetRecycledAssetsAsync(reopened)).Single().Id == asset.Id, "Recycle-bin metadata should be readable for restore UI.");
 
     var restoredCount = await service.RestoreFromRecycleBinAsync(reopened, [asset.Id]);
@@ -208,6 +246,53 @@ static async Task VerifyProjectWorkspaceAsync(string directory)
     Assert(reopened.Project.Assets.Any(item => item.Id == asset.Id), "Restored project assets should retain their original stable ID.");
     Assert(reopened.Project.Collections.Single().AssetIds.SequenceEqual([derivedAsset.Id, asset.Id]), "Restoring an asset should restore its previous project collection membership.");
     Assert(File.Exists(Path.Combine(reopened.DirectoryPath, asset.RelativePath)), "Restoring an asset should recover its original project-relative file.");
+
+    var canvasService = new ProjectAiCanvasWorkspaceService();
+    var canvas = await canvasService.LoadAsync(reopened);
+    Assert(canvas.AssetNodes.Count == 0, "New projects should start with an empty AI canvas.");
+    canvas = await canvasService.AddAssetNodesAsync(reopened, canvas, [asset.Id, derivedAsset.Id]);
+    Assert(canvas.AssetNodes.Count == 2, "AI canvas nodes should be created from stable project asset IDs.");
+    canvas.AssetNodes[0].UseOriginalSize = true;
+    canvas.AssetNodes[0].Width = 1920d;
+    canvas.AssetNodes[0].Height = 1080d;
+    Assert(canvas.ReferenceAssetIds.SequenceEqual([asset.Id, derivedAsset.Id]), "AI canvas should retain ordered reference asset IDs.");
+    canvas = await canvasService.SetReferenceAssetsAsync(reopened, canvas, [derivedAsset.Id, asset.Id]);
+    Assert(canvas.ReferenceAssetIds.SequenceEqual([derivedAsset.Id, asset.Id]), "AI canvas should preserve user-defined reference order.");
+    Assert(File.Exists(Path.Combine(reopened.DirectoryPath, "canvas.json")), "AI canvas state should persist beside project.json.");
+    var reopenedCanvas = await canvasService.LoadAsync(reopened);
+    Assert(
+        reopenedCanvas.AssetNodes.Select(static node => node.AssetId).Order(StringComparer.Ordinal)
+            .SequenceEqual(new[] { asset.Id, derivedAsset.Id }.Order(StringComparer.Ordinal)),
+        "Reloading the AI canvas should preserve project asset references.");
+    Assert(reopenedCanvas.ReferenceAssetIds.SequenceEqual([derivedAsset.Id, asset.Id]), "Reloading the AI canvas should preserve reference ordering.");
+    Assert(reopenedCanvas.AssetNodes.Any(static node => node.UseOriginalSize && node.Width == 1920d && node.Height == 1080d), "AI canvas should preserve per-node original-size display choices.");
+    reopenedCanvas.GenerationDraft.Prompt = "canvas generation prompt";
+    reopenedCanvas.GenerationDraft.NegativePrompt = "avoid blur";
+    reopenedCanvas.GenerationDraft.AspectRatio = "16:9";
+    reopenedCanvas.GenerationDraft.ReferenceIntent = "风格参考";
+    reopenedCanvas.GenerationDraft.OutputCount = 2;
+    await canvasService.SaveAsync(reopened, reopenedCanvas);
+    var canvasWithDraft = await canvasService.LoadAsync(reopened);
+    Assert(canvasWithDraft.GenerationDraft.Prompt == "canvas generation prompt", "AI canvas should persist its generation prompt in the project.");
+    Assert(canvasWithDraft.GenerationDraft.AspectRatio == "16:9", "AI canvas should persist the selected generation aspect ratio.");
+    Assert(canvasWithDraft.GenerationDraft.ReferenceIntent == "风格参考", "AI canvas should persist reference intent without provider credentials.");
+    Assert(canvasWithDraft.GenerationDraft.OutputCount == 2, "AI canvas should persist the requested output count.");
+
+    var directDeleteAsset = await service.ImportImageAsync(reopened, sourcePath);
+    var directDeletePath = Path.Combine(reopened.DirectoryPath, directDeleteAsset.RelativePath);
+    var directDeleteCount = await service.DeleteAssetsPermanentlyAsync(reopened, [directDeleteAsset.Id]);
+    Assert(directDeleteCount == 1, "Active project assets should support direct permanent deletion.");
+    Assert(!reopened.Project.Assets.Any(item => item.Id == directDeleteAsset.Id) && !File.Exists(directDeletePath), "Direct deletion should remove both the asset record and its project file.");
+
+    recycledCount = await service.MoveToRecycleBinAsync(reopened, [asset.Id]);
+    Assert(recycledCount == 1, "A restored asset should be recyclable again before permanent deletion.");
+    var permanentlyDeletedCount = await service.DeleteFromRecycleBinAsync(reopened, [asset.Id]);
+    Assert(permanentlyDeletedCount == 1, "Selected recycle-bin assets should be permanently deletable.");
+    Assert(!(await service.GetRecycledAssetsAsync(reopened)).Any(item => item.Id == asset.Id), "Permanently deleted recycle-bin assets should no longer be listed.");
+
+    await service.ResetDefaultProjectsDirectoryAsync();
+    service = new ProjectWorkspaceService(userDataDirectory);
+    Assert(service.DefaultProjectsDirectory == service.BuiltInDefaultProjectsDirectory, "Resetting the project library directory should restore the built-in location.");
 
 }
 
@@ -333,6 +418,26 @@ static async Task VerifyComfyUiGenerationAsync()
         Prompt = "cancelled generation"
     }, profile, cancellation.Token);
     Assert(!cancelled.Success && cancelled.ErrorMessage.Contains("停止等待", StringComparison.Ordinal), "Cancelling generation should return an explicit local-wait status.");
+}
+
+static async Task VerifyApiTranslationChunkingAsync()
+{
+    var handler = new TranslationHttpMessageHandler();
+    using var client = new HttpClient(handler);
+    var service = new OpenAiCompatibleTranslationService(client);
+    var settings = new AppSettings
+    {
+        BaseUrl = "https://example.invalid/v1",
+        ApiKey = "translation-test-key",
+        Model = "deepseek-chat",
+        TargetLanguage = "zh-CN"
+    };
+
+    var source = new string('a', 5000);
+    var result = await service.TranslateAsync(source, settings);
+
+    Assert(result.Success, "A successful compatible API response should produce a translation result.");
+    Assert(handler.RequestCount == 1, "Ordinary long OCR text should use one API request instead of serial chunks.");
 }
 
 static void VerifyReleaseUpdateManifest()
@@ -533,4 +638,21 @@ sealed class ComfyUiHttpMessageHandler : HttpMessageHandler
     {
         Content = new StringContent(content, System.Text.Encoding.UTF8, "application/json")
     };
+}
+
+sealed class TranslationHttpMessageHandler : HttpMessageHandler
+{
+    public int RequestCount { get; private set; }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        RequestCount++;
+        return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                "{\"choices\":[{\"message\":{\"content\":\"translated\"}}]}",
+                System.Text.Encoding.UTF8,
+                "application/json")
+        });
+    }
 }

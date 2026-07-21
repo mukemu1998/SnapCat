@@ -12,6 +12,16 @@ internal static class AboutReleaseNotesService
         var normalized = NormalizeVersion(version);
         return normalized switch
         {
+            "0.6.0-preview" => new AboutReleaseNotes(
+                "本版更新：无限 AI 画布 MVP",
+                "新增面向项目素材、参考图与本地 ComfyUI 生图的普通无限 AI 画布。",
+                [
+                    "项目素材可拖入画布，支持无限平移缩放、框选、多选、原始尺寸切换和 F 键聚焦。",
+                    "支持有序参考图托盘、多图导入、拖入与粘贴，并可在画布中查看大图预览。",
+                    "底部快速输入台可选择本地 ComfyUI 配置、比例和输出数量，默认只生成 1 张图片。",
+                    "生成结果会自动导入当前项目和画布；画布布局、参考图顺序与生成草稿会随项目保存恢复。",
+                    "画布支持最小化、最大化、窗口缩放、右侧检查器收起和鸟瞰定位，保持独立运行。"
+                ]),
             "0.5.0-preview" => new AboutReleaseNotes(
                 "本版更新：项目与素材库",
                 "新增本地项目与素材库底座，图片可复制进独立项目目录并安全分类管理。",

@@ -10,6 +10,9 @@ public sealed class ProjectAsset
 
     public ProjectAssetCategory Category { get; set; } = ProjectAssetCategory.Unclassified;
 
+    // A user-defined label supplements the built-in asset categories without affecting storage paths.
+    public string CustomCategory { get; set; } = string.Empty;
+
     // Paths are always relative to the project root so a project can be moved safely.
     public string RelativePath { get; set; } = string.Empty;
 

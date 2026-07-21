@@ -277,6 +277,39 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ProjectCoverButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ProjectCardIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="MinWidth" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="MainWindowScrollThumbStyle" TargetType="Thumb">
             <Setter Property="MinHeight" Value="30" />
             <Setter Property="MinWidth" Value="0" />
@@ -2382,77 +2415,251 @@
                     <ScrollViewer x:Name="ProjectWorkspaceSection"
                                   VerticalScrollBarVisibility="Auto"
                                   Visibility="Collapsed">
-                        <StackPanel Margin="0,0,8,12">
+                        <StackPanel Margin="0,0,8,12"
+                                    Background="Transparent">
                             <Border Padding="14"
                                     Background="{DynamicResource Theme.Brush.SurfaceBackground}"
                                     BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
                                     BorderThickness="1"
                                     CornerRadius="12">
                                 <StackPanel>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel>
-                                            <TextBlock FontWeight="SemiBold" Text="当前项目" />
-                                            <TextBlock x:Name="ProjectWorkspaceNameTextBlock"
-                                                       Margin="0,8,0,0"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource Theme.Brush.Highlight}"
-                                                       Text="未打开项目" />
-                                            <TextBlock x:Name="ProjectWorkspacePathTextBlock"
-                                                       Margin="0,5,0,0"
-                                                       Foreground="{DynamicResource Theme.Brush.TextSecondary}"
-                                                       TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <Button x:Name="OpenProjectDirectoryButton"
-                                                 Grid.Column="1"
-                                                 Style="{StaticResource SectionActionButtonStyle}"
-                                                 VerticalAlignment="Top"
-                                                 Click="OpenProjectDirectoryButton_OnClick">打开目录</Button>
-                                    </Grid>
-                                    <StackPanel Margin="0,14,0,0">
+                                    <Border Margin="0,0,0,18"
+                                            Padding="12"
+                                            Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
                                         <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="92" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock VerticalAlignment="Center" Text="项目名称" />
-                                            <TextBox x:Name="ProjectNameTextBox"
-                                                     Grid.Column="1"
-                                                     MinWidth="160"
-                                                     VerticalContentAlignment="Center"
-                                                     Text="SnapCat 项目" />
+                                            <StackPanel>
+                                                <TextBlock FontWeight="SemiBold" Text="默认项目目录" />
+                                                <TextBlock Margin="0,4,0,0"
+                                                           Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                           Text="新建项目与本地项目卡片都会使用此目录；切换不会移动原有项目。" />
+                                            </StackPanel>
+                                            <Grid Grid.Column="1"
+                                                  Margin="12,0,0,0"
+                                                  VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="104" />
+                                                    <ColumnDefinition Width="8" />
+                                                    <ColumnDefinition Width="104" />
+                                                    <ColumnDefinition Width="8" />
+                                                    <ColumnDefinition Width="104" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button Grid.Column="0"
+                                                        Margin="0"
+                                                        MinWidth="0"
+                                                        Style="{StaticResource SectionActionButtonStyle}"
+                                                        Click="ChooseDefaultProjectsDirectoryButton_OnClick">选择目录</Button>
+                                                <Button Grid.Column="2"
+                                                        Margin="0"
+                                                        MinWidth="0"
+                                                        Style="{StaticResource SectionActionButtonStyle}"
+                                                        Click="OpenDefaultProjectsDirectoryButton_OnClick">打开目录</Button>
+                                                <Button Grid.Column="4"
+                                                        Margin="0"
+                                                        MinWidth="0"
+                                                        Style="{StaticResource SectionActionButtonStyle}"
+                                                        Click="ResetDefaultProjectsDirectoryButton_OnClick">恢复默认</Button>
+                                            </Grid>
+                                            <TextBox x:Name="DefaultProjectsDirectoryTextBox"
+                                                     Grid.Row="1"
+                                                     Grid.ColumnSpan="2"
+                                                     Margin="0,10,0,0"
+                                                     IsReadOnly="True"
+                                                     TextWrapping="NoWrap"
+                                                     ToolTip="当前用于新建和扫描 AI 画布项目的本地目录" />
                                         </Grid>
-                                        <WrapPanel Margin="92,10,0,0">
-                                            <Button Margin="0,0,10,8"
-                                                    Style="{StaticResource SectionActionButtonStyle}"
-                                                    Click="CreateProjectButton_OnClick">新建项目</Button>
-                                            <Button Margin="0,0,10,8"
-                                                    Style="{StaticResource SectionActionButtonStyle}"
-                                                    Click="OpenProjectButton_OnClick">打开项目</Button>
-                                            <Button x:Name="SaveProjectButton"
-                                                    Margin="0,0,10,8"
-                                                    Style="{StaticResource SectionActionButtonStyle}"
-                                                    IsEnabled="False"
-                                                    Click="SaveProjectButton_OnClick">保存项目</Button>
-                                            <Button x:Name="BackupProjectButton"
-                                                    Margin="0,0,10,8"
-                                                    Style="{StaticResource SectionActionButtonStyle}"
-                                                    IsEnabled="False"
-                                                    Click="BackupProjectButton_OnClick">备份项目</Button>
-                                        </WrapPanel>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="本地项目" />
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Foreground="{DynamicResource Theme.Brush.TextSecondary}"
+                                                   Text="点击封面选择项目；再次点击同一封面取消选中，悬浮卡片可编辑名称或删除项目。" />
                                     </StackPanel>
-                                    <TextBlock Margin="0,12,0,0"
+                                    <TextBlock x:Name="LocalProjectsEmptyTextBlock"
+                                               Margin="0,18,0,0"
                                                Foreground="{DynamicResource Theme.Brush.TextMuted}"
-                                               TextWrapping="Wrap"
-                                               Text="每个项目均使用独立 project.json，并包含 originals、generated、references、thumbnails、cache 与 recycle-bin 目录。项目可整体备份或移动；API Key 和用户配置不写入项目。" />
+                                               Text="本地项目目录暂时没有项目。" />
+                                    <ItemsControl x:Name="LocalProjectsItemsControl"
+                                                  Margin="0,10,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="ProjectCardRoot"
+                                                        Width="238"
+                                                        Height="196"
+                                                        Margin="0,0,14,14"
+                                                        Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="12">
+                                                    <Grid>
+                                                        <Grid.Clip>
+                                                            <RectangleGeometry Rect="0,0,236,194"
+                                                                               RadiusX="11"
+                                                                               RadiusY="11" />
+                                                        </Grid.Clip>
+                                                        <Button Style="{StaticResource ProjectCoverButtonStyle}"
+                                                                Cursor="Hand"
+                                                                Tag="{Binding}"
+                                                                Click="SelectProjectCardButton_OnClick">
+                                                            <Grid>
+                                                                <Border Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                                                        CornerRadius="11" />
+                                                                <Image Source="{Binding CoverImage}"
+                                                                       Stretch="UniformToFill"
+                                                                       RenderOptions.BitmapScalingMode="HighQuality">
+                                                                    <Image.Clip>
+                                                                        <RectangleGeometry Rect="0,0,236,194"
+                                                                                           RadiusX="11"
+                                                                                           RadiusY="11" />
+                                                                    </Image.Clip>
+                                                                </Image>
+                                                                <TextBlock x:Name="MissingProjectCoverTextBlock"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                                           Visibility="Collapsed"
+                                                                           Text="暂无封面" />
+                                                            </Grid>
+                                                        </Button>
+                                                        <Border VerticalAlignment="Bottom"
+                                                                Padding="10,8"
+                                                                CornerRadius="0,0,11,11"
+                                                                Background="{DynamicResource Theme.Brush.SurfaceBackground}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock x:Name="ProjectCardNameTextBlock"
+                                                                               FontWeight="SemiBold"
+                                                                               Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                                                               Text="{Binding Name}"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                    <TextBox x:Name="ProjectCardNameTextBox"
+                                                                             Padding="0"
+                                                                             Background="Transparent"
+                                                                             BorderThickness="0"
+                                                                             Foreground="{DynamicResource Theme.Brush.TextPrimary}"
+                                                                             FontWeight="SemiBold"
+                                                                             Text="{Binding EditableName, UpdateSourceTrigger=PropertyChanged}"
+                                                                             Tag="{Binding}"
+                                                                             Visibility="Collapsed"
+                                                                             KeyDown="ProjectCardNameTextBox_OnKeyDown"
+                                                                             LostKeyboardFocus="ProjectCardNameTextBox_OnLostKeyboardFocus" />
+                                                                    <TextBlock Margin="0,3,0,0"
+                                                                               FontSize="11"
+                                                                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                                               Text="{Binding UpdatedLabel}" />
+                                                                </StackPanel>
+                                                                <StackPanel x:Name="ProjectCardActions"
+                                                                            Grid.Column="1"
+                                                                            VerticalAlignment="Center"
+                                                                            Orientation="Horizontal"
+                                                                            Visibility="Collapsed">
+                                                                    <Button x:Name="EditProjectCardButton"
+                                                                            Style="{StaticResource ProjectCardIconButtonStyle}"
+                                                                            Tag="{Binding}"
+                                                                            ToolTip="编辑项目名称"
+                                                                            Click="EditProjectCardButton_OnClick">
+                                                                        <Viewbox Width="15" Height="15">
+                                                                            <Path Data="M3,13 L3,10 L11,2 L14,5 L6,13 Z M10,3 L13,6"
+                                                                                  Stroke="{DynamicResource Theme.Brush.TextPrimary}"
+                                                                                  StrokeThickness="1.6"
+                                                                                  StrokeLineJoin="Round"
+                                                                                  StrokeStartLineCap="Round"
+                                                                                  StrokeEndLineCap="Round" />
+                                                                        </Viewbox>
+                                                                    </Button>
+                                                                    <Button x:Name="DeleteProjectCardButton"
+                                                                            Margin="5,0,0,0"
+                                                                            Style="{StaticResource ProjectCardIconButtonStyle}"
+                                                                            Tag="{Binding}"
+                                                                            ToolTip="删除项目"
+                                                                            Click="DeleteProjectCardButton_OnClick">
+                                                                        <Viewbox Width="15" Height="15">
+                                                                            <Path Data="M3,5 L13,5 M6,5 L6,3 L10,3 L10,5 M5,7 L5,13 L11,13 L11,7 M7,8 L7,11 M9,8 L9,11"
+                                                                                  Stroke="{DynamicResource Theme.Brush.TextPrimary}"
+                                                                                  StrokeThickness="1.5"
+                                                                                  StrokeLineJoin="Round"
+                                                                                  StrokeStartLineCap="Round"
+                                                                                  StrokeEndLineCap="Round" />
+                                                                        </Viewbox>
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=ProjectCardRoot}" Value="True">
+                                                        <Setter TargetName="ProjectCardActions" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter TargetName="ProjectCardRoot" Property="BorderBrush" Value="{DynamicResource Theme.Brush.Highlight}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                        <Setter TargetName="ProjectCardNameTextBlock" Property="Visibility" Value="Collapsed" />
+                                                        <Setter TargetName="ProjectCardNameTextBox" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding HasCoverImage}" Value="False">
+                                                        <Setter TargetName="MissingProjectCoverTextBlock" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Grid Margin="0,4,0,0"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="112" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="112" />
+                                            <ColumnDefinition Width="10" />
+                                            <ColumnDefinition Width="124" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="0"
+                                                Height="36"
+                                                Margin="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="CreateProjectButton_OnClick">+ 新建项目</Button>
+                                        <Button Grid.Column="2"
+                                                Height="36"
+                                                Margin="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                Click="OpenProjectButton_OnClick">打开已有项目</Button>
+                                        <Button x:Name="OpenAiCanvasButton"
+                                                Grid.Column="4"
+                                                Height="36"
+                                                Margin="0"
+                                                VerticalContentAlignment="Center"
+                                                Style="{StaticResource SectionActionButtonStyle}"
+                                                IsEnabled="False"
+                                                Click="OpenAiCanvasButton_OnClick">打开 AI 画布</Button>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <Border Margin="0,12,0,0"
+                            <Border x:Name="ProjectAssetsPanelBorder"
+                                    Margin="0,12,0,0"
                                     Padding="14"
                                     Background="{DynamicResource Theme.Brush.SurfaceBackground}"
                                     BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
@@ -2465,7 +2672,7 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel>
-                                            <TextBlock FontWeight="SemiBold" Text="项目素材" />
+                                            <TextBlock FontWeight="SemiBold" Text="当前选中项目素材" />
                                             <TextBlock x:Name="ProjectAssetsSummaryTextBlock"
                                                        Margin="0,8,0,0"
                                                        Foreground="{DynamicResource Theme.Brush.TextSecondary}"
@@ -2473,17 +2680,6 @@
                                                        Text="新建或打开项目后，可导入图片作为后续视觉分析、参考图与生成工作流的素材。" />
                                         </StackPanel>
                                         <WrapPanel Grid.Column="1" HorizontalAlignment="Right">
-                                            <ComboBox x:Name="ProjectAssetCategoryComboBox"
-                                                      Width="126"
-                                                      Height="34"
-                                                      Margin="0,0,10,10"
-                                                      SelectedIndex="0">
-                                                <ComboBoxItem Tag="Unclassified">未分类</ComboBoxItem>
-                                                <ComboBoxItem Tag="Character">角色</ComboBoxItem>
-                                                <ComboBoxItem Tag="Scene">场景</ComboBoxItem>
-                                                <ComboBoxItem Tag="Prop">道具</ComboBoxItem>
-                                                <ComboBoxItem Tag="StyleReference">风格参考</ComboBoxItem>
-                                            </ComboBox>
                                             <Button x:Name="ImportProjectAssetsButton"
                                                     Style="{StaticResource SectionActionButtonStyle}"
                                                     IsEnabled="False"
@@ -2499,87 +2695,115 @@
                                         </WrapPanel>
                                     </Grid>
 
-                                    <WrapPanel Margin="0,4,0,4">
-                                        <TextBox x:Name="ProjectCollectionNameTextBox"
-                                                 Width="190"
-                                                 Height="34"
-                                                 Margin="0,0,10,8"
-                                                 VerticalContentAlignment="Center"
-                                                 ToolTip="输入集合名称；将当前选中的素材创建为一个可复用集合。"
-                                                 Text="新素材集合" />
-                                        <Button x:Name="CreateProjectCollectionButton"
-                                                Margin="0,0,10,8"
-                                                Style="{StaticResource SectionActionButtonStyle}"
-                                                IsEnabled="False"
-                                                Click="CreateProjectCollectionButton_OnClick">新建素材集合</Button>
-                                        <ComboBox x:Name="ProjectCollectionsComboBox"
-                                                  Width="190"
-                                                  Height="34"
-                                                  Margin="0,0,10,8"
-                                                  IsEnabled="False"
-                                                  SelectionChanged="ProjectCollectionsComboBox_OnSelectionChanged"
-                                                  ToolTip="选择一个已有集合，再用当前选中的素材更新它。" />
-                                        <Button x:Name="UpdateProjectCollectionButton"
-                                                Margin="0,0,10,8"
-                                                Style="{StaticResource SectionActionButtonStyle}"
-                                                IsEnabled="False"
-                                                Click="UpdateProjectCollectionButton_OnClick">更新集合成员</Button>
-                                    </WrapPanel>
+                                    <ComboBox x:Name="ProjectAssetCategoryFilterComboBox"
+                                              Width="220"
+                                              Margin="0,12,0,0"
+                                              HorizontalAlignment="Left"
+                                              SelectionChanged="ProjectAssetCategoryFilterComboBox_OnSelectionChanged" />
 
-                                    <TextBlock x:Name="ProjectAssetsEmptyTextBlock"
-                                               Margin="0,14,0,0"
-                                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
-                                               Text="当前没有项目素材。" />
+                                    <Border x:Name="ProjectAssetsEmptyTextBlock"
+                                            Margin="0,14,0,0"
+                                            MinHeight="118"
+                                            Padding="18"
+                                            AllowDrop="True"
+                                            Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
+                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Cursor="Hand"
+                                            DragOver="ProjectAssetsListBox_OnDragOver"
+                                            Drop="ProjectAssetsListBox_OnDrop"
+                                            Focusable="True"
+                                            MouseLeftButtonUp="ProjectAssetsEmptyDropZone_OnMouseLeftButtonUp"
+                                            PreviewKeyDown="ProjectAssetsListBox_OnPreviewKeyDown">
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock x:Name="ProjectAssetsEmptyTitleTextBlock"
+                                                       HorizontalAlignment="Center"
+                                                       FontWeight="SemiBold"
+                                                       Text="当前没有项目素材" />
+                                            <TextBlock x:Name="ProjectAssetsEmptyHintTextBlock"
+                                                       Margin="0,8,0,0"
+                                                       HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                       Text="点击导入图片，或直接拖入、按 Ctrl+V 粘贴图片" />
+                                        </StackPanel>
+                                    </Border>
 
                                     <ListBox x:Name="ProjectAssetsListBox"
                                              Margin="0,12,0,0"
                                              Style="{StaticResource HistoryListBoxStyle}"
-                                             MaxHeight="420"
+                                             MaxHeight="520"
+                                             AllowDrop="True"
                                              SelectionMode="Extended"
                                              SelectionChanged="ProjectAssetsListBox_OnSelectionChanged"
-                                             PreviewMouseRightButtonDown="ProjectAssetsListBox_OnPreviewMouseRightButtonDown">
+                                             PreviewMouseRightButtonDown="ProjectAssetsListBox_OnPreviewMouseRightButtonDown"
+                                             PreviewKeyDown="ProjectAssetsListBox_OnPreviewKeyDown"
+                                             DragOver="ProjectAssetsListBox_OnDragOver"
+                                             Drop="ProjectAssetsListBox_OnDrop">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Margin" Value="0,0,12,12" />
+                                                <Setter Property="Padding" Value="0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                <Setter Property="VerticalContentAlignment" Value="Top" />
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
                                         <ListBox.ContextMenu>
                                             <ContextMenu Style="{StaticResource MainContextMenuStyle}">
                                                 <MenuItem Header="打开图片位置"
                                                           Style="{StaticResource MainContextMenuItemStyle}"
                                                           Click="OpenSelectedProjectAssetMenuItem_OnClick" />
                                                 <Separator Style="{StaticResource MainContextMenuSeparatorStyle}" />
+                                                <MenuItem Header="更改分类..."
+                                                          Style="{StaticResource MainContextMenuItemStyle}"
+                                                          Click="SelectProjectAssetCategoryMenuItem_OnClick" />
+                                                <Separator Style="{StaticResource MainContextMenuSeparatorStyle}" />
                                                 <MenuItem Header="移入项目回收站"
                                                           Style="{StaticResource MainContextMenuItemStyle}"
                                                           Click="DeleteSelectedProjectAssetsMenuItem_OnClick" />
+                                                <MenuItem Header="彻底删除"
+                                                          Style="{StaticResource MainContextMenuItemStyle}"
+                                                          Click="PermanentlyDeleteSelectedProjectAssetsMenuItem_OnClick" />
                                             </ContextMenu>
                                         </ListBox.ContextMenu>
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <Grid Margin="0,3,22,3">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="104" />
-                                                        <ColumnDefinition Width="14" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Border Width="96"
-                                                            Height="72"
-                                                            Background="{DynamicResource Theme.Brush.ReadOnlyBackground}"
-                                                            BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="8"
-                                                            ClipToBounds="True">
-                                                        <Image Source="{Binding Thumbnail}"
-                                                               Stretch="Uniform"
-                                                               RenderOptions.BitmapScalingMode="HighQuality" />
-                                                    </Border>
-                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Title}"
-                                                                   FontWeight="SemiBold"
-                                                                   TextTrimming="CharacterEllipsis"
-                                                                   TextWrapping="NoWrap" />
-                                                        <TextBlock Margin="0,5,0,0"
-                                                                   Text="{Binding Summary}"
-                                                                   Foreground="{DynamicResource Theme.Brush.TextMuted}"
-                                                                   TextTrimming="CharacterEllipsis"
-                                                                   TextWrapping="NoWrap" />
-                                                    </StackPanel>
-                                                </Grid>
+                                                <Border Width="154"
+                                                        Height="156"
+                                                        Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                                                        BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="10"
+                                                        ClipToBounds="True">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="108" />
+                                                            <RowDefinition Height="*" />
+                                                        </Grid.RowDefinitions>
+                                                        <Border Background="{DynamicResource Theme.Brush.ReadOnlyBackground}">
+                                                            <Image Source="{Binding Thumbnail}"
+                                                                   Stretch="UniformToFill"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                                        </Border>
+                                                        <StackPanel Grid.Row="1" Margin="9,7,9,6">
+                                                            <TextBlock Text="{Binding Title}"
+                                                                       FontWeight="SemiBold"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       TextWrapping="NoWrap" />
+                                                            <TextBlock Margin="0,3,0,0"
+                                                                       FontSize="11"
+                                                                       Text="{Binding Summary}"
+                                                                       Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       TextWrapping="NoWrap" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
                                     </ListBox>
@@ -2594,31 +2818,84 @@
                                             <TextBlock x:Name="ProjectRecycleBinSummaryTextBlock"
                                                        FontWeight="SemiBold"
                                                        Text="项目回收站" />
-                                            <WrapPanel Margin="0,10,0,0">
-                                                    <Button x:Name="RefreshProjectRecycleBinButton"
-                                                            Margin="0,0,10,0"
-                                                            Style="{StaticResource SectionActionButtonStyle}"
-                                                            IsEnabled="False"
-                                                            Click="RefreshProjectRecycleBinButton_OnClick">刷新</Button>
-                                                    <Button x:Name="RestoreSelectedProjectAssetsButton"
-                                                            Style="{StaticResource SectionActionButtonStyle}"
-                                                            IsEnabled="False"
-                                                            Click="RestoreSelectedProjectAssetsButton_OnClick">恢复选中</Button>
-                                            </WrapPanel>
+                                            <Grid Margin="0,12,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="12" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="12" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button x:Name="RefreshProjectRecycleBinButton"
+                                                        Margin="0"
+                                                        Style="{StaticResource SectionActionButtonStyle}"
+                                                        IsEnabled="False"
+                                                        Click="RefreshProjectRecycleBinButton_OnClick">刷新</Button>
+                                                <Button x:Name="RestoreSelectedProjectAssetsButton"
+                                                        Grid.Column="2"
+                                                        Margin="0"
+                                                        Style="{StaticResource SectionActionButtonStyle}"
+                                                        IsEnabled="False"
+                                                        Click="RestoreSelectedProjectAssetsButton_OnClick">恢复选中</Button>
+                                                <Button x:Name="DeleteSelectedRecycledProjectAssetsButton"
+                                                        Grid.Column="4"
+                                                        Margin="0"
+                                                        Style="{StaticResource SectionActionButtonStyle}"
+                                                        IsEnabled="False"
+                                                        Click="DeleteSelectedRecycledProjectAssetsButton_OnClick">删除选中</Button>
+                                            </Grid>
                                             <ListBox x:Name="ProjectRecycleAssetsListBox"
                                                      Margin="0,10,0,0"
                                                      Style="{StaticResource HistoryListBoxStyle}"
-                                                     MaxHeight="160"
+                                                     MaxHeight="360"
                                                      SelectionMode="Extended"
                                                      SelectionChanged="ProjectRecycleAssetsListBox_OnSelectionChanged">
+                                                <ListBox.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ListBox.ItemsPanel>
+                                                <ListBox.ItemContainerStyle>
+                                                    <Style TargetType="ListBoxItem">
+                                                        <Setter Property="Margin" Value="0,0,12,12" />
+                                                        <Setter Property="Padding" Value="0" />
+                                                        <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                        <Setter Property="VerticalContentAlignment" Value="Top" />
+                                                    </Style>
+                                                </ListBox.ItemContainerStyle>
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <StackPanel Margin="6,4">
-                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                            <TextBlock Margin="0,4,0,0"
-                                                                       Text="{Binding Summary}"
-                                                                       Foreground="{DynamicResource Theme.Brush.TextMuted}" />
-                                                        </StackPanel>
+                                                        <Border Width="154"
+                                                                Height="156"
+                                                                Background="{DynamicResource Theme.Brush.SurfaceAltBackground}"
+                                                                BorderBrush="{DynamicResource Theme.Brush.ButtonBorder}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="10"
+                                                                ClipToBounds="True">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="108" />
+                                                                    <RowDefinition Height="*" />
+                                                                </Grid.RowDefinitions>
+                                                                <Border Background="{DynamicResource Theme.Brush.ReadOnlyBackground}">
+                                                                    <Image Source="{Binding Thumbnail}"
+                                                                           Stretch="UniformToFill"
+                                                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                                                </Border>
+                                                                <StackPanel Grid.Row="1" Margin="9,7,9,6">
+                                                                    <TextBlock Text="{Binding Title}"
+                                                                               FontWeight="SemiBold"
+                                                                               TextTrimming="CharacterEllipsis"
+                                                                               TextWrapping="NoWrap" />
+                                                                    <TextBlock Margin="0,3,0,0"
+                                                                               FontSize="11"
+                                                                               Text="{Binding Summary}"
+                                                                               Foreground="{DynamicResource Theme.Brush.TextMuted}"
+                                                                               TextTrimming="CharacterEllipsis"
+                                                                               TextWrapping="NoWrap" />
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
                                             </ListBox>

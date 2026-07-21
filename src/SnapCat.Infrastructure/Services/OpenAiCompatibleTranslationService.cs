@@ -8,10 +8,12 @@ namespace SnapCat.Infrastructure.Services;
 
 public sealed class OpenAiCompatibleTranslationService : ITranslationService
 {
-    private const int PreferredChunkLength = 1600;
-    private const int RetryChunkLength = 900;
-    private const int MinimumChunkLength = 350;
-    private const int ContextTailLength = 220;
+    // Most OpenAI-compatible providers accept several thousand characters per request.
+    // Keeping ordinary OCR text in one request avoids serial model round trips.
+    private const int PreferredChunkLength = 6000;
+    private const int RetryChunkLength = 2400;
+    private const int MinimumChunkLength = 700;
+    private const int ContextTailLength = 500;
 
     private readonly HttpClient _httpClient;
 

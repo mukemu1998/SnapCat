@@ -52,6 +52,7 @@ public partial class App : WpfApplication
         CapturedImageFileService = services.CapturedImageFileService;
         GeneratedImageFileService = services.GeneratedImageFileService;
         ProjectWorkspaceService = services.ProjectWorkspaceService;
+        AiCanvasWorkspaceService = services.AiCanvasWorkspaceService;
         GlobalHotkeyService = services.GlobalHotkeyService;
         TrayIconService = services.TrayIconService;
         PinnedWindowRegistryService = services.PinnedWindowRegistryService;
@@ -93,6 +94,8 @@ public partial class App : WpfApplication
     public GeneratedImageFileService GeneratedImageFileService { get; private set; } = null!;
 
     public IProjectWorkspaceService ProjectWorkspaceService { get; private set; } = null!;
+
+    public IAiCanvasWorkspaceService AiCanvasWorkspaceService { get; private set; } = null!;
 
     public GlobalHotkeyService GlobalHotkeyService { get; private set; } = null!;
 

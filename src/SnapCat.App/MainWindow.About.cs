@@ -15,6 +15,7 @@ public partial class MainWindow
     private const string ProjectIssuesUrl = "https://github.com/mukemu1998/SnapCat/issues";
     private const string ProjectReleasesUrl = "https://github.com/mukemu1998/SnapCat/releases";
     private const string ReleasesApiUrl = "https://api.github.com/repos/mukemu1998/SnapCat/releases?per_page=20";
+    private UpdateProgressWindow? _updateProgressWindow;
 
     private void OpenProjectHomeButton_OnClick(object sender, RoutedEventArgs e)
     {
@@ -172,6 +173,7 @@ public partial class MainWindow
             AboutUpdateProgressBar.IsIndeterminate = false;
             AboutUpdateStatusTextBlock.Text = $"自动升级准备失败：{exception.Message}";
             AboutUpdateProgressTextBlock.Text = "自动升级准备失败，请查看下方状态信息后重试或手动下载。";
+            _updateProgressWindow?.ShowFailure($"自动升级准备失败：{exception.Message}");
             StatusTextBlock.Text = "自动升级失败。";
             AppendOperationLog($"自动升级准备失败：{exception.Message}");
         }
@@ -201,6 +203,9 @@ public partial class MainWindow
 
         AboutUpdateProgressTextBlock.Text = detail;
         AboutUpdateStatusTextBlock.Text = detail;
+
+        EnsureUpdateProgressWindow();
+        _updateProgressWindow!.Report(stage, version, percent, isIndeterminate ?? percent is null);
     }
 
     private void HideUpdateProgress()
@@ -210,6 +215,26 @@ public partial class MainWindow
         AboutUpdateProgressBar.Value = 0;
         AboutUpdateProgressPercentTextBlock.Text = string.Empty;
         AboutUpdateProgressTextBlock.Text = string.Empty;
+        if (_updateProgressWindow is { IsVisible: true })
+        {
+            _updateProgressWindow.Dismiss();
+        }
+
+        _updateProgressWindow = null;
+    }
+
+    private void EnsureUpdateProgressWindow()
+    {
+        if (_updateProgressWindow is not null)
+        {
+            return;
+        }
+
+        _updateProgressWindow = new UpdateProgressWindow
+        {
+            Owner = this
+        };
+        _updateProgressWindow.Show();
     }
 
     private static ReleasePackageKind GetCurrentPackageKind()
